@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["common_type_aliases","html_templating","server", "storage", "user"]
+members = ["common_type_aliases","html_templating", "id_generator", "password_hashing", "read_on_dev_embed_on_release","server", "session", "storage", "user"]
 
 [workspace.dependencies]
 urlencoding = "2.1.3"

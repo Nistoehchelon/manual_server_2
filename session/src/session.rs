@@ -1,8 +1,6 @@
-use crate::{
-    field_count_trait::FieldCount,
-    id_generator::generate_id,
-    storage::{self, TextStorable},
-};
+
+use storage::TextStorable;
+use id_generator::generate_id;
 
 #[derive(Debug, Clone)]
 pub struct Session {
@@ -10,12 +8,11 @@ pub struct Session {
     pub user_id: String,
     pub logged_in: bool,
 }
-impl FieldCount for Session {
+
+impl TextStorable for Session {
     fn field_count() -> usize {
         3
     }
-}
-impl TextStorable for Session {
     fn to_fields(&self) -> Vec<String> {
         vec![
             self.id.clone(),
@@ -51,12 +48,11 @@ pub struct SessionNotification {
     pub session_id: String,
     pub message: String,
 }
-impl FieldCount for SessionNotification {
+
+impl TextStorable for SessionNotification {
     fn field_count() -> usize {
         2
     }
-}
-impl TextStorable for SessionNotification {
     fn to_fields(&self) -> Vec<String> {
         vec![self.session_id.clone(), self.message.clone()]
     }

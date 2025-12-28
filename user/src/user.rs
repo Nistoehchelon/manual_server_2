@@ -1,79 +1,6 @@
-use crate::{
-    common_type_aliases,
-    field_count_trait::FieldCount,
-    id_generator::generate_id,
-    password_hashing,
-    storage::{self, TextStorable},
-};
+use crate::user_structs_and_so_on::User;
 
-pub const ADMIN_LVL: common_type_aliases::AccessLevel = 3;
-pub const USER_LVL: common_type_aliases::AccessLevel = 1;
 
-#[derive(Debug, PartialEq)]
-pub enum Action {
-    CreateThread,
-    CreateForum,
-    DeleteThread,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct User {
-    pub id: String,
-    pub username: String,
-    pub password_hash: String,
-    pub bio: String,
-    pub access_level: usize,
-}
-impl User {
-    pub fn can(&self, action: Action) -> bool {
-        match action {
-            Action::CreateForum => self.access_level >= ADMIN_LVL,
-            Action::CreateThread => self.access_level >= USER_LVL,
-            _ => panic!("Invalid action {action:?}"),
-        }
-    }
-}
-// update this on altering struct User
-impl FieldCount for User {
-    fn field_count() -> usize {
-        5
-    }
-}
-
-impl TextStorable for User {
-    fn to_fields(&self) -> Vec<String> {
-        vec![
-            self.id.clone(),
-            self.username.clone(),
-            self.password_hash.clone(),
-            self.bio.clone(),
-            self.access_level.clone().to_string(),
-        ]
-    }
-    fn from_fields(fields: Vec<String>) -> Option<Self> {
-        if fields.len() != Self::field_count() {
-            panic!(
-                "Mismatch of expected struct fields. Expected: {}, got: {}",
-                Self::field_count(),
-                fields.len()
-            );
-        }
-        let access_level_str = fields[4].clone();
-        let access_level = access_level_str
-            .parse::<usize>()
-            .expect(format!("Could not parse String {access_level_str} into usize").as_str());
-        Some(Self {
-            id: fields[0].clone(),
-            username: fields[1].clone(),
-            password_hash: fields[2].clone(),
-            bio: fields[3].clone(),
-            access_level: access_level,
-        })
-    }
-    fn file_name() -> &'static str {
-        "users"
-    }
-}
 
 pub fn get_user_by_user_id(user_id: String) -> Option<User> {
     // the point of this separation is to allow to at some point use a DB like Postgres if I wanted to
@@ -142,7 +69,7 @@ pub fn get_by_username_and_password(username: String, password: String) -> Resul
 }
 
 fn generate_user_id() -> String {
-    generate_id()
+    id_generator::generate_id()
 }
 
 // TXT storage specific functions. Theoretically, this separation should allow for mysql/Postgres use in the future if I wanted to

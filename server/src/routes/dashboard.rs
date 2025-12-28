@@ -1,10 +1,8 @@
 use crate::{
-    common_html_css::{get_footer_html, get_header_html},
-    escape_html,
     redirect::to,
-    session::Session,
-    user,
 };
+use session::Session;
+use user;
 
 pub fn get(session: Session) -> String {
     if !session.logged_in {
@@ -16,13 +14,10 @@ pub fn get(session: Session) -> String {
     format!(
         "HTTP/1.1 200 OK\r\n\
          Content-Type: text/html\r\n\r\n\
-          {}
              <h1>Hello, {}!</h1>
              <p>Welcome to your dashboard.</p>
              <p><a href='/logout'>Logout</a></p>
-             {}",
-        get_header_html("Dashboard".to_string()),
-        escape_html::escape_html(user.username),
-        get_footer_html()
+             ",
+            user.username,
     )
 }

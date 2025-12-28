@@ -1,4 +1,4 @@
-use crate::{ field_count_trait::FieldCount, };
+
 use storage::storage::TextStorable;
 
 pub const ADMIN_LVL: common_type_aliases::AccessLevel = 3;
@@ -8,6 +8,7 @@ pub const USER_LVL: common_type_aliases::AccessLevel = 1;
 pub enum Action {
     CreateThread,
     CreateForum,
+    DeleteThread,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -27,14 +28,11 @@ impl User {
         }
     }
 }
-// update this on altering struct User
-impl FieldCount for User {
+
+impl TextStorable for User {
     fn field_count() -> usize {
         5
     }
-}
-
-impl TextStorable for User {
     fn to_fields(&self) -> Vec<String> {
         vec![
             self.id.clone(),

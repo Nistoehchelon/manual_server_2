@@ -13,3 +13,7 @@ hex = {workspace = true}
 r2d2 = {workspace = true}
 r2d2_postgres = {workspace = true}
 html_templating = {path="../html_templating"}
+storage = {path = "../storage"}
+read_on_dev_embed_on_release = {path = "../read_on_dev_embed_on_release"}
+session = {path = "../session"}
+user = {path = "../user"}

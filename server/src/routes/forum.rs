@@ -1,12 +1,13 @@
 use crate::{
-    common_html_css::surround_content_with_header_and_footer,
     forum::{self, Forum, ForumThread, get_forum_by_id},
     http_request_parsing::Query,
     http_response,
     redirect::to,
-    session::{Session, add_session_notification},
-    user::{User, get_user_by_user_id},
+   
 };
+use  session::{Session, add_session_notification};
+   use user::{User, get_user_by_user_id};
+
 
 pub fn get(session: Session, query: Query) -> String {
     let forum_id = 'forum_id: {
@@ -41,9 +42,9 @@ pub fn get(session: Session, query: Query) -> String {
     http_response::ok(html)
 }
 
-fn get_html(title: String, user: User, forum: Forum, forum_threads: Vec<ForumThread>) -> String {
+fn get_html(_title: String, user: User, forum: Forum, forum_threads: Vec<ForumThread>) -> String {
     let mut main_content = format!("");
-    if user.can(crate::user::Action::CreateForum) {
+    if user.can(user::Action::CreateForum) {
         let forum_id = forum.id.clone();
         let add = format!(
             r##"
@@ -52,7 +53,7 @@ fn get_html(title: String, user: User, forum: Forum, forum_threads: Vec<ForumThr
         );
         main_content = format!("{}{}", add, main_content);
     }
-    if user.can(crate::user::Action::CreateThread) {
+    if user.can(user::Action::CreateThread) {
         let forum_id = forum.id.clone();
         let add = format!(
             r##"
@@ -66,5 +67,5 @@ fn get_html(title: String, user: User, forum: Forum, forum_threads: Vec<ForumThr
         main_content = format!("{main_content}<br>This forum is currently empty.");
     }
 
-    surround_content_with_header_and_footer(main_content, title)
+   main_content
 }

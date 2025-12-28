@@ -1,7 +1,8 @@
 use crate::{
     redirect::to,
-    session::{Session, edit_session},
+
 };
+use session::{Session, edit_session};
 
 pub fn get(mut session: Session) -> String {
     session.logged_in = false;

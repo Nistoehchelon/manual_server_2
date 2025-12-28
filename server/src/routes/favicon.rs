@@ -1,4 +1,4 @@
-use crate::read_resource_file_on_dev_or_embed_on_release::read_on_dev_embed_on_release;
+use read_on_dev_embed_on_release::read_on_dev_embed_on_release;
 
 pub fn get() -> Vec<u8> {
     let favicon_bytes = read_on_dev_embed_on_release("favicon.ico");

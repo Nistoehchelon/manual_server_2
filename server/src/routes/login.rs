@@ -1,13 +1,13 @@
 use crate::{
-    common_html_css::{get_footer_html, get_header_html},
     http_request_parsing::parse_username_and_password_from_body,
     redirect::{self, to},
-    session::{
+
+};
+ use     session::{
         Session, add_session_notification, edit_session, notifications_to_str,
         read_and_delete_session_notifications,
-    },
-    user::get_by_username_and_password,
-};
+    };
+    use    user::get_by_username_and_password;
 
 pub fn get(session: Session) -> String {
     if session.logged_in {
@@ -16,12 +16,10 @@ pub fn get(session: Session) -> String {
     format!(
         "HTTP/1.1 200 OK\r\n\
          Content-Type: text/html\r\n\r\n\
-        {}{}{}",
-        get_header_html("Login Page".to_string()),
+        {}",
         get_html(notifications_to_str(read_and_delete_session_notifications(
             session.id.clone()
         ))),
-        get_footer_html()
     )
 }
 

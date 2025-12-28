@@ -289,7 +289,13 @@ name = "html_templating"
 version = "0.1.0"
 dependencies = [
  "askama",
+ "session",
+ "user",
 ]
+
+[[package]]
+name = "id_generator"
+version = "0.1.0"
 
 [[package]]
 name = "itoa"
@@ -393,6 +399,15 @@ dependencies = [
  "redox_syscall 0.5.18",
  "smallvec",
  "windows-link",
+]
+
+[[package]]
+name = "password_hashing"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "hex",
+ "rand",
 ]
 
 [[package]]
@@ -559,6 +574,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "read_on_dev_embed_on_release"
+version = "0.1.0"
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -656,8 +675,20 @@ dependencies = [
  "r2d2",
  "r2d2_postgres",
  "rand",
+ "read_on_dev_embed_on_release",
+ "session",
+ "storage",
  "urlencoding",
+ "user",
  "uuid",
+]
+
+[[package]]
+name = "session"
+version = "0.1.0"
+dependencies = [
+ "id_generator",
+ "storage",
 ]
 
 [[package]]
@@ -843,6 +874,8 @@ name = "user"
 version = "0.1.0"
 dependencies = [
  "common_type_aliases",
+ "id_generator",
+ "password_hashing",
  "storage",
 ]
 

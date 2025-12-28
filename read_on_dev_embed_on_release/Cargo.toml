@@ -1,0 +1,6 @@
+[package]
+name = "read_on_dev_embed_on_release"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]

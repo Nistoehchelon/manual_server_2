@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 askama = { workspace = true, features = ["std", "derive"] }
+session = {path="../session"}
+user = {path="../user"}

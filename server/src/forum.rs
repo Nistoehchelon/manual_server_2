@@ -1,28 +1,17 @@
-use crate::{
-    field_count_trait::FieldCount,
-    storage::{TextStorable, read_contents},
-};
+use storage::TextStorable;
 
-#[derive(Clone, Debug, Default)]
-pub struct Forum {
-    pub id: String,
-    pub name: String,
-    pub parent_id: String,
-    pub access_level: usize,
-}
+
 #[derive(Clone, Debug, Default)]
 pub struct ForumThread {
     pub id: String,
     pub name: String,
     pub forum_id: String,
 }
-impl FieldCount for ForumThread {
+
+impl TextStorable for ForumThread {
     fn field_count() -> usize {
         3
     }
-}
-
-impl TextStorable for ForumThread {
     fn to_fields(&self) -> Vec<String> {
         vec![self.id.clone(), self.name.clone(), self.forum_id.clone()]
     }
@@ -45,13 +34,18 @@ impl TextStorable for ForumThread {
     }
 }
 
-impl FieldCount for Forum {
-    fn field_count() -> usize {
-        4
-    }
+#[derive(Clone, Debug, Default)]
+pub struct Forum {
+    pub id: String,
+    pub name: String,
+    pub parent_id: String,
+    pub access_level: usize,
 }
 
 impl TextStorable for Forum {
+    fn field_count() -> usize {
+        4
+    }
     fn to_fields(&self) -> Vec<String> {
         vec![
             self.id.clone(),
@@ -96,7 +90,7 @@ pub fn get_forum_by_id(id: String) -> Option<Forum> {
 }
 
 pub fn get_forum_threads(forum_id: String) -> Vec<ForumThread> {
-    let all_threads = read_contents::<ForumThread>();
+    let all_threads = storage::read_contents::<ForumThread>();
     let mut forum_threads: Vec<ForumThread> = vec![];
     for t in all_threads {
         if !(t.forum_id == forum_id) {
@@ -108,7 +102,7 @@ pub fn get_forum_threads(forum_id: String) -> Vec<ForumThread> {
 }
 
 fn storage_specific_get_forum_by_id(id: String) -> Option<Forum> {
-    let forums = read_contents::<Forum>();
+    let forums = storage::read_contents::<Forum>();
     let mut exists = false;
     let mut forum = Forum::default();
     for f in forums {

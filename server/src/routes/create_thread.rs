@@ -1,10 +1,9 @@
-use crate::common_html_css::surround_content_with_header_and_footer;
 use crate::forum::get_forum_by_id;
 use crate::http_request_parsing::Query;
 use crate::http_response::ok;
 use crate::redirect::to;
-use crate::session::{Session, add_session_notification};
-use crate::user;
+use session::{Session, add_session_notification};
+use user;
 
 pub fn get(session: Session, query: Query) -> String {
     let user = user::get_user_by_user_id(session.user_id.clone()).unwrap();
@@ -33,7 +32,7 @@ pub fn get(session: Session, query: Query) -> String {
     ))
 }
 
-fn get_html(title: String, forum_id: String) -> String {
+fn get_html(_title: String, forum_id: String) -> String {
     let html = format!(
         r##"
     <a href="/forum?id={forum_id}">Back to forum</a><br>
@@ -45,5 +44,5 @@ fn get_html(title: String, forum_id: String) -> String {
     </form>
     "##
     );
-    surround_content_with_header_and_footer(format!("{}", html), title)
+    format!("{}", html)
 }

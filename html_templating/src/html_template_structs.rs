@@ -1,6 +1,7 @@
 use askama::Template;
 
-use crate::{session::SessionNotification, user::User};
+use session::SessionNotification;
+use user::User;
 
 pub struct MainInfo {
     pub title: String,

@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 common_type_aliases = {path="../common_type_aliases"}
 storage = {path="../storage"}
+password_hashing = {path="../password_hashing"}
+id_generator = {path = "../id_generator"}

@@ -1,4 +1,4 @@
-use manual_server::password_hashing::{HashAndSalt, hash_password, verify_password};
+use password_hashing::{HashAndSalt, hash_password, verify_password};
 
 #[test]
 fn hashes_and_verifies_how_i_would_expect_it_to() {

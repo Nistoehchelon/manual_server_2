@@ -34,6 +34,7 @@ pub fn get_name_of_cookie_containing_session_id() -> String {
 }
 
 pub trait TextStorable: Sized {
+    fn field_count() -> usize;
     fn to_fields(&self) -> Vec<String>;
 
     fn from_fields(fields: Vec<String>) -> Option<Self>;

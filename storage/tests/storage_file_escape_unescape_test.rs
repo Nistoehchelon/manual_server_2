@@ -1,4 +1,4 @@
-use manual_server::storage::{
+use storage::{
     FIELD_SEPARATOR, FILE_ENDING_MARKER, RECORD_SEPARATOR, escape, unescape,
 };
 

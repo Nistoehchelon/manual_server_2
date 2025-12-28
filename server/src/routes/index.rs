@@ -1,10 +1,9 @@
 
-use crate::{
-    html_template_structs::{IndexLoggedInTemplate, IndexNotLoggedInTemplate, MainInfo},
-    html_templating,
-    session::{Session, SessionNotification, read_and_delete_session_notifications},
-    user::{ get_user_by_user_id},
-};
+use 
+    html_templating::html_template_structs::{IndexLoggedInTemplate, IndexNotLoggedInTemplate, MainInfo};
+
+    use session::{Session, SessionNotification, read_and_delete_session_notifications};
+    use user::{ get_user_by_user_id};
  
 pub fn get(session: Session) -> String {
     format!(

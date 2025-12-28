@@ -1,25 +1,18 @@
-use crate::{field_count_trait::FieldCount, storage::TextStorable};
+use storage::TextStorable;
 
-#[derive(Clone, Debug, Default)]
-pub struct Forum {
-    pub id: String,
-    pub name: String,
-    pub parent_id: String,
-    pub access_level: usize,
-}
+
 #[derive(Clone, Debug, Default)]
 pub struct ForumThread {
     pub id: String,
     pub name: String,
     pub forum_id: String,
 }
-impl FieldCount for ForumThread {
+
+
+impl TextStorable for ForumThread {
     fn field_count() -> usize {
         3
     }
-}
-
-impl TextStorable for ForumThread {
     fn to_fields(&self) -> Vec<String> {
         vec![self.id.clone(), self.name.clone(), self.forum_id.clone()]
     }
@@ -42,13 +35,19 @@ impl TextStorable for ForumThread {
     }
 }
 
-impl FieldCount for Forum {
+#[derive(Clone, Debug, Default)]
+pub struct Forum {
+    pub id: String,
+    pub name: String,
+    pub parent_id: String,
+    pub access_level: usize,
+}
+
+
+impl TextStorable for Forum {
     fn field_count() -> usize {
         4
     }
-}
-
-impl TextStorable for Forum {
     fn to_fields(&self) -> Vec<String> {
         vec![
             self.id.clone(),

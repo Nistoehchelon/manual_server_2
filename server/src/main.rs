@@ -1,6 +1,6 @@
-use server::db;
-use server::db::DbPool;
-use server::env::get_env;
+use db_manager;
+use db_manager::DbPool;
+use env_reader::get_env;
 use server::http_request_parsing;
 use server::redirect::to;
 use server::routes;
@@ -18,7 +18,7 @@ use std::net::{TcpListener, TcpStream};
 
 fn main() {
     let env = get_env();
-    let db_pool = db::get_pool(env.database_str);
+    let db_pool = db_manager::get_pool(env.database_str);
 
     let listener = TcpListener::bind(env.ip_and_port.clone()).expect("Failed to bind to address");
     println!("Server listening on http://{}", env.ip_and_port.clone());

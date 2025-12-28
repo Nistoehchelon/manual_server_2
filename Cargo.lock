@@ -184,6 +184,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "db_manager"
+version = "0.1.0"
+dependencies = [
+ "postgres",
+ "r2d2",
+ "r2d2_postgres",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -193,6 +202,10 @@ dependencies = [
  "crypto-common",
  "subtle",
 ]
+
+[[package]]
+name = "env_reader"
+version = "0.1.0"
 
 [[package]]
 name = "fallible-iterator"
@@ -205,6 +218,13 @@ name = "find-msvc-tools"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "645cbb3a84e60b7531617d5ae4e57f7e27308f6445f5abf653209ea76dec8dff"
+
+[[package]]
+name = "forum"
+version = "0.1.0"
+dependencies = [
+ "storage",
+]
 
 [[package]]
 name = "futures-channel"
@@ -669,11 +689,11 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "db_manager",
+ "env_reader",
+ "forum",
  "hex",
  "html_templating",
- "postgres",
- "r2d2",
- "r2d2_postgres",
  "rand",
  "read_on_dev_embed_on_release",
  "session",

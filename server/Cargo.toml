@@ -5,15 +5,18 @@ edition = "2024"
 
 [dependencies]
 urlencoding = {workspace = true}
-postgres = {workspace = true}
+
 uuid = {workspace = true}
 blake3 = {workspace = true}
 rand = {workspace = true}
 hex = {workspace = true}
-r2d2 = {workspace = true}
-r2d2_postgres = {workspace = true}
+
 html_templating = {path="../html_templating"}
 storage = {path = "../storage"}
 read_on_dev_embed_on_release = {path = "../read_on_dev_embed_on_release"}
 session = {path = "../session"}
 user = {path = "../user"}
+env_reader = {path = "../env_reader"}
+db_manager = {path = "../db_manager"}
+forum = {path = "../forum"}
+

@@ -1,4 +1,4 @@
-use crate::forum::get_forum_by_id;
+use forum::get_forum_by_id;
 use crate::http_request_parsing::Query;
 use crate::http_response::ok;
 use crate::redirect::to;

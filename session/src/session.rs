@@ -1,5 +1,6 @@
 
-use storage::TextStorable;
+use std::ops::Deref;
+
 use id_generator::generate_id;
 
 #[derive(Debug, Clone)]
@@ -9,69 +10,10 @@ pub struct Session {
     pub logged_in: bool,
 }
 
-impl TextStorable for Session {
-    fn field_count() -> usize {
-        3
-    }
-    fn to_fields(&self) -> Vec<String> {
-        vec![
-            self.id.clone(),
-            self.user_id.clone(),
-            self.logged_in.clone().to_string(),
-        ]
-    }
-    fn from_fields(fields: Vec<String>) -> Option<Self> {
-        if fields.len() != Self::field_count() {
-            panic!(
-                "Mismatch of expected struct fields. Expected: {}, got: {}",
-                Self::field_count(),
-                fields.len()
-            );
-        }
-        let logged_in_bool = fields[2]
-            .clone()
-            .parse()
-            .expect("Could not parse into bool");
-        Some(Self {
-            id: fields[0].clone(),
-            user_id: fields[1].clone(),
-            logged_in: logged_in_bool,
-        })
-    }
-    fn file_name() -> &'static str {
-        "sessions"
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct SessionNotification {
     pub session_id: String,
     pub message: String,
-}
-
-impl TextStorable for SessionNotification {
-    fn field_count() -> usize {
-        2
-    }
-    fn to_fields(&self) -> Vec<String> {
-        vec![self.session_id.clone(), self.message.clone()]
-    }
-    fn from_fields(fields: Vec<String>) -> Option<Self> {
-        if fields.len() != Self::field_count() {
-            panic!(
-                "Mismatch of expected struct fields. Expected: {}, got: {}",
-                Self::field_count(),
-                fields.len()
-            );
-        }
-        Some(Self {
-            session_id: fields[0].clone(),
-            message: fields[1].clone(),
-        })
-    }
-    fn file_name() -> &'static str {
-        "session_notifications"
-    }
 }
 
 pub fn notifications_to_str(notifications: Vec<SessionNotification>) -> String {
@@ -127,11 +69,8 @@ pub fn create_new_session_with_id(new_id: String, db_pool: &db_manager::DbPool) 
 // separation between general functions above and storage specific stuff (txt vs mysql)
 
 fn storage_specific_add_session(session: Session, db_pool: &db_manager::DbPool) {
-    let mut sessions = read_sessions();
-
-    sessions.push(session.clone());
-
-    write_sessions(sessions.clone());
+    let mut client = db_manager::get_client(db_pool.clone());
+    client.execute("INSERT INTO sessions (id, user_id, logged_in) VALUES ($1, $2, $3)", &[&session.id, &session.user_id, &session.logged_in]).unwrap();
 }
 
 fn storage_specific_get_session_by_session_id(session_id: String) -> Option<Session> {
@@ -183,17 +122,17 @@ fn storage_specific_add_session_notification(session_id: String, message: String
 }
 
 fn write_session_notifications(session_notifications: Vec<SessionNotification>) {
-    storage::write_contents::<SessionNotification>(session_notifications).unwrap();
+    todo!();
 }
 
 fn read_session_notifications() -> Vec<SessionNotification> {
-    storage::read_contents::<SessionNotification>()
+    todo!();
 }
 
 fn write_sessions(sessions: Vec<Session>) {
-    storage::write_contents::<Session>(sessions).unwrap();
+    todo!();
 }
 
 fn read_sessions() -> Vec<Session> {
-    storage::read_contents::<Session>()
+    todo!();
 }

@@ -1,0 +1,5 @@
+{% extends "index_base.html" %}
+
+{% block logged_in_or_not %}
+<b>You are logged in as {{ user.username }}</b> [ <a href="/logout">Logout</a>] <br>
+{% endblock %}

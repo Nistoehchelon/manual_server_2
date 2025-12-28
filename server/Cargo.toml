@@ -1,0 +1,15 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+urlencoding = {workspace = true}
+postgres = {workspace = true}
+uuid = {workspace = true}
+blake3 = {workspace = true}
+rand = {workspace = true}
+hex = {workspace = true}
+r2d2 = {workspace = true}
+r2d2_postgres = {workspace = true}
+html_templating = {path="../html_templating"}

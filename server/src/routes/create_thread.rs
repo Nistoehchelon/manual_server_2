@@ -1,6 +1,7 @@
-use forum::get_forum_by_id;
+use forum::{Forum, get_forum_by_id};
+use html_templating::html_template_structs;
 use crate::http_request_parsing::Query;
-use crate::http_response::ok;
+use crate::http_response::ok_html;
 use crate::redirect::to;
 use session::{Session, add_session_notification};
 use user;
@@ -26,23 +27,21 @@ pub fn get(session: Session, query: Query) -> String {
     if !user.can(user::Action::CreateThread) {
         return to("/forum".to_string());
     }
-    ok(get_html(
+    ok_html(get_html(
         format!(r##"Create a thread in forum {}"##, forum.name.clone()),
-        forum.id.clone(),
+        forum.clone(), session::read_and_delete_session_notifications(session.id.clone())
     ))
 }
 
-fn get_html(_title: String, forum_id: String) -> String {
-    let html = format!(
-        r##"
-    <a href="/forum?id={forum_id}">Back to forum</a><br>
-    <form method="POST" action="/create_thread">
-        Thread name:<br> <input name="name"><br>
-        Thread  content:<br> <textarea name="content"></textarea><br>
-        <button type="submit">Submit</button><br>
-        <input type = "hidden" name ="forum_id" value = "{forum_id}">
-    </form>
-    "##
+fn get_html(title: String, forum: Forum, notifications: Vec<session::SessionNotification>) -> String {
+    let html = html_templating::render(
+        html_template_structs::CreateThreadTemplate {
+            main_info: html_template_structs::MainInfo {
+                title, notifications,
+
+            }, forum,
+        }
     );
-    format!("{}", html)
+
+    return html;
 }

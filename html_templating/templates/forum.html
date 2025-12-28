@@ -1,0 +1,17 @@
+{% extends "template_base.html" %}
+
+{% block content %}
+ {% if user.can(user::Action::CreateForum) %}
+ <a href="/create_forum?parent_id={{ forum.id }}">Create a forum</a><br>
+ {% endif %}
+ {% if user.can(user::Action::CreateThread) %}
+ <a href="/create_thread?forum_id={{ forum.id }}">Create a thread</a><br>
+ {% endif %}
+
+ {% if forum_threads.len() == 0 %}
+    This forum is currently empty
+ {% else %} 
+    
+ {% endif %}
+
+{% endblock %}

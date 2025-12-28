@@ -3,9 +3,9 @@ use crate::{
     redirect::{self, to},
 
 };
- use     session::{
-        Session, add_session_notification, edit_session, notifications_to_str,
-        read_and_delete_session_notifications,
+ use html_templating::html_template_structs;
+use     session::{
+        Session, SessionNotification, add_session_notification, edit_session, read_and_delete_session_notifications
     };
     use    user::get_by_username_and_password;
 
@@ -13,14 +13,10 @@ pub fn get(session: Session) -> String {
     if session.logged_in {
         return redirect::to("/".to_string());
     }
-    format!(
-        "HTTP/1.1 200 OK\r\n\
-         Content-Type: text/html\r\n\r\n\
-        {}",
-        get_html(notifications_to_str(read_and_delete_session_notifications(
+    crate::http_response::ok_html(
+        get_html(read_and_delete_session_notifications(
             session.id.clone()
-        ))),
-    )
+        )))
 }
 
 pub fn post(session: Session, body: String) -> String {
@@ -55,16 +51,7 @@ pub fn post(session: Session, body: String) -> String {
     redirect::to("/".to_string())
 }
 
-fn get_html(notifications_str: String) -> String {
-    format!(
-        r##"
-        Login page: 
-        {notifications_str}
-        <form action="/login" method="POST">
-        Username:<br><input type="text" name="username"><br>
-        Password:<br><input type="text" name="password"><br>
-        <input type="submit" value="Login">
-        </form>
-    "##
-    )
+fn get_html(notifications: Vec<SessionNotification>) -> String {
+    let html = html_templating::render(html_template_structs::LoginTemplate { main_info: html_template_structs::MainInfo { title: format!("Login"), notifications }  });
+    return html;
 }

@@ -1,0 +1,8 @@
+{% extends "template_base.html" %}
+
+{% block content%}
+{% include "includes/notifications.html" %}
+<h1>Hello, {{ username }}!</h1><br>
+<p>Welcome to your dashboard.</p>
+<p><a href='/logout'>Logout</a></p>
+{%endblock%}

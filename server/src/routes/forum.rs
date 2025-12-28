@@ -5,7 +5,8 @@ use crate::{
    
 };
 use  forum::{Forum, ForumThread, get_forum_by_id};
-use  session::{Session, add_session_notification};
+use html_templating::html_template_structs::{self, MainInfo};
+use  session::{Session, SessionNotification, add_session_notification, read_and_delete_session_notifications};
    use user::{User, get_user_by_user_id};
 
 
@@ -37,35 +38,23 @@ pub fn get(session: Session, query: Query) -> String {
         return to("/forum".to_string());
     }
     let forum_threads = forum::get_forum_threads(forum.id.clone());
-    let title = "Forum".to_string();
-    let html = get_html(title, user, forum, forum_threads);
-    http_response::ok(html)
+    let title = format!("Forum \"{}\"", forum.name);
+    let notifications = read_and_delete_session_notifications(session.id.clone());
+    let html = get_html(title, user, forum, forum_threads, notifications);
+    http_response::ok_html(html)
 }
 
-fn get_html(_title: String, user: User, forum: Forum, forum_threads: Vec<ForumThread>) -> String {
-    let mut main_content = format!("");
-    if user.can(user::Action::CreateForum) {
-        let forum_id = forum.id.clone();
-        let add = format!(
-            r##"
-        <a href="/create_forum?parent_id={forum_id}">Create a forum</a><br>
-        "##
-        );
-        main_content = format!("{}{}", add, main_content);
-    }
-    if user.can(user::Action::CreateThread) {
-        let forum_id = forum.id.clone();
-        let add = format!(
-            r##"
-        <a href="/create_thread?parent_id={forum_id}">New thread</a><br>
-        "##
-        );
-        main_content = format!("{}{}", add, main_content);
-    }
-
-    if forum_threads.len() == 0 {
-        main_content = format!("{main_content}<br>This forum is currently empty.");
-    }
-
-   main_content
+fn get_html(title: String, user: User, forum: Forum, forum_threads: Vec<ForumThread>, notifications: Vec<SessionNotification>) -> String { 
+    let html = html_templating::render(
+        html_template_structs::ForumTemplate {
+            main_info: MainInfo {
+                title,
+                notifications,
+            },
+            user,
+            forum,
+            forum_threads,
+        }
+    );
+    return html;
 }

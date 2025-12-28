@@ -1,11 +1,8 @@
-use crate::{
-    http_request_parsing::parse_username_and_password_from_body,
-    redirect::to,
-};
+use crate::{http_request_parsing::parse_username_and_password_from_body, redirect::to};
+use html_templating::html_template_structs::{self, MainInfo};
 use session::{
-        Session, add_session_notification, edit_session, notifications_to_str,
-        read_and_delete_session_notifications,
-    };
+    Session, add_session_notification, edit_session, read_and_delete_session_notifications,
+};
 use user::try_to_create_new_user;
 
 pub fn get(session: Session) -> String {
@@ -18,24 +15,18 @@ pub fn get(session: Session) -> String {
     }
 
     // Show username form
-    format!(
-        "HTTP/1.1 200 OK\r\n\
-         Content-Type: text/html\r\n\r\n\
-         {}",
-        get_signup_html(notifications_to_str(read_and_delete_session_notifications(
-            session.id.clone()
-        ))),
-    )
+    crate::http_response::ok_html(get_signup_html(read_and_delete_session_notifications(
+        session.id.clone(),
+    )))
 }
 
-fn get_signup_html(notifications: String) -> String {
-    format!("<h1>Sign up</h1>
-            {notifications}
-             <form method='POST' action='/signup'>
-                 <input type='text' name='username' placeholder='Enter your username' required><br>
-                 <input type='password' name='password' placeholder='Enter your password' required><br>
-                 <input type='submit' value='Create a new account!'>
-             </form>")
+fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
+    return html_templating::render(html_template_structs::SignupTemplate {
+        main_info: MainInfo {
+            title: format!("Signup"),
+            notifications: notifications,
+        },
+    });
 }
 
 pub fn post(session: Session, body: String) -> String {

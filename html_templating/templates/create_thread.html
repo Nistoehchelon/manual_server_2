@@ -1,0 +1,11 @@
+{% extends "template_base.html" %}
+
+{% block content %}
+<a href="/forum?id={{ forum.id }}">Back to forum "{{ forum.name }}"</a><br>
+<form method="POST" action="/create_thread">
+    Thread name:<br> <input name="name"><br>
+    Thread content:<br> <textarea name="content"></textarea><br>
+    <button type="submit">Submit</button><br>
+    <input type="hidden" name="forum_id" value="{{ forum.id }}">
+</form>
+{% endblock %}

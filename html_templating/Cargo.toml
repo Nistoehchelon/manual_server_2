@@ -7,3 +7,4 @@ edition = "2024"
 askama = { workspace = true, features = ["std", "derive"] }
 session = {path="../session"}
 user = {path="../user"}
+forum = {path="../forum"}

@@ -5,11 +5,12 @@ use session::{
 };
 use user::try_to_create_new_user;
 
-pub fn get(session: Session) -> String {
+pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
     if session.logged_in {
         add_session_notification(
             session.id.clone(),
             "You are already logged in, so signup is unaccessible. Log out first?".to_string(),
+            db_pool,
         );
         return to("/".to_string());
     }
@@ -29,20 +30,20 @@ fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
     });
 }
 
-pub fn post(session: Session, body: String) -> String {
+pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> String {
     if session.logged_in {
         return to("/".to_string());
     }
 
     let parse_result = parse_username_and_password_from_body(body.clone());
     if parse_result.is_err() {
-        add_session_notification(session.id.clone(), String::from("Invalid body"));
+        add_session_notification(session.id.clone(), String::from("Invalid body"), db_pool);
         return to("/".to_string());
     }
     let (username, password) = parse_result.unwrap();
     let access_level = 1;
 
-    match try_to_create_new_user(username, password, access_level) {
+    match try_to_create_new_user(username, password, access_level, db_pool) {
         Ok(user) => {
             let mut modified_session = session.clone();
             modified_session.logged_in = true;
@@ -50,7 +51,7 @@ pub fn post(session: Session, body: String) -> String {
             edit_session(modified_session);
         }
         Err(error_message) => {
-            add_session_notification(session.id, error_message);
+            add_session_notification(session.id, error_message, db_pool);
             return to("/signup".to_string());
         }
     }

@@ -13,7 +13,7 @@ pub fn get_forum_by_id(id: String) -> Option<Forum> {
 }
 
 pub fn get_forum_threads(forum_id: String) -> Vec<ForumThread> {
-    let all_threads = storage::read_contents::<ForumThread>();
+    let all_threads = read_threads();
     let mut forum_threads: Vec<ForumThread> = vec![];
     for t in all_threads {
         if !(t.forum_id == forum_id) {
@@ -25,7 +25,7 @@ pub fn get_forum_threads(forum_id: String) -> Vec<ForumThread> {
 }
 
 fn storage_specific_get_forum_by_id(id: String) -> Option<Forum> {
-    let forums = storage::read_contents::<Forum>();
+    let forums = read_forums();
     let mut exists = false;
     let mut forum = Forum::default();
     for f in forums {
@@ -38,4 +38,12 @@ fn storage_specific_get_forum_by_id(id: String) -> Option<Forum> {
         return None;
     }
     Some(forum)
+}
+
+fn read_threads() -> Vec<ForumThread> {
+    todo!();
+}
+
+fn read_forums() -> Vec<Forum> {
+    todo!();
 }

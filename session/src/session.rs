@@ -88,8 +88,8 @@ pub fn edit_session(modified_session: Session) {
     storage_specific_edit_session(modified_session);
 }
 
-pub fn add_session_notification(session_id: String, message: String) {
-    storage_specific_add_session_notification(session_id, message);
+pub fn add_session_notification(session_id: String, message: String, db_pool: &db_manager::DbPool) {
+    storage_specific_add_session_notification(session_id, message, db_pool);
 }
 
 pub fn read_and_delete_session_notifications(session_id: String) -> Vec<SessionNotification> {
@@ -98,14 +98,14 @@ pub fn read_and_delete_session_notifications(session_id: String) -> Vec<SessionN
     notifications_associated_with_the_session_id
 }
 
-pub fn session_with_specified_id_exists(session_id: String) -> bool {
-    if get_session_by_session_id(session_id.clone()).is_none() {
+pub fn session_with_specified_id_exists(session_id: String, db_pool: &db_manager::DbPool) -> bool {
+    if get_session_by_session_id(session_id.clone(), db_pool).is_none() {
         return false;
     }
     true
 }
 
-pub fn get_session_by_session_id(session_id: String) -> Option<Session> {
+pub fn get_session_by_session_id(session_id: String, db_pool: &db_manager::DbPool) -> Option<Session> {
     storage_specific_get_session_by_session_id(session_id)
 }
 
@@ -113,20 +113,20 @@ pub fn generate_session_id() -> String {
     generate_id()
 }
 
-pub fn create_new_session_with_id(new_id: String) -> Session {
+pub fn create_new_session_with_id(new_id: String, db_pool: &db_manager::DbPool) -> Session {
     let new_session = Session {
         id: new_id.clone(),
         user_id: String::new(),
         logged_in: false,
     };
 
-    storage_specific_add_session(new_session.clone());
+    storage_specific_add_session(new_session.clone(), db_pool);
     new_session
 }
 
 // separation between general functions above and storage specific stuff (txt vs mysql)
 
-fn storage_specific_add_session(session: Session) {
+fn storage_specific_add_session(session: Session, db_pool: &db_manager::DbPool) {
     let mut sessions = read_sessions();
 
     sessions.push(session.clone());
@@ -172,7 +172,7 @@ fn storage_specific_edit_session(modified_session: Session) {
     write_sessions(new_sessions);
 }
 
-fn storage_specific_add_session_notification(session_id: String, message: String) {
+fn storage_specific_add_session_notification(session_id: String, message: String, db_pool: &db_manager::DbPool) {
     let notification = SessionNotification {
         session_id,
         message,

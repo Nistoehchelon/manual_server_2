@@ -19,25 +19,28 @@ pub fn get(session: Session) -> String {
         )))
 }
 
-pub fn post(session: Session, body: String) -> String {
+pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> String {
     if session.logged_in {
         add_session_notification(
             session.id.clone(),
             String::from("You are already logged in."),
+            db_pool,
         );
         return to(String::from("/"));
     }
     let parse_result = parse_username_and_password_from_body(body);
     if parse_result.is_err() {
-        add_session_notification(session.id.clone(), parse_result.unwrap_err());
+        add_session_notification(session.id.clone(), parse_result.unwrap_err(), db_pool,);
         return to("/".to_string());
     }
     let (username, password) = parse_result.unwrap();
-    let user_result = get_by_username_and_password(username, password);
+    let user_result = get_by_username_and_password(username, password, db_pool);
     if user_result.is_err() {
         add_session_notification(
             session.id.clone(),
             "Username and/or password incorrect".to_string(),
+            db_pool,
+            
         );
         return to("/login".to_string());
     }
@@ -47,7 +50,7 @@ pub fn post(session: Session, body: String) -> String {
     session.logged_in = true;
     edit_session(session.clone());
 
-    add_session_notification(session.id, "Successfully logged in! Welcome!".to_string());
+    add_session_notification(session.id, "Successfully logged in! Welcome!".to_string(), db_pool);
     redirect::to("/".to_string())
 }
 

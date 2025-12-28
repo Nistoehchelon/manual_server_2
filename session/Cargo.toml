@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 id_generator = {path="../id_generator"}
 storage = {path="../storage"}
+db_manager = {path="../db_manager"}

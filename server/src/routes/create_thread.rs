@@ -6,8 +6,8 @@ use crate::redirect::to;
 use session::{Session, add_session_notification};
 use user;
 
-pub fn get(session: Session, query: Query) -> String {
-    let user = user::get_user_by_user_id(session.user_id.clone()).unwrap();
+pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> String {
+    let user = user::get_user_by_user_id(session.user_id.clone(), db_pool).unwrap();
     let forum_id = query
         .get("forum_id")
         .cloned()
@@ -15,12 +15,12 @@ pub fn get(session: Session, query: Query) -> String {
 
     let forum = get_forum_by_id(forum_id.clone());
     if !forum.is_some() {
-        add_session_notification(session.id.clone(), format!("Forum not found"));
+        add_session_notification(session.id.clone(), format!("Forum not found"), db_pool);
         return to("/forum".to_string());
     }
     let forum = forum.unwrap();
     if forum.access_level > user.access_level {
-        add_session_notification(session.id.clone(), format!("Forum not found"));
+        add_session_notification(session.id.clone(), format!("Forum not found"), db_pool);
         return to("/forum".to_string());
     }
 

@@ -29,14 +29,14 @@ fn main() {
         let stream = stream.unwrap();
 
         thread_pool.execute(move || {
-            handle_connection(stream, db_pool);
+            handle_connection(stream, &db_pool);
         });
     }
 
     println!("Shutting down server.");
 }
 
-fn handle_connection(mut stream: TcpStream, _db_pool: DbPool) {
+fn handle_connection(mut stream: TcpStream, db_pool: &DbPool) {
 
     let request_data = match http_request_parsing::parse_request_data(&mut stream) {
         Some(data) => data,
@@ -57,7 +57,7 @@ fn handle_connection(mut stream: TcpStream, _db_pool: DbPool) {
         let session_id: String =
             match cookies.get(storage::get_name_of_cookie_containing_session_id().as_str()) {
                 Some(session_id) => {
-                    if !session::session_with_specified_id_exists(session_id.clone()) {
+                    if !session::session_with_specified_id_exists(session_id.clone(), &db_pool) {
                         will_set_cookie = true;
                         session::generate_session_id()
                     } else {
@@ -69,10 +69,10 @@ fn handle_connection(mut stream: TcpStream, _db_pool: DbPool) {
                     session::generate_session_id()
                 }
             };
-        if session::session_with_specified_id_exists(session_id.clone()) {
-            session::get_session_by_session_id(session_id.clone()).unwrap()
+        if session::session_with_specified_id_exists(session_id.clone(), db_pool) {
+            session::get_session_by_session_id(session_id.clone(), db_pool).unwrap()
         } else {
-            session::create_new_session_with_id(session_id.clone())
+            session::create_new_session_with_id(session_id.clone(), db_pool)
         }
     };
 
@@ -93,11 +93,12 @@ fn handle_connection(mut stream: TcpStream, _db_pool: DbPool) {
             add_session_notification(
                 session.id.clone(),
                 format!("Page {path} is inaccessible at this particular nanosecond *sigh*"),
+                db_pool
             );
             break 'response_block to("/".to_string()).into_bytes();
         }
         if session.logged_in {
-            if !get_user_by_user_id(session.user_id.clone()).is_some() {
+            if !get_user_by_user_id(session.user_id.clone(), db_pool).is_some() {
                 let mut modified_session = session.clone();
                 modified_session.logged_in = false;
                 modified_session.user_id = "".to_string();
@@ -106,19 +107,19 @@ fn handle_connection(mut stream: TcpStream, _db_pool: DbPool) {
             }
         }
         match (method.as_str(), path.as_str()) {
-            ("GET", "/signup") => routes::signup::get(session).into_bytes(),
-            ("POST", "/signup") => routes::signup::post(session, body.clone()).into_bytes(),
-            ("GET", "/dashboard") => routes::dashboard::get(session).into_bytes(),
+            ("GET", "/signup") => routes::signup::get(session,db_pool).into_bytes(),
+            ("POST", "/signup") => routes::signup::post(session, body.clone(), db_pool).into_bytes(),
+            ("GET", "/dashboard") => routes::dashboard::get(session, db_pool,).into_bytes(),
             ("GET", "/logout") => routes::logout::get(session).into_bytes(),
             ("GET", "/login") => routes::login::get(session).into_bytes(),
-            ("POST", "/login") => routes::login::post(session, body.clone()).into_bytes(),
-            ("GET", "/forum") => routes::forum::get(session, query).into_bytes(),
-            ("GET", "/create_thread") => routes::create_thread::get(session, query).into_bytes(),
+            ("POST", "/login") => routes::login::post(session, body.clone(), db_pool).into_bytes(),
+            ("GET", "/forum") => routes::forum::get(session, query, db_pool).into_bytes(),
+            ("GET", "/create_thread") => routes::create_thread::get(session, query, db_pool).into_bytes(),
 
             // static resources
             ("GET", "/stylesheet.css") => routes::stylesheet::get().into_bytes(),
             ("GET", "/favicon.ico") => routes::favicon::get(),
-            _ => routes::index::get(session).into_bytes(),
+            _ => routes::index::get(session, db_pool).into_bytes(),
         }
     };
 

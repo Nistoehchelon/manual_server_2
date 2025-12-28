@@ -10,7 +10,7 @@ use  session::{Session, SessionNotification, add_session_notification, read_and_
    use user::{User, get_user_by_user_id};
 
 
-pub fn get(session: Session, query: Query) -> String {
+pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> String {
     let forum_id = 'forum_id: {
         for kv in query.clone() {
             if kv.0 == "id" {
@@ -24,16 +24,18 @@ pub fn get(session: Session, query: Query) -> String {
         add_session_notification(
             session.id.clone(),
             format!("Forum with id {} could not be found", forum_id),
+            db_pool,
         );
         return to("/forum".to_string());
     }
     let forum = forum_lookup_result.unwrap();
-    let user = get_user_by_user_id(session.user_id.clone()).unwrap();
+    let user = get_user_by_user_id(session.user_id.clone(), db_pool).unwrap();
     if forum.access_level > user.access_level {
         // sneaky message, tehee
         add_session_notification(
             session.id.clone(),
             format!("Forum with id {} could not be found", forum_id),
+            db_pool
         );
         return to("/forum".to_string());
     }

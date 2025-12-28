@@ -704,6 +704,7 @@ dependencies = [
 name = "session"
 version = "0.1.0"
 dependencies = [
+ "db_manager",
  "id_generator",
  "storage",
 ]
@@ -891,6 +892,7 @@ name = "user"
 version = "0.1.0"
 dependencies = [
  "common_type_aliases",
+ "db_manager",
  "id_generator",
  "password_hashing",
  "storage",

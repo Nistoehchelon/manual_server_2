@@ -317,6 +317,9 @@ dependencies = [
 [[package]]
 name = "id_generator"
 version = "0.1.0"
+dependencies = [
+ "uuid",
+]
 
 [[package]]
 name = "itoa"
@@ -781,6 +784,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tests"
+version = "0.1.0"
+dependencies = [
+ "db_manager",
+ "env_reader",
+ "id_generator",
+ "session",
+]
+
+[[package]]
 name = "tinyvec"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -896,6 +909,17 @@ dependencies = [
  "id_generator",
  "password_hashing",
  "storage",
+]
+
+[[package]]
+name = "uuid"
+version = "1.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2e054861b4bd027cd373e18e8d8d8e6548085000e41290d95ce0c373a654b4a"
+dependencies = [
+ "getrandom",
+ "js-sys",
+ "wasm-bindgen",
 ]
 
 [[package]]

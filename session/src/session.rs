@@ -48,7 +48,7 @@ pub fn session_with_specified_id_exists(session_id: String, db_pool: &db_manager
 }
 
 pub fn get_session_by_session_id(session_id: String, db_pool: &db_manager::DbPool) -> Option<Session> {
-    storage_specific_get_session_by_session_id(session_id)
+    storage_specific_get_session_by_session_id(session_id, db_pool)
 }
 
 pub fn generate_session_id() -> String {
@@ -73,12 +73,8 @@ fn storage_specific_add_session(session: Session, db_pool: &db_manager::DbPool) 
     client.execute("INSERT INTO sessions (id, user_id, logged_in) VALUES ($1, $2, $3)", &[&session.id, &session.user_id, &session.logged_in]).unwrap();
 }
 
-fn storage_specific_get_session_by_session_id(session_id: String) -> Option<Session> {
-    let sessions = read_sessions();
-    sessions
-        .iter()
-        .find(|session| session.id == session_id)
-        .cloned()
+fn storage_specific_get_session_by_session_id(session_id: String, db_pool: &db_manager::DbPool) -> Option<Session> {
+ todo!()
 }
 
 fn storage_specific_read_and_delete_session_notifications(

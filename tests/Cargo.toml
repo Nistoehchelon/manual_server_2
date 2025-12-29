@@ -1,0 +1,11 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+db_manager = { path = "../db_manager" }
+env_reader = { path = "../env_reader" }
+session = { path = "../session" }
+id_generator = { path = "../id_generator" }
+

@@ -12,5 +12,7 @@ pub fn get_pool(db_str: String) -> DbPool {
 }
 
 pub fn get_client(pool: DbPool) -> DbClient {
-    return pool.get().unwrap();
+    let client = pool.get().expect("Could not get client");
+    return client;
 }
+

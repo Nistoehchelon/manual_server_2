@@ -17,5 +17,16 @@ a:hover {
 }
 
 #notifications {
+  font-weight: bolder;
+
+}
+
+.error {
+  color: red;
+}
+.success {
+  color: green;
+}
+.information {
   color: blue;
 }

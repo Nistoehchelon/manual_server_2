@@ -9,12 +9,12 @@ use     session::{
     };
     use    user::get_by_username_and_password;
 
-pub fn get(session: Session) -> String {
+pub fn get(db_pool: &db_manager::DbPool, session: Session) -> String {
     if session.logged_in {
         return redirect::to("/".to_string());
     }
     crate::http_response::ok_html(
-        get_html(read_and_delete_session_notifications(
+        get_html(read_and_delete_session_notifications(db_pool,
             session.id.clone()
         )))
 }
@@ -22,25 +22,21 @@ pub fn get(session: Session) -> String {
 pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> String {
     if session.logged_in {
         add_session_notification(
-            session.id.clone(),
-            String::from("You are already logged in."),
             db_pool,
+            SessionNotification { session_id: session.id.clone(), message: format!("You are already logged in."), notification_type: session::SessionNotificationType::Information }
         );
         return to(String::from("/"));
     }
     let parse_result = parse_username_and_password_from_body(body);
     if parse_result.is_err() {
-        add_session_notification(session.id.clone(), parse_result.unwrap_err(), db_pool,);
+        add_session_notification(db_pool, SessionNotification{message: parse_result.unwrap_err(), session_id: session.id.clone(), notification_type: session::SessionNotificationType::Error},);
         return to("/".to_string());
     }
     let (username, password) = parse_result.unwrap();
     let user_result = get_by_username_and_password(username, password, db_pool);
     if user_result.is_err() {
         add_session_notification(
-            session.id.clone(),
-            "Username and/or password incorrect".to_string(),
-            db_pool,
-            
+            db_pool, SessionNotification { session_id: session.id.clone(), message: format!("Username and/or password incorrect"), notification_type: session::SessionNotificationType::Error }            
         );
         return to("/login".to_string());
     }
@@ -48,9 +44,9 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
     let mut session = Session { ..session };
     session.user_id = user.id.clone();
     session.logged_in = true;
-    edit_session(session.clone());
+    edit_session(db_pool, session.id.clone(), session.clone());
 
-    add_session_notification(session.id, "Successfully logged in! Welcome!".to_string(), db_pool);
+    add_session_notification(db_pool, SessionNotification { session_id: session.clone().id, message: format!("Successfully logged in! Welcome!"), notification_type: session::SessionNotificationType::Success });
     redirect::to("/".to_string())
 }
 

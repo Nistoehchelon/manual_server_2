@@ -10,7 +10,7 @@ pub fn get(session: Session,  db_pool: &db_manager::DbPool,) -> String {
         return to("/".to_string());
     }
     let user = user::get_user_by_user_id(session.user_id.clone(), db_pool).unwrap();
-    let notifications = session::read_and_delete_session_notifications(session.id.clone());
+    let notifications = session::read_and_delete_session_notifications(db_pool, session.id.clone());
     let html = html_templating::render(
         html_template_structs::DashboardTemplate{main_info: MainInfo {title: format!("Your Dashboard"), notifications}, username: user.username.clone()}
     );

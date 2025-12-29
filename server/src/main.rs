@@ -6,6 +6,7 @@ use server::redirect::to;
 use server::routes;
 use session;
 use session::Session;
+use session::SessionNotification;
 use session::add_session_notification;
 use storage;
 use server::thread_pool;
@@ -90,10 +91,9 @@ fn handle_connection(mut stream: TcpStream, db_pool: &DbPool) {
             .into_bytes();
         }
         if !check_if_user_can_access_path(session.clone(), path.clone()) {
-            add_session_notification(
-                session.id.clone(),
-                format!("Page {path} is inaccessible at this particular nanosecond *sigh*"),
-                db_pool
+            add_session_notification(db_pool,
+               SessionNotification {notification_type: session::SessionNotificationType::Error, session_id: session.id.clone(),
+                message: format!("Page {path} is inaccessible at this particular nanosecond *sigh*"),}
             );
             break 'response_block to("/".to_string()).into_bytes();
         }
@@ -102,7 +102,7 @@ fn handle_connection(mut stream: TcpStream, db_pool: &DbPool) {
                 let mut modified_session = session.clone();
                 modified_session.logged_in = false;
                 modified_session.user_id = "".to_string();
-                session::edit_session(modified_session);
+                session::edit_session(db_pool, modified_session.id.clone(), modified_session);
                 break 'response_block to("/".to_string()).into_bytes();
             }
         }
@@ -110,8 +110,8 @@ fn handle_connection(mut stream: TcpStream, db_pool: &DbPool) {
             ("GET", "/signup") => routes::signup::get(session,db_pool).into_bytes(),
             ("POST", "/signup") => routes::signup::post(session, body.clone(), db_pool).into_bytes(),
             ("GET", "/dashboard") => routes::dashboard::get(session, db_pool,).into_bytes(),
-            ("GET", "/logout") => routes::logout::get(session).into_bytes(),
-            ("GET", "/login") => routes::login::get(session).into_bytes(),
+            ("GET", "/logout") => routes::logout::get(db_pool, session).into_bytes(),
+            ("GET", "/login") => routes::login::get(db_pool, session).into_bytes(),
             ("POST", "/login") => routes::login::post(session, body.clone(), db_pool).into_bytes(),
             ("GET", "/forum") => routes::forum::get(session, query, db_pool).into_bytes(),
             ("GET", "/create_thread") => routes::create_thread::get(session, query, db_pool).into_bytes(),

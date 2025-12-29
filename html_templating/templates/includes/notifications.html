@@ -1,5 +1,5 @@
 <div id = "notifications">
 {% for notif in main_info.notifications.iter() %}
-    <p>{{ notif.message }}</p><br>
+    <p class ="{{notif.notification_type}}">{{ notif.message }}</p><br>
 {% endfor %}
 </div>

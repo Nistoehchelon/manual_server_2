@@ -22,9 +22,12 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Stri
     let forum_lookup_result = get_forum_by_id(forum_id.clone());
     if forum_lookup_result.is_none() {
         add_session_notification(
-            session.id.clone(),
-            format!("Forum with id {} could not be found", forum_id),
             db_pool,
+            SessionNotification {
+                 session_id: session.id.clone(),
+                    message: format!("Forum with id {} could not be found", forum_id),
+                    notification_type: session::SessionNotificationType::Error
+            }
         );
         return to("/forum".to_string());
     }
@@ -33,15 +36,14 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Stri
     if forum.access_level > user.access_level {
         // sneaky message, tehee
         add_session_notification(
-            session.id.clone(),
-            format!("Forum with id {} could not be found", forum_id),
-            db_pool
+            db_pool,
+            SessionNotification { session_id: session.id.clone(), message: format!("Forum with id {} could not be found", forum_id), notification_type: session::SessionNotificationType::Error }
         );
         return to("/forum".to_string());
     }
     let forum_threads = forum::get_forum_threads(forum.id.clone());
     let title = format!("Forum \"{}\"", forum.name);
-    let notifications = read_and_delete_session_notifications(session.id.clone());
+    let notifications = read_and_delete_session_notifications(db_pool, session.id.clone());
     let html = get_html(title, user, forum, forum_threads, notifications);
     http_response::ok_html(html)
 }

@@ -4,10 +4,10 @@ use crate::{
 };
 use session::{Session, edit_session};
 
-pub fn get(mut session: Session) -> String {
+pub fn get(db_pool: &db_manager::DbPool, mut session: Session) -> String {
     session.logged_in = false;
     session.user_id = "".to_string();
-    edit_session(session.clone());
+    edit_session(db_pool, session.clone().id, session.clone());
 
     to("/".to_string())
 }

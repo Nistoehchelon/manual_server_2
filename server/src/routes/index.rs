@@ -13,7 +13,7 @@ pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
         }
         crate::http_response::ok_html(get_html(
             session.clone(),
-            read_and_delete_session_notifications(session.id.clone()), user,
+            read_and_delete_session_notifications(db_pool, session.id.clone()), user,
         ))
 }
 

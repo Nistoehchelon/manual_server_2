@@ -6,7 +6,7 @@ the most convenient alternative.
 */
 
 pub fn read_to_string_on_dev_embed_on_release(file_name: &str) -> String {
-    let path = format!("./resources/{}", file_name);
+    let path = format!("./static_resources/{}", file_name);
     // check if in debug build
     if cfg!(debug_assertions) {
         fs::read_to_string(path.clone()).expect(format!("Could not find file at {}", path).as_str())
@@ -25,7 +25,7 @@ pub fn read_to_string_on_dev_embed_on_release(file_name: &str) -> String {
 }
 
 pub fn read_on_dev_embed_on_release(file_path: &str) -> Vec<u8> {
-    let path = format!("./resources/{}", file_path);
+    let path = format!("./static_resources/{}", file_path);
     // check if in debug build
     if cfg!(debug_assertions) {
         fs::read(path).unwrap()

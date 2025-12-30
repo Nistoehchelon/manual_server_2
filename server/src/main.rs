@@ -4,18 +4,19 @@ use env_reader::get_env;
 use server::http_request_parsing;
 use server::redirect::to;
 use server::routes;
+use server::thread_pool;
 use session;
 use session::Session;
 use session::SessionNotification;
 use session::add_session_notification;
 use storage;
-use server::thread_pool;
 use user::ADMIN_LVL;
 use user::USER_LVL;
 use user::get_user_by_user_id;
 
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
+use std::os::windows::process;
 
 fn main() {
     let env = get_env();
@@ -26,24 +27,33 @@ fn main() {
     storage::initialize_storage_functionality();
     let thread_pool = thread_pool::ThreadPool::new(8);
     for stream in listener.incoming() {
+        let mut stream = stream.unwrap();
+        let request_data = match http_request_parsing::parse_request_data(&mut stream) {
+            Some(data) => data,
+            None => continue,
+        };
+        if (request_data.path == "/stylesheet.css" || request_data.path == "/favicon.ico") {
+            thread_pool.execute(|| {
+                handle_static_connection(request_data, stream);
+            });
+            continue;
+        }
+
         let db_pool = db_pool.clone();
-        let stream = stream.unwrap();
 
         thread_pool.execute(move || {
-            handle_connection(stream, &db_pool);
+            handle_connection(request_data, stream, &db_pool);
         });
     }
 
     println!("Shutting down server.");
 }
 
-fn handle_connection(mut stream: TcpStream, db_pool: &DbPool) {
-
-    let request_data = match http_request_parsing::parse_request_data(&mut stream) {
-        Some(data) => data,
-        None => return,
-    };
-
+fn handle_connection(
+    request_data: http_request_parsing::RequestData,
+    mut stream: TcpStream,
+    db_pool: &DbPool,
+) {
     let http_request_parsing::RequestData {
         method,
         path,
@@ -91,9 +101,15 @@ fn handle_connection(mut stream: TcpStream, db_pool: &DbPool) {
             .into_bytes();
         }
         if !check_if_user_can_access_path(session.clone(), path.clone()) {
-            add_session_notification(db_pool,
-               SessionNotification {notification_type: session::SessionNotificationType::Error, session_id: session.id.clone(),
-                message: format!("Page {path} is inaccessible at this particular nanosecond *sigh*"),}
+            add_session_notification(
+                db_pool,
+                SessionNotification {
+                    notification_type: session::SessionNotificationType::Error,
+                    session_id: session.id.clone(),
+                    message: format!(
+                        "Page {path} is inaccessible at this particular nanosecond *sigh*"
+                    ),
+                },
             );
             break 'response_block to("/".to_string()).into_bytes();
         }
@@ -107,20 +123,44 @@ fn handle_connection(mut stream: TcpStream, db_pool: &DbPool) {
             }
         }
         match (method.as_str(), path.as_str()) {
-            ("GET", "/signup") => routes::signup::get(session,db_pool).into_bytes(),
-            ("POST", "/signup") => routes::signup::post(session, body.clone(), db_pool).into_bytes(),
-            ("GET", "/dashboard") => routes::dashboard::get(session, db_pool,).into_bytes(),
+            ("GET", "/signup") => routes::signup::get(session, db_pool).into_bytes(),
+            ("POST", "/signup") => {
+                routes::signup::post(session, body.clone(), db_pool).into_bytes()
+            }
+            ("GET", "/dashboard") => routes::dashboard::get(session, db_pool).into_bytes(),
             ("GET", "/logout") => routes::logout::get(db_pool, session).into_bytes(),
             ("GET", "/login") => routes::login::get(db_pool, session).into_bytes(),
             ("POST", "/login") => routes::login::post(session, body.clone(), db_pool).into_bytes(),
             ("GET", "/forum") => routes::forum::get(session, query, db_pool).into_bytes(),
-            ("GET", "/create_thread") => routes::create_thread::get(session, query, db_pool).into_bytes(),
+            ("GET", "/create_thread") => {
+                routes::create_thread::get(session, query, db_pool).into_bytes()
+            }
 
-            // static resources
-            ("GET", "/stylesheet.css") => routes::stylesheet::get().into_bytes(),
-            ("GET", "/favicon.ico") => routes::favicon::get(),
             _ => routes::index::get(session, db_pool).into_bytes(),
         }
+    };
+
+    stream.write_all(&response).ok();
+}
+
+fn handle_static_connection(
+    request_data: http_request_parsing::RequestData,
+    mut stream: TcpStream,
+) {
+    let http_request_parsing::RequestData {
+        method,
+        path,
+        body: _body,
+        cookies: _cookies,
+        query: _query,
+        path_with_query: _path_with_query,
+    } = request_data;
+
+    let response = match (method.as_str(), path.as_str()) {
+        // static resources
+        ("GET", "/stylesheet.css") => routes::stylesheet::get().into_bytes(),
+        ("GET", "/favicon.ico") => routes::favicon::get(),
+        _ => unreachable!("Should not happen"),
     };
 
     stream.write_all(&response).ok();

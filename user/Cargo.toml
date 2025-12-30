@@ -9,3 +9,4 @@ storage = {path="../storage"}
 password_hashing = {path="../password_hashing"}
 id_generator = {path = "../id_generator"}
 db_manager = {path = "../db_manager"}
+postgres-types = {workspace = true}

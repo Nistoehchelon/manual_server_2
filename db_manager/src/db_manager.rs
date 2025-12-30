@@ -1,6 +1,7 @@
-use postgres::NoTls;
+use postgres::{NoTls};
 use r2d2::{Pool, PooledConnection};
 use r2d2_postgres::PostgresConnectionManager;
+
 
 pub type DbPool = Pool<PostgresConnectionManager<NoTls>>;
 pub type DbClient = PooledConnection<PostgresConnectionManager<NoTls>>;

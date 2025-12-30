@@ -1,0 +1,10 @@
+[package]
+name = "user"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+password_hashing = {path="../password_hashing"}
+id_generator = {path = "../id_generator"}
+db_manager = {path = "../db_manager"}
+postgres-types = {workspace = true}

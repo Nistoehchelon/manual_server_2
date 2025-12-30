@@ -155,10 +155,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
-name = "common_type_aliases"
-version = "0.1.0"
-
-[[package]]
 name = "constant_time_eq"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -223,7 +219,7 @@ checksum = "645cbb3a84e60b7531617d5ae4e57f7e27308f6445f5abf653209ea76dec8dff"
 name = "forum"
 version = "0.1.0"
 dependencies = [
- "storage",
+ "db_manager",
 ]
 
 [[package]]
@@ -717,7 +713,6 @@ dependencies = [
  "html_templating",
  "read_on_dev_embed_on_release",
  "session",
- "storage",
  "urlencoding",
  "user",
 ]
@@ -728,7 +723,6 @@ version = "0.1.0"
 dependencies = [
  "db_manager",
  "id_generator",
- "storage",
 ]
 
 [[package]]
@@ -769,10 +763,6 @@ dependencies = [
  "libc",
  "windows-sys 0.60.2",
 ]
-
-[[package]]
-name = "storage"
-version = "0.1.0"
 
 [[package]]
 name = "stringprep"
@@ -923,12 +913,10 @@ checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 name = "user"
 version = "0.1.0"
 dependencies = [
- "common_type_aliases",
  "db_manager",
  "id_generator",
  "password_hashing",
  "postgres-types",
- "storage",
 ]
 
 [[package]]

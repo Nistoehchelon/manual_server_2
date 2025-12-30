@@ -1,0 +1,8 @@
+[package]
+name = "session"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+id_generator = {path="../id_generator"}
+db_manager = {path="../db_manager"}

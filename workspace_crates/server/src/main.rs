@@ -19,6 +19,7 @@ use std::net::TcpListener;
 fn main() {
     let env = get_env();
     let Env { ip_and_port, database_str } = env;
+    
     let db_pool = db_manager::get_pool(database_str);
 
 

@@ -15,7 +15,6 @@ use user::get_user_by_user_id;
 use std::io::Write;
 use std::net::TcpListener;
 
-
 fn main() {
     let env = get_env();
     let db_pool = db_manager::get_pool(env.database_str);

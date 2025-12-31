@@ -1,4 +1,4 @@
-use password_hashing::{HashAndSalt, hash_password, verify_password};
+use password_hashing::{HashAndSalt, hash_password_generate_salt, verify_password};
 
 #[test]
 fn hashes_and_verifies_how_i_would_expect_it_to() {
@@ -6,7 +6,7 @@ fn hashes_and_verifies_how_i_would_expect_it_to() {
     let HashAndSalt {
         hash: hash_of_initial_password,
         salt,
-    } = hash_password(initial_password.clone());
+    } = hash_password_generate_salt(initial_password.clone());
     dbg!(initial_password.clone());
     dbg!(hash_of_initial_password.clone());
     dbg!(salt.clone());

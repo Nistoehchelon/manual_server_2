@@ -11,7 +11,7 @@ use user::try_to_create_new_user;
 
 pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
     if session.logged_in {
-        add_session_notification(
+        let _ = add_session_notification(
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),
@@ -48,7 +48,7 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
 
     let parse_result = parse_username_and_password_from_body(body.clone());
     if parse_result.is_err() {
-        add_session_notification(
+        let _ = add_session_notification(
             db_pool,
             SessionNotification {
                 message: format!("Invalid body"),
@@ -72,7 +72,7 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
             edit_session(db_pool, session.id.clone(), modified_session);
         }
         Err(e) => {
-            add_session_notification(
+            let _ = add_session_notification(
                 db_pool,
                 SessionNotification {
                     session_id: session.id.clone(),

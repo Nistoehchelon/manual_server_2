@@ -24,7 +24,7 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Stri
         Err(_) => return internal_server_error_500(),
     };
     if forum_lookup_result.is_none() {
-        add_session_notification(
+        let _ = add_session_notification(
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),

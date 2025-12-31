@@ -23,7 +23,7 @@ pub fn get(db_pool: &db_manager::DbPool, session: Session) -> String {
 
 pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> String {
     if session.logged_in {
-        add_session_notification(
+        let _ = add_session_notification(
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),
@@ -35,7 +35,7 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
     }
     let parse_result = parse_username_and_password_from_body(body);
     if parse_result.is_err() {
-        add_session_notification(
+        let _ = add_session_notification(
             db_pool,
             SessionNotification {
                 message: parse_result.unwrap_err(),
@@ -52,7 +52,7 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
     };
 
     if user_result.is_none() {
-        add_session_notification(
+        let _ = add_session_notification(
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),
@@ -68,7 +68,7 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
     session.logged_in = true;
     edit_session(db_pool, session.id.clone(), session.clone());
 
-    add_session_notification(
+    let _ = add_session_notification(
         db_pool,
         SessionNotification {
             session_id: session.clone().id,

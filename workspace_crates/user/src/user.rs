@@ -33,7 +33,7 @@ pub fn try_to_create_new_user(
         ))));
     }
 
-    let hash_and_salt = password_hashing::hash_password(password);
+    let hash_and_salt = password_hashing::hash_password_generate_salt(password);
     let default_user_role = 1;
     let new_user = User {
         internal_id: 0,
@@ -69,7 +69,7 @@ pub fn get_by_username(
         }
         Ok(tx) => tx,
     };
-    let query = "SELECT id FROM public.users WHERE username = $1";
+    let query = "SELECT public_inapp_id FROM public.users WHERE username = $1";
     let result = match transaction.query_opt(query, &[&username]) {
         Ok(res) => res,
         Err(e) => {
@@ -78,8 +78,8 @@ pub fn get_by_username(
     };
     match result {
         Some(row) => {
-            let id: String = row.get("id");
-            let user_query = get_query_str(crate::QueryStr::GetUserById);
+            let id: String = row.get("public_inapp_id");
+            let user_query = get_query_str(crate::QueryStr::GetUserByPublicInappId);
             let user_row = match transaction.query_one(user_query, &[&id]) {
                 Ok(ur) => ur,
                 Err(e) => {
@@ -105,11 +105,19 @@ pub fn get_by_username_and_password(
         None => return Ok(None),
     };
     if password_hashing::verify_password(
-        password,
+        password.clone(),
         user.password_hash.clone(),
         user.password_salt.clone(),
     ) != true
     {
+        dbg!("Failed password hash verification");
+        dbg!(password.clone());
+        dbg!(user.clone().password_hash);
+        dbg!(user.clone().password_salt);
+        let tried_hash =
+            password_hashing::hash_password(password.clone(), user.password_salt.clone());
+        
+        dbg!(tried_hash);
         return Ok(None);
     }
     Ok(Some(user))
@@ -155,7 +163,7 @@ fn storage_specific_add_user(
     user: User,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
     let client = db_manager::get_client(db_pool.clone());
-    let query = "INSERT INTO public.users (public_inapp_id, username, password_salt, password_hash, bio, role_id) VALUES ($1, $2, $3, $4, $5 )";
+    let query = "INSERT INTO public.users (public_inapp_id, username, password_hash, password_salt, bio, role_id) VALUES ($1, $2, $3, $4, $5, $6 )";
     let _modified_rows = db_manager::execute(
         client,
         query,
@@ -181,7 +189,7 @@ fn storage_specific_get_user_by_user_id(
 
     let result = db_manager::query_opt(
         client,
-        crate::get_query_str(crate::QueryStr::GetUserById),
+        crate::get_query_str(crate::QueryStr::GetUserByPublicInappId),
         &[&user_id],
     )?;
     Ok(result.map(User::from))

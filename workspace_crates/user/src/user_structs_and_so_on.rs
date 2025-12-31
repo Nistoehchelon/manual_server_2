@@ -1,11 +1,11 @@
 use db_manager::Row;
 
 pub enum QueryStr {
-    GetUserById,
+    GetUserByPublicInappId,
 }
 pub fn get_query_str(query_name: QueryStr) -> &'static str {
     match query_name {
-        QueryStr::GetUserById => {
+        QueryStr::GetUserByPublicInappId => {
             "SELECT internal_id, public_inapp_id, username, password_hash, password_salt, bio, role_id FROM public.users WHERE public_inapp_id = $1"
         }
     }

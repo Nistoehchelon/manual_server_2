@@ -23,11 +23,16 @@ pub fn verify_password(
     return hash_of_unconfirmed == the_hash;
 }
 
-pub fn hash_password(unhashed_password: String) -> HashAndSalt {
+pub fn hash_password_generate_salt(unhashed_password: String) -> HashAndSalt {
     let salt = generate_salt();
+    let hash = hash_password(unhashed_password, salt.clone());
+    return HashAndSalt { hash, salt };
+}
+
+pub fn hash_password(unhashed_password: String, salt: String) -> String {
     let hash_salt_string = format!("{}{}", unhashed_password, salt);
     let hash = hash(hash_salt_string);
-    return HashAndSalt { hash, salt };
+    return hash;
 }
 
 fn hash(string_i_want_to_hash: String) -> String {

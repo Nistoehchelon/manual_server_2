@@ -19,22 +19,22 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Stri
         }
         "0".to_string()
     };
-    let forum_lookup_result = match get_forum_by_id(forum_id.clone()) {
-        Ok(opt) => opt,
+    let forum = match get_forum_by_id(db_pool, forum_id.clone()) {
+        Ok(Some(f)) => f,
+        Ok(None) => {
+            let _ = add_session_notification(
+                db_pool,
+                SessionNotification {
+                    session_id: session.id.clone(),
+                    message: format!("Forum with id {} could not be found", forum_id),
+                    notification_type: session::SessionNotificationType::Error,
+                },
+            );
+            return to("/forum".to_string());
+        }
         Err(_) => return internal_server_error_500(),
     };
-    if forum_lookup_result.is_none() {
-        let _ = add_session_notification(
-            db_pool,
-            SessionNotification {
-                session_id: session.id.clone(),
-                message: format!("Forum with id {} could not be found", forum_id),
-                notification_type: session::SessionNotificationType::Error,
-            },
-        );
-        return to("/forum".to_string());
-    }
-    let forum = forum_lookup_result.unwrap();
+
     let _user = match get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool) {
         Ok(Some(u)) => u,
         _ => return internal_server_error_500(),

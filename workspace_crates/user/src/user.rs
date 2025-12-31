@@ -62,7 +62,7 @@ pub fn get_by_username(
     username: String,
     db_pool: &db_manager::DbPool,
 ) -> Result<Option<User>, DbError> {
-    let mut client = db_manager::get_client(db_pool.clone());
+    let mut client = db_manager::get_client(db_pool.clone())?;
     let mut transaction = match client.transaction() {
         Err(e) => {
             return Err(DbError::new(e));
@@ -116,7 +116,7 @@ pub fn get_by_username_and_password(
         dbg!(user.clone().password_salt);
         let tried_hash =
             password_hashing::hash_password(password.clone(), user.password_salt.clone());
-        
+
         dbg!(tried_hash);
         return Ok(None);
     }
@@ -131,7 +131,7 @@ fn storage_specific_is_username_available(
     db_pool: &db_manager::DbPool,
     username: String,
 ) -> Result<bool, DbError> {
-    let mut client = db_manager::get_client(db_pool.clone());
+    let mut client = db_manager::get_client(db_pool.clone())?;
 
     let row = match client.query_one(
         "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1) as exists",
@@ -162,7 +162,7 @@ fn storage_specific_add_user(
     db_pool: &db_manager::DbPool,
     user: User,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
-    let client = db_manager::get_client(db_pool.clone());
+    let client = db_manager::get_client(db_pool.clone())?;
     let query = "INSERT INTO public.users (public_inapp_id, username, password_hash, password_salt, bio, role_id) VALUES ($1, $2, $3, $4, $5, $6 )";
     let _modified_rows = db_manager::execute(
         client,
@@ -185,7 +185,7 @@ fn storage_specific_get_user_by_user_id(
     user_id: String,
     db_pool: &db_manager::DbPool,
 ) -> Result<Option<User>, db_manager::DbError> {
-    let client = db_manager::get_client(db_pool.clone());
+    let client = db_manager::get_client(db_pool.clone())?;
 
     let result = db_manager::query_opt(
         client,

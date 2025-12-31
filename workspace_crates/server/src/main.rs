@@ -18,10 +18,12 @@ use std::net::TcpListener;
 
 fn main() {
     let env = get_env();
-    let Env { ip_and_port, database_str } = env;
-    
-    let db_pool = db_manager::get_pool(database_str);
+    let Env {
+        ip_and_port,
+        database_str,
+    } = env;
 
+    let db_pool = db_manager::get_pool(database_str).expect("Could not connect to db");
 
     let listener = TcpListener::bind(ip_and_port.clone()).expect("Failed to bind to address");
     println!("Server listening on http://{}", ip_and_port.clone());

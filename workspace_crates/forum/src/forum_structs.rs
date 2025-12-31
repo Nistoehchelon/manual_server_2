@@ -1,4 +1,10 @@
 #[derive(Clone, Debug, Default)]
+pub struct ForumThreadMessage {
+    pub user_id: String,
+    pub current_message: String,
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct ForumThread {
     pub id: String,
     pub name: String,

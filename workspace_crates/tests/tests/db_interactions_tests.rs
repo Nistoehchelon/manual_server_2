@@ -5,8 +5,8 @@ use session;
 #[test]
 fn test_read_write() {
     let env = get_env();
-    let pool = db_manager::get_pool(env.database_str);
-    let mut client = db_manager::get_client(pool);
+    let pool = db_manager::get_pool(env.database_str).expect("Could not connect to DB");
+    let mut client = db_manager::get_client(pool).expect("Could not get client conn from db pool");
     let session = session::Session {
         id: format!("32ed32"),
         user_public_inapp_id: format!("user_id_1232"),

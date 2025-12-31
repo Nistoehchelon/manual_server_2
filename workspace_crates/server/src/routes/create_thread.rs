@@ -13,7 +13,7 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Stri
         .cloned()
         .unwrap_or_else(|| "0".to_string());
 
-    let forum = match get_forum_by_id(forum_id.clone()) {
+    let forum = match get_forum_by_id(db_pool, forum_id.clone()) {
         Ok(opt) => opt,
         Err(_) => return internal_server_error_500(),
     };

@@ -121,7 +121,7 @@ fn storage_specific_add_session(
     session: Session,
     db_pool: &db_manager::DbPool,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
-    let client = db_manager::get_client(db_pool.clone());
+    let client = db_manager::get_client(db_pool.clone())?;
     db_manager::execute(
         client,
         "INSERT INTO public.sessions (id, user_id, logged_in) VALUES ($1, $2, $3)",
@@ -139,7 +139,7 @@ fn storage_specific_get_session_by_session_id(
     db_pool: &db_manager::DbPool,
     session_id: String,
 ) -> Result<Option<Session>, db_manager::DbError> {
-    let client = db_manager::get_client(db_pool.clone());
+    let client = db_manager::get_client(db_pool.clone())?;
     let retrieved = db_manager::query_opt(
         client,
         "SELECT id, user_id, logged_in FROM sessions WHERE id = $1",
@@ -166,7 +166,7 @@ fn storage_specific_read_and_delete_session_notifications(
     session_id: String,
 ) -> Result<Vec<SessionNotification>, DbError> {
     let mut notifications: Vec<SessionNotification> = vec![];
-    let mut client = db_manager::get_client(db_pool.clone());
+    let mut client = db_manager::get_client(db_pool.clone())?;
     let mut transaction = match client.transaction() {
         Ok(tx) => tx,
         Err(e) => return Err(DbError::new(e)),
@@ -216,7 +216,7 @@ fn storage_specific_edit_session(
     session_id: String,
     modified_session: Session,
 ) -> Result<DbSuccess, DbError> {
-    let client = db_manager::get_client(db_pool.clone());
+    let client = db_manager::get_client(db_pool.clone())?;
     let query = "UPDATE public.sessions SET user_id = $1, logged_in = $2, id = $3 WHERE id = $4";
 
     let rows_modified = db_manager::execute(
@@ -243,7 +243,7 @@ fn storage_specific_add_session_notification(
 ) -> Result<DbSuccess, DbError> {
     let notification_type = session_notification.notification_type.to_string();
 
-    let client = db_manager::get_client(db_pool.clone());
+    let client = db_manager::get_client(db_pool.clone())?;
     let query = "INSERT INTO public.session_notifications (session_id, message, notification_type) VALUES ($1, $2, $3)";
     let _ = db_manager::execute(
         client,

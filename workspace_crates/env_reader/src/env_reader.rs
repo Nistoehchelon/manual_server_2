@@ -16,7 +16,7 @@ pub fn get_env() -> Env {
         },
     };
 
-    let delimeter = ">>>";
+    let delimeter = "\n";
     let env_parts: Vec<&str> = env_file_contents.split(delimeter).collect();
     assert!(
         env_parts.len() == 3,

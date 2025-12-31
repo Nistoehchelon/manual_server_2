@@ -1,5 +1,6 @@
 use db_manager;
 use db_manager::DbPool;
+use env_reader::Env;
 use env_reader::get_env;
 use server::http_request_parsing;
 use server::http_response::internal_server_error_500;
@@ -17,10 +18,12 @@ use std::net::TcpListener;
 
 fn main() {
     let env = get_env();
-    let db_pool = db_manager::get_pool(env.database_str);
+    let Env { ip_and_port, database_str } = env;
+    let db_pool = db_manager::get_pool(database_str);
 
-    let listener = TcpListener::bind(env.ip_and_port.clone()).expect("Failed to bind to address");
-    println!("Server listening on http://{}", env.ip_and_port.clone());
+
+    let listener = TcpListener::bind(ip_and_port.clone()).expect("Failed to bind to address");
+    println!("Server listening on http://{}", ip_and_port.clone());
     let thread_pool = thread_pool::ThreadPool::new(8);
     for stream in listener.incoming() {
         let mut stream = stream.unwrap();

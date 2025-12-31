@@ -1,8 +1,8 @@
 use askama::Template;
 
+use forum::{Forum, ForumThread};
 use session::SessionNotification;
 use user::User;
-use forum::{Forum, ForumThread};
 
 pub struct MainInfo {
     pub title: String,
@@ -20,42 +20,39 @@ pub struct IndexLoggedInTemplate {
 
 pub struct IndexNotLoggedInTemplate {
     pub main_info: MainInfo,
-} 
- 
+}
+
 #[derive(Template)]
 #[template(path = "signup.html")]
 pub struct SignupTemplate {
     pub main_info: MainInfo,
 }
 
-
 #[derive(Template)]
-#[template(path = "login.html")]   
+#[template(path = "login.html")]
 pub struct LoginTemplate {
     pub main_info: MainInfo,
-} 
-#[derive(Template)] 
-#[template(path = "dashboard.html")]   
+}
+#[derive(Template)]
+#[template(path = "dashboard.html")]
 pub struct DashboardTemplate {
     pub main_info: MainInfo,
     pub username: String,
-} 
- 
+}
 
 #[derive(Template)]
-#[template(path = "forum.html")]  
+#[template(path = "forum.html")]
 pub struct ForumTemplate {
     pub main_info: MainInfo,
-    pub user_can_create_child_forum: bool, 
+    pub user_can_create_child_forum: bool,
     pub user_can_create_thread: bool,
     pub forum: Forum,
     pub forum_threads: Vec<ForumThread>,
-} 
+}
 
 #[derive(Template)]
-#[template(path = "create_thread.html")]  
+#[template(path = "create_thread.html")]
 pub struct CreateThreadTemplate {
     pub main_info: MainInfo,
     pub forum: Forum,
-} 
- 
+}

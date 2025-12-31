@@ -1,34 +1,36 @@
+use db_manager::DbError;
+use error_structs::PublicError;
 
 use crate::{get_query_str, user_structs_and_so_on::User};
-use db_manager::DbFailureError;
 
-pub struct UserError {
+pub fn get_user_by_user_id(
+    user_id: String,
+    db_pool: &db_manager::DbPool,
+) -> Result<Option<User>, DbError> {
+    let user_opt = storage_specific_get_user_by_user_id(user_id, db_pool)?;
+    return Ok(user_opt);
+}
+
+pub struct CheckingError {
     pub message: String,
 }
-
-
-pub fn get_user_by_user_id(user_id: String, db_pool: &db_manager::DbPool) -> Result<Option<User>, DbFailureError> {
- match storage_specific_get_user_by_user_id(user_id, db_pool) {
-        Ok(opt) => Ok(opt),
-        Err(_) => Err(DbFailureError {message: format!("Error getting user")}),
-    }
-}
-
 pub fn try_to_create_new_user(
     db_pool: &db_manager::DbPool,
     username: String,
     password: String,
-) -> Result<Result<User, UserError>, DbFailureError> {
+) -> Result<Result<User, PublicError>, DbError> {
     if username.clone().trim().is_empty() || password.clone().trim().is_empty() {
-        return Err(DbFailureError { message: "Please enter username and password!!".to_string()} );
+        return Ok(Err(PublicError::new(format!(
+            "Please enter username and password or the world will be destroyed!"
+        ))));
     }
 
-    let username_available = match is_username_available(username.clone(), db_pool)  {
-        Ok(b) => b,
-        Err(_) => return Err(DbFailureError { message: format!("Username is unavailable. 😒😒😒") }),
-    };
-    if !username_available{
-        return Err(DbFailureError{message: format!("Username {username} is taken already!")});
+    let username_available = is_username_available(username.clone(), db_pool)?;
+
+    if !username_available {
+        return Ok(Err(PublicError::new(format!(
+            "The username is... taken alredy!!! 😈"
+        ))));
     }
 
     let hash_and_salt = password_hashing::hash_password(password);
@@ -42,66 +44,73 @@ pub fn try_to_create_new_user(
         bio: format!("Default bio"),
         role_id: default_user_role,
     };
-    let user = match storage_specific_create_new_user(
-        db_pool,
-        new_user
-    ) {
-        Ok(user) => user,
-        Err(_) => return Err(DbFailureError { message: format!("Error creating user") }),
-    };
+    let user = storage_specific_create_new_user(db_pool, new_user)?;
 
     Ok(Ok(user))
 }
 
-pub fn is_username_available(username: String,  db_pool: &db_manager::DbPool,) -> Result<bool, DbFailureError> {
-    let username_available = storage_specific_is_username_available(db_pool, username, )?;
-    Ok(username_available)
+pub fn is_username_available(
+    username: String,
+    db_pool: &db_manager::DbPool,
+) -> Result<bool, DbError> {
+    let bool_whether_username_available =
+        storage_specific_is_username_available(db_pool, username)?;
+    Ok(bool_whether_username_available)
 }
 
-pub fn get_by_username( username: String,db_pool: &db_manager::DbPool,) -> Result<Option<User>, DbFailureError> {
+pub fn get_by_username(
+    username: String,
+    db_pool: &db_manager::DbPool,
+) -> Result<Option<User>, DbError> {
     let mut client = db_manager::get_client(db_pool.clone());
     let mut transaction = match client.transaction() {
-        Err(_) => return Err(DbFailureError { message: format!("Could not start tx") }),
+        Err(e) => {
+            return Err(DbError::new(e));
+        }
         Ok(tx) => tx,
     };
     let query = "SELECT id FROM public.users WHERE username = $1";
     let result = match transaction.query_opt(query, &[&username]) {
         Ok(res) => res,
-        Err(_) => return Err(DbFailureError { message: format!("Query error") }),
+        Err(e) => {
+            return Err(DbError::new(e));
+        }
     };
-     match result {
+    match result {
         Some(row) => {
             let id: String = row.get("id");
             let user_query = get_query_str(crate::QueryStr::GetUserById);
             let user_row = match transaction.query_one(user_query, &[&id]) {
                 Ok(ur) => ur,
-                Err(_) => return Err(DbFailureError { message: format!("Err") }),
+                Err(e) => {
+                    return Err(DbError::new(e));
+                }
             };
             return Ok(Some(User::from(user_row)));
-        },
+        }
         None => {
             return Ok(None);
         }
-    }; 
+    };
 }
 
-pub fn get_by_username_and_password(username: String, password: String, db_pool: &db_manager::DbPool,) -> Result<Option<User>, String> {
-    let user = match get_by_username(username.clone(), db_pool) {
-        Ok(user) => user,
-        Err(_) => {
-            return Err("Err".to_string());
-        }
-    };
+pub fn get_by_username_and_password(
+    username: String,
+    password: String,
+    db_pool: &db_manager::DbPool,
+) -> Result<Option<User>, DbError> {
+    let user = get_by_username(username.clone(), db_pool)?;
     let user = match user {
         Some(u) => u,
         None => return Ok(None),
     };
-    if password_hashing::verify_password(password, user.password_hash.clone(), user.password_salt.clone())
-        != true
+    if password_hashing::verify_password(
+        password,
+        user.password_hash.clone(),
+        user.password_salt.clone(),
+    ) != true
     {
-        return Err(
-            "User found but hash of input password and existing password do not match".to_string(),
-        );
+        return Ok(None);
     }
     Ok(Some(user))
 }
@@ -110,19 +119,22 @@ fn generate_user_id() -> String {
     id_generator::generate_id()
 }
 
-
-
-fn storage_specific_is_username_available( db_pool: &db_manager::DbPool, username: String, ) -> Result<bool, DbFailureError> {
+fn storage_specific_is_username_available(
+    db_pool: &db_manager::DbPool,
+    username: String,
+) -> Result<bool, DbError> {
     let mut client = db_manager::get_client(db_pool.clone());
 
     let row = match client.query_one(
         "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1) as exists",
-        &[&username]
+        &[&username],
     ) {
         Ok(r) => r,
-        Err(_) => return Err(DbFailureError {message: format!("...")}),
+        Err(e) => {
+            return Err(DbError::new(e));
+        }
     };
-    
+
     let exists: bool = row.get("exists");
 
     let is_username_available = !exists;
@@ -132,26 +144,45 @@ fn storage_specific_is_username_available( db_pool: &db_manager::DbPool, usernam
 fn storage_specific_create_new_user(
     db_pool: &db_manager::DbPool,
     new_user: User,
-) -> Result<User, DbFailureError> {
-    match storage_specific_add_user( db_pool, new_user.clone(),) {
-        Ok(_) => {},
-        Err(_) => return Err(DbFailureError {message: "Could not create user".to_string()}),
-    }
+) -> Result<User, DbError> {
+    storage_specific_add_user(db_pool, new_user.clone())?;
 
     Ok(new_user)
 }
 
-fn storage_specific_add_user( db_pool: &db_manager::DbPool, user: User,)-> Result<db_manager::DbSuccess, db_manager::DbError> {
+fn storage_specific_add_user(
+    db_pool: &db_manager::DbPool,
+    user: User,
+) -> Result<db_manager::DbSuccess, db_manager::DbError> {
     let client = db_manager::get_client(db_pool.clone());
     let query = "INSERT INTO public.users (public_inapp_id, username, password_salt, password_hash, bio, role_id) VALUES ($1, $2, $3, $4, $5 )";
-    let _modified_rows = db_manager::execute(client, query, &[&user.public_inapp_id, &user.username, &user.password_hash, &user.password_salt, &user.bio, &user.role_id])?;
-    Ok(db_manager::DbSuccess { message: format!("Done!") })
+    let _modified_rows = db_manager::execute(
+        client,
+        query,
+        &[
+            &user.public_inapp_id,
+            &user.username,
+            &user.password_hash,
+            &user.password_salt,
+            &user.bio,
+            &user.role_id,
+        ],
+    )?;
+    Ok(db_manager::DbSuccess {
+        message: format!("Done!"),
+    })
 }
 
-fn storage_specific_get_user_by_user_id(user_id: String, db_pool: &db_manager::DbPool) -> Result<Option<User>, db_manager::DbError > {
-    
+fn storage_specific_get_user_by_user_id(
+    user_id: String,
+    db_pool: &db_manager::DbPool,
+) -> Result<Option<User>, db_manager::DbError> {
     let client = db_manager::get_client(db_pool.clone());
-    
-    let result =   db_manager::query_opt(client, crate::get_query_str(crate::QueryStr::GetUserById), &[&user_id])?;
+
+    let result = db_manager::query_opt(
+        client,
+        crate::get_query_str(crate::QueryStr::GetUserById),
+        &[&user_id],
+    )?;
     Ok(result.map(User::from))
 }

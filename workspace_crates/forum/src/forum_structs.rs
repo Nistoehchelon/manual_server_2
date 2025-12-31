@@ -1,12 +1,9 @@
-
-
 #[derive(Clone, Debug, Default)]
 pub struct ForumThread {
     pub id: String,
     pub name: String,
     pub forum_id: String,
 }
-
 
 #[derive(Clone, Debug, Default)]
 pub struct Forum {

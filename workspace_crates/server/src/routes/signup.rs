@@ -1,26 +1,35 @@
-use crate::{http_request_parsing::parse_username_and_password_from_body, http_response::internal_server_error_500, redirect::to};
+use crate::{
+    http_request_parsing::parse_username_and_password_from_body,
+    http_response::internal_server_error_500, redirect::to,
+};
 use html_templating::html_template_structs::{self, MainInfo};
 use session::{
-    Session, SessionNotification, add_session_notification, edit_session, read_and_delete_session_notifications
+    Session, SessionNotification, add_session_notification, edit_session,
+    read_and_delete_session_notifications,
 };
 use user::try_to_create_new_user;
 
 pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
     if session.logged_in {
         add_session_notification(
-db_pool, SessionNotification { session_id: session.id.clone(), message: format!("You are already logged in, so signup is unaccessible. Log out first?"), notification_type: session::SessionNotificationType::Error }
+            db_pool,
+            SessionNotification {
+                session_id: session.id.clone(),
+                message: format!(
+                    "You are already logged in, so signup is unaccessible. Log out first?"
+                ),
+                notification_type: session::SessionNotificationType::Error,
+            },
         );
         return to("/".to_string());
     }
 
-    let notifs = match read_and_delete_session_notifications(
-        db_pool, session.id) {
-            Ok(ns)=> ns,
-            Err(_) => return internal_server_error_500(),
-        };
+    let notifs = match read_and_delete_session_notifications(db_pool, session.id) {
+        Ok(ns) => ns,
+        Err(_) => return internal_server_error_500(),
+    };
     // Show username form
-    crate::http_response::ok_html(get_signup_html(notifs,
-    ))
+    crate::http_response::ok_html(get_signup_html(notifs))
 }
 
 fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
@@ -39,7 +48,14 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
 
     let parse_result = parse_username_and_password_from_body(body.clone());
     if parse_result.is_err() {
-        add_session_notification(db_pool, SessionNotification {message: format!("Invalid body"), session_id: session.id.clone(), notification_type: session::SessionNotificationType::Error});
+        add_session_notification(
+            db_pool,
+            SessionNotification {
+                message: format!("Invalid body"),
+                session_id: session.id.clone(),
+                notification_type: session::SessionNotificationType::Error,
+            },
+        );
         return to("/".to_string());
     }
     let (username, password) = parse_result.unwrap();
@@ -56,7 +72,14 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
             edit_session(db_pool, session.id.clone(), modified_session);
         }
         Err(e) => {
-            add_session_notification(db_pool, SessionNotification {session_id: session.id.clone(), message: e.message, notification_type: session::SessionNotificationType::Error });
+            add_session_notification(
+                db_pool,
+                SessionNotification {
+                    session_id: session.id.clone(),
+                    message: e.message,
+                    notification_type: session::SessionNotificationType::Error,
+                },
+            );
             return to("/signup".to_string());
         }
     }

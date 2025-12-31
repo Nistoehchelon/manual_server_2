@@ -1,8 +1,8 @@
-use db_manager::DbFailureError;
+use db_manager::DbError;
 
-use crate::forum_structs::{Forum,ForumThread};
+use crate::forum_structs::{Forum, ForumThread};
 
-pub fn get_forum_by_id(id: String) -> Result<Option<Forum>, DbFailureError> {
+pub fn get_forum_by_id(id: String) -> Result<Option<Forum>, DbError> {
     if id == "0" {
         return Ok(Some(Forum {
             id: "0".to_string(),
@@ -14,11 +14,10 @@ pub fn get_forum_by_id(id: String) -> Result<Option<Forum>, DbFailureError> {
     storage_specific_get_forum_by_id(id.clone())
 }
 
-pub fn get_forum_threads(_forum_id: String) -> Result<Vec<ForumThread>, DbFailureError> {
-    todo!()   
-}
-
-fn storage_specific_get_forum_by_id(_id: String) -> Result<Option<Forum>, DbFailureError> {
+pub fn get_forum_threads(_forum_id: String) -> Result<Vec<ForumThread>, DbError> {
     todo!()
 }
 
+fn storage_specific_get_forum_by_id(_id: String) -> Result<Option<Forum>, DbError> {
+    todo!()
+}

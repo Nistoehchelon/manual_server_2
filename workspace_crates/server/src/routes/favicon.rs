@@ -10,7 +10,7 @@ pub fn get() -> Vec<u8> {
         Connection: close\r\n\r\n\
         ",
         favicon_bytes_len
-    ); 
+    );
 
     let mut response = headers.into_bytes();
     response.extend(favicon_bytes);

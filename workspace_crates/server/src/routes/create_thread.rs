@@ -1,8 +1,8 @@
-use forum::{Forum, get_forum_by_id};
-use html_templating::html_template_structs;
-use crate::{http_request_parsing::Query, http_response::internal_server_error_500};
 use crate::http_response::ok_html;
 use crate::redirect::to;
+use crate::{http_request_parsing::Query, http_response::internal_server_error_500};
+use forum::{Forum, get_forum_by_id};
+use html_templating::html_template_structs;
 use session::{Session, SessionNotification, add_session_notification};
 use user;
 
@@ -19,7 +19,14 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Stri
     };
 
     if !forum.is_some() {
-        let _ = add_session_notification(db_pool, SessionNotification { session_id: session.id.clone(), message: format!("Forum not found"), notification_type: session::SessionNotificationType::Error });
+        let _ = add_session_notification(
+            db_pool,
+            SessionNotification {
+                session_id: session.id.clone(),
+                message: format!("Forum not found"),
+                notification_type: session::SessionNotificationType::Error,
+            },
+        );
         return to("/forum".to_string());
     }
     let forum = forum.unwrap();
@@ -30,20 +37,23 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Stri
 
     ok_html(get_html(
         format!(r##"Create a thread in forum {}"##, forum.name.clone()),
-        forum.clone(), 
-        notifs)
-    )
+        forum.clone(),
+        notifs,
+    ))
 }
 
-fn get_html(title: String, forum: Forum, notifications: Vec<session::SessionNotification>) -> String {
-    let html = html_templating::render(
-        html_template_structs::CreateThreadTemplate {
-            main_info: html_template_structs::MainInfo {
-                title, notifications,
-
-            }, forum,
-        }
-    );
+fn get_html(
+    title: String,
+    forum: Forum,
+    notifications: Vec<session::SessionNotification>,
+) -> String {
+    let html = html_templating::render(html_template_structs::CreateThreadTemplate {
+        main_info: html_template_structs::MainInfo {
+            title,
+            notifications,
+        },
+        forum,
+    });
 
     return html;
 }

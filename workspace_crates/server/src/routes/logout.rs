@@ -1,7 +1,4 @@
-use crate::{
-    redirect::to,
-
-};
+use crate::redirect::to;
 use session::{Session, edit_session};
 
 pub fn get(db_pool: &db_manager::DbPool, mut session: Session) -> String {

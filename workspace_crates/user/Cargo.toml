@@ -7,4 +7,6 @@ edition = "2024"
 password_hashing = {path="../password_hashing"}
 id_generator = {path = "../id_generator"}
 db_manager = {path = "../db_manager"}
+error_structs = {path = "../error_structs"}
+
 postgres-types = {workspace = true}

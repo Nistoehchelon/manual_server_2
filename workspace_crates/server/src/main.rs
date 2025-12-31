@@ -13,12 +13,9 @@ use session::add_session_notification;
 use user::get_user_by_user_id;
 
 use std::io::Write;
-use std::net::{TcpListener};
+use std::net::TcpListener;
 
-fn is_requesting_static_resource(path: String) -> bool {
-    let static_paths = vec!["/stylesheet.css", "favicon.ico"];
-    return static_paths.contains(&path.as_str());
-}
+
 fn main() {
     let env = get_env();
     let db_pool = db_manager::get_pool(env.database_str);
@@ -43,7 +40,7 @@ fn main() {
         let db_pool = db_pool.clone();
 
         thread_pool.execute(move || {
-            let response = generate_response(request_data,  &db_pool);
+            let response = generate_response(request_data, &db_pool);
             stream.write_all(&response).ok();
         });
     }
@@ -51,10 +48,7 @@ fn main() {
     println!("Shutting down server.");
 }
 
-fn generate_response(
-    request_data: http_request_parsing::RequestData,
-    db_pool: &DbPool,
-) -> Vec<u8> {
+fn generate_response(request_data: http_request_parsing::RequestData, db_pool: &DbPool) -> Vec<u8> {
     let http_request_parsing::RequestData {
         method,
         path,
@@ -66,30 +60,33 @@ fn generate_response(
 
     let mut will_set_cookie = false;
     let session: session::Session = {
-        let session_id: String =
-            match cookies.get(session::get_name_of_cookie_containing_session_id().as_str()) {
-                Some(session_id) => {
-                    let session_exists = match session::session_with_specified_id_exists(session_id.clone(), &db_pool) {
+        let session_id: String = match cookies
+            .get(session::get_name_of_cookie_containing_session_id().as_str())
+        {
+            Some(session_id) => {
+                let session_exists =
+                    match session::session_with_specified_id_exists(session_id.clone(), &db_pool) {
                         Ok(answer) => answer,
                         Err(_) => return internal_server_error_500().into_bytes(),
                     };
-                    if !session_exists {
-                        will_set_cookie = true;
-                        session::generate_session_id()
-                    } else {
-                        session_id.to_string()
-                    }
-                }
-                None => {
+                if !session_exists {
                     will_set_cookie = true;
                     session::generate_session_id()
+                } else {
+                    session_id.to_string()
                 }
-            };
+            }
+            None => {
+                will_set_cookie = true;
+                session::generate_session_id()
+            }
+        };
 
-        let session_exists = match session::session_with_specified_id_exists(session_id.clone(), db_pool) {
-            Ok(b) => b,
-            Err(_) => return internal_server_error_500().into_bytes(),
-        }; 
+        let session_exists =
+            match session::session_with_specified_id_exists(session_id.clone(), db_pool) {
+                Ok(b) => b,
+                Err(_) => return internal_server_error_500().into_bytes(),
+            };
         if session_exists {
             match session::get_session_by_session_id(session_id.clone(), db_pool) {
                 Ok(Some(sess)) => sess,
@@ -127,17 +124,18 @@ fn generate_response(
                     ),
                 },
             ) {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(_) => return internal_server_error_500().into_bytes(),
             }
             break 'response_block to("/".to_string()).into_bytes();
         }
         if session.logged_in {
-            let user_associated_with_session_actually_exists = match get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool) {
-                Ok(Some(_)) => true,
-                Ok(None) => false,
-                Err(_) => return internal_server_error_500().into_bytes(),
-            };
+            let user_associated_with_session_actually_exists =
+                match get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool) {
+                    Ok(Some(_)) => true,
+                    Ok(None) => false,
+                    Err(_) => return internal_server_error_500().into_bytes(),
+                };
             if !user_associated_with_session_actually_exists {
                 let mut modified_session = session.clone();
                 modified_session.logged_in = false;
@@ -146,6 +144,7 @@ fn generate_response(
                 break 'response_block to("/".to_string()).into_bytes();
             }
         }
+        dbg!(format!("Entering routing for {method} {path}"));
         match (method.as_str(), path.as_str()) {
             ("GET", "/signup") => routes::signup::get(session, db_pool).into_bytes(),
             ("POST", "/signup") => {
@@ -165,12 +164,14 @@ fn generate_response(
     };
 
     return response;
-
 }
 
-fn generate_static_response(
-    request_data: http_request_parsing::RequestData,
-) -> Vec<u8> {
+fn is_requesting_static_resource(path: String) -> bool {
+    let static_paths = vec!["/stylesheet.css", "/favicon.ico"];
+    return static_paths.contains(&path.as_str());
+}
+
+fn generate_static_response(request_data: http_request_parsing::RequestData) -> Vec<u8> {
     let http_request_parsing::RequestData {
         method,
         path,
@@ -180,6 +181,7 @@ fn generate_static_response(
         path_with_query: _path_with_query,
     } = request_data;
 
+    dbg!(format!("Entering static routing for {method} {path}"));
     let response = match (method.as_str(), path.as_str()) {
         // static resources
         ("GET", "/stylesheet.css") => routes::stylesheet::get().into_bytes(),
@@ -187,7 +189,7 @@ fn generate_static_response(
         _ => unreachable!("Should not happen"),
     };
 
-   return response;
+    return response;
 }
 
 fn check_if_user_can_access_path(session: Session, path: String) -> bool {

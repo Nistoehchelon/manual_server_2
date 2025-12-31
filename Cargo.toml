@@ -4,6 +4,23 @@ members = ["workspace_crates/*"]
 
 [workspace.dependencies]
 
+# internal workspace crates
+
+db_manager = { path = "workspace_crates/db_manager" }
+env_reader = { path = "workspace_crates/env_reader" }
+error_structs = { path = "workspace_crates/error_structs" }
+forum = { path = "workspace_crates/forum" }
+html_templating = { path = "workspace_crates/html_templating" }
+id_generator = { path = "workspace_crates/id_generator" }
+password_hashing = { path = "workspace_crates/password_hashing" }
+read_on_dev_embed_on_release = { path = "workspace_crates/read_on_dev_embed_on_release" }
+server = { path = "workspace_crates/server" }
+session = { path = "workspace_crates/session" }
+user = { path = "workspace_crates/user" }
+
+
+
+# third-party external crates
 askama = { version = "0.15", features = ["std", "derive"] }
 
 blake3 = "1.8.2"
@@ -17,3 +34,6 @@ postgres = "0.19.12"
 postgres-types = {version ="0.2.11", features = ["derive"]}
 r2d2 = "0.8.10"
 r2d2_postgres = "0.18.2"
+
+
+

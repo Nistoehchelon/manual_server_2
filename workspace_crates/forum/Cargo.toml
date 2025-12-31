@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-db_manager = { path = "../db_manager" }
+db_manager = { workspace = true }

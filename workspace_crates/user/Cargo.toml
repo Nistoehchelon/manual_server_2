@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-password_hashing = {path="../password_hashing"}
-id_generator = {path = "../id_generator"}
-db_manager = {path = "../db_manager"}
-error_structs = {path = "../error_structs"}
+password_hashing = { workspace = true }
+id_generator = { workspace = true }
+db_manager = { workspace = true }
+error_structs = { workspace = true }
 
 postgres-types = {workspace = true}

@@ -27,7 +27,7 @@ pub fn get_env() -> Env {
             "IP" => ip = Some(value),
             "PORT" => port = Some(value),
             "DATABASE_URL" => db_url = Some(value),
-            unk_key => println!("Unknown key {unk_key}"),
+            unk_key => panic!("Unknown key {unk_key}"),
         }
     }
 

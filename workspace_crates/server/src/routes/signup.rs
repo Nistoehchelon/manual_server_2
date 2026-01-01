@@ -3,6 +3,7 @@ use crate::{
     http_response::internal_server_error_500, redirect::to,
 };
 use html_templating::html_template_structs::{self, MainInfo};
+use into_vec::into_vec;
 use session::{
     Session, SessionNotification, add_session_notification, edit_session,
     read_and_delete_session_notifications,
@@ -36,7 +37,7 @@ fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
     return html_templating::render(html_template_structs::SignupTemplate {
         main_info: MainInfo {
             title: format!("Signup"),
-            notifications: notifications,
+            notifications: into_vec(notifications),
         },
     });
 }

@@ -18,6 +18,10 @@ pub fn get_forum_threads(_forum_id: String) -> Result<Vec<ForumThread>, DbError>
     todo!()
 }
 
+pub fn get_subforums(forum_id: String) -> Result<Vec<Forum>, DbError> {
+    todo!()
+}
+
 fn storage_specific_get_forum_by_id(
     db_pool: &db_manager::DbPool,
     id: String,

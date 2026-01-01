@@ -317,7 +317,6 @@ dependencies = [
  "askama",
  "forum",
  "session",
- "user",
 ]
 
 [[package]]
@@ -326,6 +325,10 @@ version = "0.1.0"
 dependencies = [
  "uuid",
 ]
+
+[[package]]
+name = "into_vec"
+version = "0.1.0"
 
 [[package]]
 name = "itoa"
@@ -715,6 +718,7 @@ dependencies = [
  "env_reader",
  "forum",
  "html_templating",
+ "into_vec",
  "read_on_dev_embed_on_release",
  "session",
  "urlencoding",

@@ -50,9 +50,9 @@ fn get_html(
     let html = html_templating::render(html_template_structs::CreateThreadTemplate {
         main_info: html_template_structs::MainInfo {
             title,
-            notifications,
+            notifications: into_vec::into_vec(notifications),
         },
-        forum,
+        forum: forum.into(),
     });
 
     return html;

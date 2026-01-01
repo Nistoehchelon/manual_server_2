@@ -14,4 +14,5 @@ read_on_dev_embed_on_release = { workspace = true}
 session = { workspace = true}
 user = { workspace = true}
 forum = { workspace = true}
+into_vec = { workspace = true}
 

@@ -8,9 +8,15 @@
  <a href="/create_thread?forum_id={{ forum.id }}">Create a thread</a><br>
  {% endif %}
 
+ {% if subforums.len() == 0 %}
+    This forum has no subforums.
+    {% else %} 
+    
+ {% endif %}
+ 
  {% if forum_threads.len() == 0 %}
-    This forum is currently empty
- {% else %} 
+    This forum has no threads.
+    {% else %} 
     
  {% endif %}
 

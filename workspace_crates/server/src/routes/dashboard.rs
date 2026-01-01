@@ -19,7 +19,7 @@ pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
     let html = html_templating::render(html_template_structs::DashboardTemplate {
         main_info: MainInfo {
             title: format!("Your Dashboard"),
-            notifications,
+            notifications: into_vec::into_vec(notifications),
         },
         username: user.username.clone(),
     });

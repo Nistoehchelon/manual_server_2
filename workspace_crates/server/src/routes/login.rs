@@ -4,6 +4,7 @@ use crate::{
     redirect::{self, to},
 };
 use html_templating::html_template_structs;
+use into_vec::into_vec;
 use session::{
     Session, SessionNotification, add_session_notification, edit_session,
     read_and_delete_session_notifications,
@@ -83,7 +84,7 @@ fn get_html(notifications: Vec<SessionNotification>) -> String {
     let html = html_templating::render(html_template_structs::LoginTemplate {
         main_info: html_template_structs::MainInfo {
             title: format!("Login"),
-            notifications,
+            notifications: into_vec(notifications),
         },
     });
     return html;

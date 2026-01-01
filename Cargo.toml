@@ -17,6 +17,7 @@ read_on_dev_embed_on_release = { path = "workspace_crates/read_on_dev_embed_on_r
 server = { path = "workspace_crates/server" }
 session = { path = "workspace_crates/session" }
 user = { path = "workspace_crates/user" }
+into_vec = { path = "workspace_crates/into_vec" }
 
 
 

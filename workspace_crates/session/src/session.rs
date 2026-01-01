@@ -54,6 +54,7 @@ pub struct SessionNotification {
     pub notification_type: SessionNotificationType,
 }
 
+
 pub fn edit_session(db_pool: &db_manager::DbPool, session_id: String, modified_session: Session) {
     let _ = storage_specific_edit_session(db_pool, session_id, modified_session);
 }

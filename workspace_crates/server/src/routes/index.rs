@@ -1,7 +1,8 @@
 use html_templating::html_template_structs::{
-    IndexLoggedInTemplate, IndexNotLoggedInTemplate, MainInfo,
+    self, IndexLoggedInTemplate, IndexNotLoggedInTemplate, MainInfo
 };
 
+use into_vec::into_vec;
 use session::{Session, SessionNotification, read_and_delete_session_notifications};
 use user::{User, get_user_by_user_id};
 
@@ -28,16 +29,16 @@ fn get_html(session: Session, notifications: Vec<SessionNotification>, user: Use
         let index_template = IndexLoggedInTemplate {
             main_info: MainInfo {
                 title: format!("Welcome back!"),
-                notifications,
+                notifications: into_vec(notifications),
             },
-            user,
+            user: html_template_structs::User { username: user.username.clone() },
         };
         html_templating::render(index_template)
     } else {
         let index_template = IndexNotLoggedInTemplate {
             main_info: MainInfo {
                 title: format!("Welcome!"),
-                notifications,
+                notifications: into_vec(notifications),
             },
         };
         html_templating::render(index_template)

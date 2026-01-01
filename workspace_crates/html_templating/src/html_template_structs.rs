@@ -1,13 +1,52 @@
 use askama::Template;
 
-use forum::{Forum, ForumThread};
-use session::SessionNotification;
-use user::User;
+pub struct User {
+    pub username: String,
+}
 
+pub struct Forum {
+    pub id: String,
+    pub name: String,
+}
+impl From<forum::Forum> for Forum {
+    fn from(f: forum::Forum) -> Self {
+        Self {
+            id: f.id,
+            name: f.name,
+        }
+    }
+}
+
+pub struct ForumThread {
+    pub id: String,
+    pub name: String,
+}
+impl From<forum::ForumThread> for ForumThread {
+    fn from(src: forum::ForumThread) -> Self {
+        Self {
+            id: src.id,
+            name: src.name,
+        }
+    }
+}
 pub struct MainInfo {
     pub title: String,
     pub notifications: Vec<SessionNotification>,
 }
+
+pub struct SessionNotification {
+    pub message: String,
+    pub notification_type: String,
+}
+impl From<session::SessionNotification> for SessionNotification {
+    fn from(notif: session::SessionNotification) -> Self {
+        Self {
+            message: notif.message,
+            notification_type: notif.notification_type.to_string(),
+        }
+    }
+}
+
 #[derive(Template)]
 #[template(path = "index_logged_in.html")]
 
@@ -48,6 +87,7 @@ pub struct ForumTemplate {
     pub user_can_create_thread: bool,
     pub forum: Forum,
     pub forum_threads: Vec<ForumThread>,
+    pub subforums: Vec<Forum>,
 }
 
 #[derive(Template)]

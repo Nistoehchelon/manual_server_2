@@ -47,9 +47,10 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
         return to("/".to_string());
     }
 
-    let parse_result = parse_username_and_password_from_body(body.clone());
-    if parse_result.is_err() {
-        let _ = add_session_notification(
+    let (username, password) = match parse_username_and_password_from_body(body.clone()) {
+        Ok((u, p)) => (u, p),
+        Err(_) => {
+            let _ = add_session_notification(
             db_pool,
             SessionNotification {
                 message: format!("Invalid body"),
@@ -58,8 +59,8 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
             },
         );
         return to("/".to_string());
-    }
-    let (username, password) = parse_result.unwrap();
+        }
+    };
 
     let user_creation_result = match try_to_create_new_user(db_pool, username, password) {
         Ok(ucr) => ucr,

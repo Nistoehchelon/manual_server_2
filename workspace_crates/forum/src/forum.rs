@@ -7,7 +7,6 @@ pub fn get_forum_by_id(db_pool: &db_manager::DbPool, id: String) -> Result<Optio
         return Ok(Some(Forum {
             id: "0".to_string(),
             name: "Default forum".to_string(),
-            access_level: 1,
             parent_id: "0".to_string(),
         }));
     }

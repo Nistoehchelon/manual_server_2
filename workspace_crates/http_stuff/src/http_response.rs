@@ -1,6 +1,7 @@
 pub enum ResponseCode {
     Ok200,
     InternalServerError500,
+    ContentTooLarge413,
 }
 
 pub fn ok_html(content: String) -> String {
@@ -22,6 +23,7 @@ pub fn response(code: ResponseCode, content_type: String, content: String) -> St
     let status_code = match code {
         ResponseCode::InternalServerError500 => format!("500 Internal Server Error"),
         ResponseCode::Ok200 => format!("200 OK"),
+        ResponseCode::ContentTooLarge413 => format!("413 Content Too Large"),
     };
 
     format!(

@@ -1,15 +1,23 @@
 use std::{
     collections::HashMap,
-    io::{BufRead, BufReader, Read},
+    io::{ BufRead, BufReader, Read},
     net::TcpStream,
+    time::Duration,
 };
+
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
+pub const STREAM_READ_TIMEOUT_SECS: u64 = 2;
 
 pub type Query = HashMap<String, String>;
 
 /// Holds all the parsed information from an HTTP request.
+ 
+pub struct ProcessedHttpStream {
+    headers: Vec<u8>,
+    body: Vec<u8>,
+}
 
 #[derive(Clone, Debug)]
 pub struct RequestData {
@@ -21,7 +29,116 @@ pub struct RequestData {
     pub cookies: HashMap<String, String>,
 }
 
-pub fn parse_request_data(stream: &mut TcpStream) -> Result<Option<RequestData>, &'static str> {
+pub enum HttpRequestParsingError {
+    SomeSortOfStreamError,
+    ContentTooLarge,
+    BadRequest
+}
+
+// pub trait StripPrefixCaseInsensitive {
+//     fn strip_prefix_case_insensitive<'a>(s: &'a str, prefix: &str) -> Option<&'a str>;
+// }
+// impl StripPrefixCaseInsensitive for str {
+//     fn strip_prefix_case_insensitive<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
+//     if s.len() >= prefix.len()
+//         && s[..prefix.len()].eq_ignore_ascii_case(prefix)
+//     {
+//         Some(&s[prefix.len()..])
+//     } else {
+//         None
+//     }
+//     }
+// }
+
+pub trait StripPrefixASCIICaseInsensitive {
+  fn strip_prefix_ascii_case_insensitive(&self, prefix: &str) -> Option<&str> ;
+}
+impl StripPrefixASCIICaseInsensitive for str {
+    fn strip_prefix_ascii_case_insensitive(&self, prefix: &str) -> Option<&str> {
+        if self.len() >= prefix.len()
+        && self[..prefix.len()].eq_ignore_ascii_case(prefix)
+        {
+            Some(&self[prefix.len()..])
+        } else {
+            None
+        }
+    }
+}
+
+
+pub fn parse_request_data_new(
+    stream: &mut TcpStream,
+) -> Result<(RequestData), HttpRequestParsingError> {
+    match stream.set_read_timeout(Some(Duration::from_secs(STREAM_READ_TIMEOUT_SECS))) {
+        Err(_) => return Err(HttpRequestParsingError::SomeSortOfStreamError),
+        _ => {}
+    };
+
+    let mut headers: Vec<u8> = Vec::new();
+    let mut headers_buf: [u8; 512] = [0; 512];
+    loop {
+        let bytes_read = match stream.read(&mut headers_buf) {
+            Ok(n) => n,
+            Err(_) => return Err(HttpRequestParsingError::SomeSortOfStreamError),
+
+        };
+        if bytes_read == 0 {
+            return Err(HttpRequestParsingError::BadRequest);
+        }
+
+        headers.extend_from_slice(&headers_buf[..bytes_read]);
+
+        if headers.len() > MAX_HEADER_BYTES {
+            return Err(HttpRequestParsingError::ContentTooLarge);
+        }
+
+        if headers.windows(4).any(|w| w == b"\r\n\r\n") {
+            break;
+        }
+    }
+
+    let headers_text = String::from_utf8_lossy(&headers);
+
+    let content_length = headers_text
+    .lines()
+    .find_map(|line| {
+        line.strip_prefix_ascii_case_insensitive("Content-Length:")
+        .and_then(|v| v.trim().parse::<usize>().ok())
+    })
+    .unwrap_or(0);
+
+    if content_length > MAX_BODY_BYTES {
+        return Err(HttpRequestParsingError::ContentTooLarge);
+    }
+
+    let mut body: Vec<u8> = Vec::with_capacity(content_length.clone());
+    let mut body_remaining = content_length.clone();
+    let mut body_buf: [u8; 8192] = [0; 8192];
+
+    while body_remaining > 0 {
+        let to_read = body_remaining.min(body_buf.len());
+        let n = stream.read(&mut body_buf[..to_read])
+        .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+
+    if n == 0 {
+        return Err(HttpRequestParsingError::SomeSortOfStreamError);
+    }
+    body.extend_from_slice(&body_buf[..n]);
+    body_remaining -= n;
+
+    if body.len() >= MAX_BODY_BYTES {
+        return Err(HttpRequestParsingError::ContentTooLarge);
+    }
+
+    }
+
+    // so here I have access to headers_text, body
+    dbg!(String::from_utf8(body), headers_text);
+    todo!()
+}
+
+
+pub fn parse_request_data(stream: &mut TcpStream) -> Option<RequestData> {
     let mut reader = BufReader::new(stream);
 
     // Read the request line
@@ -86,14 +203,14 @@ pub fn parse_request_data(stream: &mut TcpStream) -> Result<Option<RequestData>,
         })
         .collect();
 
-    Ok(Some(RequestData {
+    Some(RequestData {
         method: method.to_string(),
         body,
         cookies,
         path_with_query: path_with_query.to_string(),
         query,
         path,
-    }))
+    })
 }
 
 fn parse_path_and_query(path_with_query: &str) -> (String, HashMap<String, String>) {

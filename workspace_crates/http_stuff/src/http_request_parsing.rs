@@ -21,7 +21,7 @@ pub struct RequestData {
     pub cookies: HashMap<String, String>,
 }
 
-pub fn parse_request_data(stream: &mut TcpStream) -> Option<RequestData> {
+pub fn parse_request_data(stream: &mut TcpStream) -> Result<Option<RequestData>, &'static str> {
     let mut reader = BufReader::new(stream);
 
     // Read the request line
@@ -86,14 +86,14 @@ pub fn parse_request_data(stream: &mut TcpStream) -> Option<RequestData> {
         })
         .collect();
 
-    Some(RequestData {
+    Ok(Some(RequestData {
         method: method.to_string(),
         body,
         cookies,
         path_with_query: path_with_query.to_string(),
         query,
         path,
-    })
+    }))
 }
 
 fn parse_path_and_query(path_with_query: &str) -> (String, HashMap<String, String>) {

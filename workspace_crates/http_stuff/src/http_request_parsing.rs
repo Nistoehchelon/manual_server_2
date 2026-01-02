@@ -1,20 +1,16 @@
-use std::{collections::HashMap, fmt::{self, Display}, io::Read, net::TcpStream, time::Duration};
+use std::{collections::HashMap, fmt::{self, Display}, io::{BufRead, BufReader, Read}, net::TcpStream, time::Duration};
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
+pub const MAX_HEADER_LINE_LEN: usize = 4 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 pub const STREAM_READ_TIMEOUT_SECS: u64 = 5;
 
 pub type Query = HashMap<String, String>;
 
 /// Holds all the parsed information from an HTTP request.
-
-pub struct ParsedHttpRequestStream {
-    request_line_and_headers: String,
-    body_bytes: Vec<u8>,
-}
-
 #[derive(Clone, Debug)]
 pub struct HttpRequestData {
+    pub headers: HashMap<String, String>,
     pub method: String,
     pub path: String,
     pub query: Query,
@@ -52,131 +48,94 @@ impl StripPrefixASCIICaseInsensitive for str {
     }
 }
 
-pub fn parse_http_request_stream(
-    stream: &mut TcpStream,
-) -> Result<ParsedHttpRequestStream, HttpRequestParsingError> {
-    match stream.set_read_timeout(Some(Duration::from_secs(STREAM_READ_TIMEOUT_SECS))) {
-        Err(e) => {
-            dbg!(format!("On setting set_read_timeout: {:?}", e));
-            return Err(HttpRequestParsingError::SomeSortOfStreamError)
-        },
-        _ => {}
-    };
+pub fn parse_http_request(stream: &mut TcpStream) -> Result<HttpRequestData, HttpRequestParsingError> {
+    stream
+        .set_read_timeout(Some(Duration::from_secs(STREAM_READ_TIMEOUT_SECS)))
+        .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
 
-    let mut request_line_and_headers: Vec<u8> = Vec::new();
-    let mut request_line_and_headers_buf: [u8; 512] = [0; 512];
+    let mut reader = BufReader::new(stream);
+
+    // --- Read headers ---
+    let mut headers = HashMap::new();
+    let mut request_line = String::new();
+    let mut total_header_bytes = 0;
+    let mut at_request_line = true;
+
     loop {
-        let bytes_read = match stream.read(&mut request_line_and_headers_buf) {
-            Ok(n) => n,
-            Err(e) => {
-                dbg!(format!("headers stream.read: {:?}", e));
-                return Err(HttpRequestParsingError::SomeSortOfStreamError)
-            },
-        };
-        if bytes_read == 0 {
-            return Err(HttpRequestParsingError::BadRequest);
+        let mut line = String::new();
+        let n = reader.read_line(&mut line).map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+        if n == 0 {
+            return Err(HttpRequestParsingError::BadRequest); // client closed connection
         }
 
-        request_line_and_headers.extend_from_slice(&request_line_and_headers_buf[..bytes_read]);
-
-        if request_line_and_headers.len() > MAX_HEADER_BYTES {
+        total_header_bytes += n;
+        if total_header_bytes > MAX_HEADER_BYTES {
             return Err(HttpRequestParsingError::ContentTooLarge);
         }
 
-        if request_line_and_headers
-            .windows(4)
-            .any(|w| w == b"\r\n\r\n")
-        {
-            break;
+        if line.len() > MAX_HEADER_LINE_LEN {
+            return Err(HttpRequestParsingError::ContentTooLarge);
+        }
+
+        let line = line.trim_end_matches(|c| c == '\r' || c == '\n');
+
+        if line.is_empty() {
+            break; // headers finished
+        }
+
+        if at_request_line {
+            request_line = line.to_string();
+            at_request_line = false;
+            continue;
+        }
+
+        if let Some((key, value)) = line.split_once(':') {
+            headers.insert(key.trim().to_lowercase(), value.trim().to_string());
         }
     }
 
-    let request_line_and_headers_string = String::from_utf8_lossy(&request_line_and_headers);
+    // --- Parse request line ---
+    let parts: Vec<&str> = request_line.split_whitespace().collect();
+    if parts.len() < 2 {
+        return Err(HttpRequestParsingError::BadRequest);
+    }
 
-    let content_length = request_line_and_headers_string
-        .lines()
-        .find_map(|line| {
-            line.strip_prefix_ascii_case_insensitive("Content-Length:")
-                .and_then(|v| v.trim().parse::<usize>().ok())
-        })
+    let method = parts[0].to_string();
+    let path_with_query = parts[1];
+    let (path, query) = parse_path_and_query(path_with_query);
+
+    // --- Parse body ---
+    let content_length = headers
+        .get("content-length")
+        .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(0);
 
     if content_length > MAX_BODY_BYTES {
         return Err(HttpRequestParsingError::ContentTooLarge);
     }
 
-    let mut body_bytes: Vec<u8> = Vec::with_capacity(content_length.clone());
-    let mut body_remaining = content_length.clone();
-    let mut body_buf: [u8; 8192] = [0; 8192];
-
-    while body_remaining > 0 {
-        let to_read = body_remaining.min(body_buf.len());
-        let n = stream
-            .read(&mut body_buf[..to_read])
-            .map_err(|e| {
-                dbg!(format!("body stream.read : {:?}", e));
-                 HttpRequestParsingError::SomeSortOfStreamError
-            })?;
-
-        if n == 0 {
-            dbg!(format!("body N == 0"));
-            return Err(HttpRequestParsingError::SomeSortOfStreamError);
-        }
-        body_bytes.extend_from_slice(&body_buf[..n]);
-        body_remaining -= n;
-
-        if body_bytes.len() >= MAX_BODY_BYTES {
-            return Err(HttpRequestParsingError::ContentTooLarge);
-        }
+    let mut body_bytes = vec![0u8; content_length];
+    if content_length > 0 {
+        reader
+            .read_exact(&mut body_bytes)
+            .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
     }
 
-    Ok(ParsedHttpRequestStream {
-        request_line_and_headers: request_line_and_headers_string.to_string(),
-        body_bytes,
-    })
-}
-
-pub fn parse_http_request(
-    stream: &mut TcpStream,
-) -> Result<HttpRequestData, HttpRequestParsingError> {
-    let ParsedHttpRequestStream {
-        request_line_and_headers,
-        body_bytes,
-    } = parse_http_request_stream(stream)?;
-    let mut headers = HashMap::new();
-
-    let mut at_request_line = true;
-    let mut request_line = String::from("");
-    for line in request_line_and_headers.clone().lines() {
-        if at_request_line {
-            request_line = line.to_string();
-            at_request_line = false;
-            continue;
-        }
-        if let Some((key, value)) = line.split_once(':') {
-            headers.insert(key.trim().to_lowercase(), value.trim().to_string());
-        }
-    }
-
-    let split_request_line: Vec<&str> = request_line.split_whitespace().collect();
-    if split_request_line.len() < 2 {
-        return Err(HttpRequestParsingError::BadRequest);
-    }
-    let method = split_request_line[0];
-    let path_with_query = split_request_line[1];
-
+    // --- Parse cookies ---
     let cookies = parse_cookies(headers.clone());
-    let (path, query) = parse_path_and_query(path_with_query);
 
     Ok(HttpRequestData {
-        method: method.to_string(),
+        method,
         path,
-        query,
         path_with_query: path_with_query.to_string(),
+        query,
         body_bytes,
         cookies,
+        headers,
     })
 }
+
+
 
 fn parse_path_and_query(path_with_query: &str) -> (String, HashMap<String, String>) {
     let parts: Vec<&str> = path_with_query.split('?').collect();

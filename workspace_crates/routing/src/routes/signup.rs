@@ -42,7 +42,7 @@ fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
     });
 }
 
-pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> String {
+pub fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool) -> String {
     if session.logged_in {
         return redirect_to("/".to_string());
     }

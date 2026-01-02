@@ -21,7 +21,7 @@ pub fn get(db_pool: &db_manager::DbPool, session: Session) -> String {
     http_stuff::http_response::ok_html(get_html(notifs))
 }
 
-pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> String {
+pub fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool) -> String {
     if session.logged_in {
         let _ = add_session_notification(
             db_pool,
@@ -33,19 +33,22 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
         );
         return redirect_to(String::from("/"));
     }
-    let parse_result = parse_username_and_password_from_body(body);
-    if parse_result.is_err() {
-        let _ = add_session_notification(
+    
+    let (username, password) = match parse_username_and_password_from_body(body) {
+        Err(_) => {
+                    let _ = add_session_notification(
             db_pool,
             SessionNotification {
-                message: parse_result.unwrap_err(),
+                message: format!("Could not extract username and password from body"),
                 session_id: session.id.clone(),
                 notification_type: session::SessionNotificationType::Error,
             },
         );
-        return redirect_to("/".to_string());
-    }
-    let (username, password) = parse_result.unwrap();
+        return redirect_to("/login".to_string());
+        },
+        Ok((u, p)) => (u, p),
+    };
+    
     let user_result = match get_by_username_and_password(username, password, db_pool) {
         Ok(opt) => opt,
         _ => return internal_server_error_500(),

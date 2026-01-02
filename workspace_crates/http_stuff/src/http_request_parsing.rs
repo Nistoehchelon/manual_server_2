@@ -167,7 +167,16 @@ fn parse_cookies(headers: HashMap<String, String>) -> HashMap<String, String> {
     cookies
 }
 
-pub fn parse_username_and_password_from_body(body: String) -> Result<(String, String), String> {
+pub fn parse_username_and_password_from_body(body: Vec<u8>) -> Result<(String, String), String> {
+    let body =  String::from_utf8_lossy(&body);
+    let body = match urlencoding::decode(&body) {
+        Err(_) => {
+            return Err(format!("Could not decode body into string"));
+        },
+        Ok(s) => s,
+    };
+    let body = body.replace("+", " ");
+
     // Parse username from form data
     let mut valid_body = true;
     let mut username = String::new();

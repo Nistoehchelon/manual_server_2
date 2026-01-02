@@ -63,51 +63,13 @@ fn generate_response(request_data: http_request_parsing::RequestData, db_pool: &
         path_with_query,
     } = request_data;
 
-    let mut will_set_cookie = false;
-    let session: session::Session = {
-        let session_id: String = match cookies
-            .get(session::get_name_of_cookie_containing_session_id().as_str())
-        {
-            Some(session_id) => {
-                let session_exists =
-                    match session::session_with_specified_id_exists(session_id.clone(), &db_pool) {
-                        Ok(answer) => answer,
-                        Err(_) => return internal_server_error_500().into_bytes(),
-                    };
-                if !session_exists {
-                    will_set_cookie = true;
-                    session::generate_session_id()
-                } else {
-                    session_id.to_string()
-                }
-            }
-            None => {
-                will_set_cookie = true;
-                session::generate_session_id()
-            }
-        };
-
-        let session_exists =
-            match session::session_with_specified_id_exists(session_id.clone(), db_pool) {
-                Ok(b) => b,
-                Err(_) => return internal_server_error_500().into_bytes(),
-            };
-        if session_exists {
-            match session::get_session_by_session_id(session_id.clone(), db_pool) {
-                Ok(Some(sess)) => sess,
-                _ => return internal_server_error_500().into_bytes(),
-            }
-        } else {
-            match session::create_new_session_with_id(session_id.clone(), db_pool) {
-                Ok(sess) => sess,
-                Err(_) => return internal_server_error_500().into_bytes(),
-            }
-        }
+    let (session, created_new_session) = match session::get_existing_or_make_new_session(db_pool, cookies) {
+        Ok((s, cns)) => (s, cns),
+        Err(_) => return internal_server_error_500().into_bytes(),
     };
-
     // Route handling
     let response = 'response_block: {
-        if will_set_cookie {
+        if created_new_session {
             break 'response_block format!(
                 "HTTP/1.1 302 Found\r\n\
                 Set-Cookie: {}={}; Path=/\r\n\
@@ -235,3 +197,4 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
         return false;
     }
 }
+

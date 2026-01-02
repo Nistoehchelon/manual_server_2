@@ -4,8 +4,9 @@ pub fn get() -> String {
     let stylesheet = get_stylesheet_css_content();
     format!(
         "HTTP/1.1 200 OK\
-      Content-Type: text/css\r\n\r\n\
-      {stylesheet}"
+Connection: close\r\n\
+Content-Type: text/css; charset=utf-8\r\n\r\n\
+{stylesheet}"
     )
 }
 

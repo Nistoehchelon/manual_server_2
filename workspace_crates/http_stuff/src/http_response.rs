@@ -28,8 +28,9 @@ pub fn response(code: ResponseCode, content_type: String, content: String) -> St
 
     format!(
         "HTTP/1.1 {}\r\n\
-         Content-Type: {}; charset=utf-8\r\n\r\n\
-            {}",
+Connection: close\r\n\
+Content-Type: {}; charset=utf-8\r\n\r\n\
+{}",
         status_code, content_type, content
     )
 }
@@ -37,7 +38,8 @@ pub fn response(code: ResponseCode, content_type: String, content: String) -> St
 pub fn redirect_to(page: String) -> String {
     format!(
         "HTTP/1.1 302 Found\r\n\
-         Location: {page}\r\n\
-         Content-Type: text/html\r\n\r\n"
+Location: {page}\r\n\
+Connection: close\r\n\
+Content-Type: text/html\r\n\r\n"
     )
 }

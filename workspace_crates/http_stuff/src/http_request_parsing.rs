@@ -1,19 +1,13 @@
-use std::{
-    collections::HashMap,
-    io::{Read},
-    net::TcpStream,
-    time::Duration,
-};
-
+use std::{collections::HashMap, fmt::{self, Display}, io::Read, net::TcpStream, time::Duration};
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
-pub const STREAM_READ_TIMEOUT_SECS: u64 = 2;
+pub const STREAM_READ_TIMEOUT_SECS: u64 = 5;
 
 pub type Query = HashMap<String, String>;
 
 /// Holds all the parsed information from an HTTP request.
- 
+
 pub struct ParsedHttpRequestStream {
     request_line_and_headers: String,
     body_bytes: Vec<u8>,
@@ -29,19 +23,28 @@ pub struct HttpRequestData {
     pub cookies: HashMap<String, String>,
 }
 
+#[derive(Clone, Debug)]
 pub enum HttpRequestParsingError {
     SomeSortOfStreamError,
     ContentTooLarge,
-    BadRequest
+    BadRequest,
+}
+impl Display for HttpRequestParsingError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::BadRequest => "Bad Request",
+            Self::ContentTooLarge => "Content Too Large",
+            Self::SomeSortOfStreamError => "Some Sort Of Stream Error",
+        };
+        write!(f, "{}", s)
+    }
 }
 pub trait StripPrefixASCIICaseInsensitive {
-  fn strip_prefix_ascii_case_insensitive(&self, prefix: &str) -> Option<&str> ;
+    fn strip_prefix_ascii_case_insensitive(&self, prefix: &str) -> Option<&str>;
 }
 impl StripPrefixASCIICaseInsensitive for str {
     fn strip_prefix_ascii_case_insensitive(&self, prefix: &str) -> Option<&str> {
-        if self.len() >= prefix.len()
-        && self[..prefix.len()].eq_ignore_ascii_case(prefix)
-        {
+        if self.len() >= prefix.len() && self[..prefix.len()].eq_ignore_ascii_case(prefix) {
             Some(&self[prefix.len()..])
         } else {
             None
@@ -49,12 +52,14 @@ impl StripPrefixASCIICaseInsensitive for str {
     }
 }
 
-
 pub fn parse_http_request_stream(
     stream: &mut TcpStream,
 ) -> Result<ParsedHttpRequestStream, HttpRequestParsingError> {
     match stream.set_read_timeout(Some(Duration::from_secs(STREAM_READ_TIMEOUT_SECS))) {
-        Err(_) => return Err(HttpRequestParsingError::SomeSortOfStreamError),
+        Err(e) => {
+            dbg!(format!("On setting set_read_timeout: {:?}", e));
+            return Err(HttpRequestParsingError::SomeSortOfStreamError)
+        },
         _ => {}
     };
 
@@ -63,8 +68,10 @@ pub fn parse_http_request_stream(
     loop {
         let bytes_read = match stream.read(&mut request_line_and_headers_buf) {
             Ok(n) => n,
-            Err(_) => return Err(HttpRequestParsingError::SomeSortOfStreamError),
-
+            Err(e) => {
+                dbg!(format!("headers stream.read: {:?}", e));
+                return Err(HttpRequestParsingError::SomeSortOfStreamError)
+            },
         };
         if bytes_read == 0 {
             return Err(HttpRequestParsingError::BadRequest);
@@ -76,7 +83,10 @@ pub fn parse_http_request_stream(
             return Err(HttpRequestParsingError::ContentTooLarge);
         }
 
-        if request_line_and_headers.windows(4).any(|w| w == b"\r\n\r\n") {
+        if request_line_and_headers
+            .windows(4)
+            .any(|w| w == b"\r\n\r\n")
+        {
             break;
         }
     }
@@ -84,18 +94,16 @@ pub fn parse_http_request_stream(
     let request_line_and_headers_string = String::from_utf8_lossy(&request_line_and_headers);
 
     let content_length = request_line_and_headers_string
-    .lines()
-    .find_map(|line| {
-        line.strip_prefix_ascii_case_insensitive("Content-Length:")
-        .and_then(|v| v.trim().parse::<usize>().ok())
-    })
-    .unwrap_or(0);
+        .lines()
+        .find_map(|line| {
+            line.strip_prefix_ascii_case_insensitive("Content-Length:")
+                .and_then(|v| v.trim().parse::<usize>().ok())
+        })
+        .unwrap_or(0);
 
     if content_length > MAX_BODY_BYTES {
         return Err(HttpRequestParsingError::ContentTooLarge);
     }
-
-
 
     let mut body_bytes: Vec<u8> = Vec::with_capacity(content_length.clone());
     let mut body_remaining = content_length.clone();
@@ -103,53 +111,71 @@ pub fn parse_http_request_stream(
 
     while body_remaining > 0 {
         let to_read = body_remaining.min(body_buf.len());
-        let n = stream.read(&mut body_buf[..to_read])
-        .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+        let n = stream
+            .read(&mut body_buf[..to_read])
+            .map_err(|e| {
+                dbg!(format!("body stream.read : {:?}", e));
+                 HttpRequestParsingError::SomeSortOfStreamError
+            })?;
 
-    if n == 0 {
-        return Err(HttpRequestParsingError::SomeSortOfStreamError);
+        if n == 0 {
+            dbg!(format!("body N == 0"));
+            return Err(HttpRequestParsingError::SomeSortOfStreamError);
+        }
+        body_bytes.extend_from_slice(&body_buf[..n]);
+        body_remaining -= n;
+
+        if body_bytes.len() >= MAX_BODY_BYTES {
+            return Err(HttpRequestParsingError::ContentTooLarge);
+        }
     }
-    body_bytes.extend_from_slice(&body_buf[..n]);
-    body_remaining -= n;
 
-    if body_bytes.len() >= MAX_BODY_BYTES {
-        return Err(HttpRequestParsingError::ContentTooLarge);
-    }
-
-    }
-
-    Ok(ParsedHttpRequestStream { request_line_and_headers: request_line_and_headers_string.to_string(), body_bytes })
+    Ok(ParsedHttpRequestStream {
+        request_line_and_headers: request_line_and_headers_string.to_string(),
+        body_bytes,
+    })
 }
 
+pub fn parse_http_request(
+    stream: &mut TcpStream,
+) -> Result<HttpRequestData, HttpRequestParsingError> {
+    let ParsedHttpRequestStream {
+        request_line_and_headers,
+        body_bytes,
+    } = parse_http_request_stream(stream)?;
+    let mut headers = HashMap::new();
 
-pub fn parse_http_request( stream: &mut TcpStream,) -> Result<HttpRequestData, HttpRequestParsingError> {
-    let ParsedHttpRequestStream { request_line_and_headers, body_bytes } = parse_http_request_stream(stream)?;
-  let mut headers = HashMap::new();
-
-  let mut at_request_line = true;
-  let mut request_line = String::from("");
-  for line in request_line_and_headers.clone().lines() {
-    if at_request_line {
-        request_line = line.to_string();
-        at_request_line = false;
-        continue;
+    let mut at_request_line = true;
+    let mut request_line = String::from("");
+    for line in request_line_and_headers.clone().lines() {
+        if at_request_line {
+            request_line = line.to_string();
+            at_request_line = false;
+            continue;
+        }
+        if let Some((key, value)) = line.split_once(':') {
+            headers.insert(key.trim().to_lowercase(), value.trim().to_string());
+        }
     }
-    if let Some((key, value)) = line.split_once(':') {
-        headers.insert(key.trim().to_lowercase(), value.trim().to_string());
-    }
-  }
 
-  let split_request_line: Vec<&str> =  request_line.split_whitespace().collect();
-  if split_request_line.len() < 2 {
-    return Err(HttpRequestParsingError::BadRequest);
-  }
+    let split_request_line: Vec<&str> = request_line.split_whitespace().collect();
+    if split_request_line.len() < 2 {
+        return Err(HttpRequestParsingError::BadRequest);
+    }
     let method = split_request_line[0];
     let path_with_query = split_request_line[1];
 
-      let cookies = parse_cookies(headers.clone());
-     let (path, query) = parse_path_and_query(path_with_query);
+    let cookies = parse_cookies(headers.clone());
+    let (path, query) = parse_path_and_query(path_with_query);
 
-     Ok(HttpRequestData { method: method.to_string(), path, query, path_with_query: path_with_query.to_string(), body_bytes, cookies })
+    Ok(HttpRequestData {
+        method: method.to_string(),
+        path,
+        query,
+        path_with_query: path_with_query.to_string(),
+        body_bytes,
+        cookies,
+    })
 }
 
 fn parse_path_and_query(path_with_query: &str) -> (String, HashMap<String, String>) {

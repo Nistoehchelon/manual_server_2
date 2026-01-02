@@ -24,6 +24,7 @@ fn main() {
             Err(e) => {
                 match e {
                     _ =>  {
+                        eprintln!("{:?}",e);
                         let _ = stream.write_all(&internal_server_error_500().into_bytes());
                     },
                 };

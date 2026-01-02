@@ -1,7 +1,7 @@
-use crate::{
+use http_stuff::{
     http_request_parsing::parse_username_and_password_from_body,
     http_response::internal_server_error_500,
-    redirect::{self, to},
+    http_response::redirect_to,
 };
 use html_templating::html_template_structs;
 use into_vec::into_vec;
@@ -13,13 +13,13 @@ use user::get_by_username_and_password;
 
 pub fn get(db_pool: &db_manager::DbPool, session: Session) -> String {
     if session.logged_in {
-        return redirect::to("/".to_string());
+        return redirect_to("/".to_string());
     }
     let notifs = match read_and_delete_session_notifications(db_pool, session.id.clone()) {
         Ok(ns) => ns,
         Err(_) => return internal_server_error_500(),
     };
-    crate::http_response::ok_html(get_html(notifs))
+    http_stuff::http_response::ok_html(get_html(notifs))
 }
 
 pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> String {
@@ -32,7 +32,7 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
                 notification_type: session::SessionNotificationType::Information,
             },
         );
-        return to(String::from("/"));
+        return redirect_to(String::from("/"));
     }
     let parse_result = parse_username_and_password_from_body(body);
     if parse_result.is_err() {
@@ -44,7 +44,7 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
                 notification_type: session::SessionNotificationType::Error,
             },
         );
-        return to("/".to_string());
+        return redirect_to("/".to_string());
     }
     let (username, password) = parse_result.unwrap();
     let user_result = match get_by_username_and_password(username, password, db_pool) {
@@ -61,7 +61,7 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
                 notification_type: session::SessionNotificationType::Error,
             },
         );
-        return to("/login".to_string());
+        return redirect_to("/login".to_string());
     }
     let user = user_result.unwrap();
     let mut session = Session { ..session };
@@ -77,7 +77,7 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
             notification_type: session::SessionNotificationType::Success,
         },
     );
-    redirect::to("/".to_string())
+    redirect_to("/".to_string())
 }
 
 fn get_html(notifications: Vec<SessionNotification>) -> String {

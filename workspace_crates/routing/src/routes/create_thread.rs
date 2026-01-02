@@ -1,8 +1,7 @@
-use crate::http_response::ok_html;
-use crate::redirect::to;
-use crate::{http_request_parsing::Query, http_response::internal_server_error_500};
+
 use forum::{Forum, get_forum_by_id};
 use html_templating::html_template_structs;
+use http_stuff::{http_request_parsing::Query, http_response::{internal_server_error_500, ok_html, redirect_to}};
 use session::{Session, SessionNotification, add_session_notification};
 use user;
 
@@ -27,7 +26,7 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Stri
                 notification_type: session::SessionNotificationType::Error,
             },
         );
-        return to("/forum".to_string());
+        return redirect_to("/forum".to_string());
     }
     let forum = forum.unwrap();
     let notifs = match session::read_and_delete_session_notifications(db_pool, session.id.clone()) {

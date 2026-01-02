@@ -320,6 +320,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "http_stuff"
+version = "0.1.0"
+dependencies = [
+ "urlencoding",
+]
+
+[[package]]
 name = "id_generator"
 version = "0.1.0"
 dependencies = [
@@ -642,6 +649,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "routing"
+version = "0.1.0"
+dependencies = [
+ "db_manager",
+ "forum",
+ "html_templating",
+ "http_stuff",
+ "into_vec",
+ "read_on_dev_embed_on_release",
+ "session",
+ "user",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -718,8 +739,10 @@ dependencies = [
  "env_reader",
  "forum",
  "html_templating",
+ "http_stuff",
  "into_vec",
  "read_on_dev_embed_on_release",
+ "routing",
  "session",
  "urlencoding",
  "user",

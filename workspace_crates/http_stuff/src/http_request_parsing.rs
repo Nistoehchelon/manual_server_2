@@ -8,6 +8,7 @@ pub type Query = HashMap<String, String>;
 
 /// Holds all the parsed information from an HTTP request.
 
+#[derive(Clone, Debug)]
 pub struct RequestData {
     pub method: String,
     pub path: String,

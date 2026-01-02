@@ -7,7 +7,7 @@ members = ["workspace_crates/*"]
 # internal workspace crates
 
 db_manager = { path = "workspace_crates/db_manager" }
-env_reader = { path = "workspace_crates/env_reader" }
+env_reader = { path = "workspace_crates/env_reader" } 
 error_structs = { path = "workspace_crates/error_structs" }
 forum = { path = "workspace_crates/forum" }
 html_templating = { path = "workspace_crates/html_templating" }
@@ -18,6 +18,9 @@ server = { path = "workspace_crates/server" }
 session = { path = "workspace_crates/session" }
 user = { path = "workspace_crates/user" }
 into_vec = { path = "workspace_crates/into_vec" }
+routing = { path = "workspace_crates/routing" }
+http_stuff = { path = "workspace_crates/http_stuff" }
+
 
 
 

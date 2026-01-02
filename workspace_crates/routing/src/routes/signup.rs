@@ -1,6 +1,6 @@
-use crate::{
+use http_stuff::{
     http_request_parsing::parse_username_and_password_from_body,
-    http_response::internal_server_error_500, redirect::to,
+    http_response::{ internal_server_error_500, ok_html, redirect_to },
 };
 use html_templating::html_template_structs::{self, MainInfo};
 use into_vec::into_vec;
@@ -22,7 +22,7 @@ pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
                 notification_type: session::SessionNotificationType::Error,
             },
         );
-        return to("/".to_string());
+        return redirect_to("/".to_string());
     }
 
     let notifs = match read_and_delete_session_notifications(db_pool, session.id) {
@@ -30,7 +30,7 @@ pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
         Err(_) => return internal_server_error_500(),
     };
     // Show username form
-    crate::http_response::ok_html(get_signup_html(notifs))
+    ok_html(get_signup_html(notifs))
 }
 
 fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
@@ -44,7 +44,7 @@ fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
 
 pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> String {
     if session.logged_in {
-        return to("/".to_string());
+        return redirect_to("/".to_string());
     }
 
     let (username, password) = match parse_username_and_password_from_body(body.clone()) {
@@ -58,7 +58,7 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
                 notification_type: session::SessionNotificationType::Error,
             },
         );
-        return to("/".to_string());
+        return redirect_to("/".to_string());
         }
     };
 
@@ -82,9 +82,9 @@ pub fn post(session: Session, body: String, db_pool: &db_manager::DbPool) -> Str
                     notification_type: session::SessionNotificationType::Error,
                 },
             );
-            return to("/signup".to_string());
+            return redirect_to("/signup".to_string());
         }
     }
 
-    to("/".to_string())
+    redirect_to("/".to_string())
 }

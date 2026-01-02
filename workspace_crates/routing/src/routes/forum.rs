@@ -1,7 +1,6 @@
-use crate::{
+use http_stuff::{
     http_request_parsing::Query,
-    http_response::{self, internal_server_error_500},
-    redirect::to,
+    http_response::{self, internal_server_error_500, redirect_to},
 };
 use forum::{Forum, ForumThread, get_forum_by_id};
 use html_templating::html_template_structs::{self, MainInfo};
@@ -31,7 +30,7 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Stri
                     notification_type: session::SessionNotificationType::Error,
                 },
             );
-            return to("/forum".to_string());
+            return redirect_to("/forum".to_string());
         }
         Err(_) => return internal_server_error_500(),
     };

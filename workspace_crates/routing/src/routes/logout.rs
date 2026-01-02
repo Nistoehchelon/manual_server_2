@@ -1,4 +1,4 @@
-use crate::redirect::to;
+use http_stuff::http_response::redirect_to;
 use session::{Session, edit_session};
 
 pub fn get(db_pool: &db_manager::DbPool, mut session: Session) -> String {
@@ -6,5 +6,5 @@ pub fn get(db_pool: &db_manager::DbPool, mut session: Session) -> String {
     session.user_public_inapp_id = "".to_string();
     edit_session(db_pool, session.clone().id, session.clone());
 
-    to("/".to_string())
+    redirect_to("/".to_string())
 }

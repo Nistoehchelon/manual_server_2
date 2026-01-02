@@ -31,3 +31,12 @@ pub fn response(code: ResponseCode, content_type: String, content: String) -> St
         status_code, content_type, content
     )
 }
+
+
+pub fn redirect_to(page: String) -> String {
+    format!(
+        "HTTP/1.1 302 Found\r\n\
+         Location: {page}\r\n\
+         Content-Type: text/html\r\n\r\n"
+    )
+}

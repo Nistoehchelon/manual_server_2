@@ -6,7 +6,7 @@ use into_vec::into_vec;
 use session::{Session, SessionNotification, read_and_delete_session_notifications};
 use user::{User, get_user_by_user_id};
 
-use crate::http_response::internal_server_error_500;
+use http_stuff::http_response::internal_server_error_500;
 
 pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
     let notifs = match read_and_delete_session_notifications(db_pool, session.id.clone()) {
@@ -19,9 +19,9 @@ pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
             _ => return internal_server_error_500(),
         };
 
-        return crate::http_response::ok_html(get_html(session.clone(), notifs, user));
+        return http_stuff::http_response::ok_html(get_html(session.clone(), notifs, user));
     }
-    crate::http_response::ok_html(get_html(session.clone(), notifs, User::default()))
+    http_stuff::http_response::ok_html(get_html(session.clone(), notifs, User::default()))
 }
 
 fn get_html(session: Session, notifications: Vec<SessionNotification>, user: User) -> String {

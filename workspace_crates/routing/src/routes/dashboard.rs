@@ -1,11 +1,12 @@
-use crate::{http_response::internal_server_error_500, redirect::to};
+
 use html_templating::html_template_structs::{self, MainInfo};
+use http_stuff::http_response::{internal_server_error_500, redirect_to};
 use session::Session;
 use user;
 
 pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
     if !session.logged_in {
-        return to("/".to_string());
+        return redirect_to("/".to_string());
     }
     let user = match user::get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool) {
         Ok(Some(u)) => u,
@@ -23,5 +24,5 @@ pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
         },
         username: user.username.clone(),
     });
-    crate::http_response::ok_html(html)
+    http_stuff::http_response::ok_html(html)
 }

@@ -1,0 +1,14 @@
+[package]
+name = "routing"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+session = { workspace = true }
+forum = { workspace = true }
+html_templating = { workspace = true }
+user = { workspace = true }
+http_stuff = { workspace = true }
+db_manager = { workspace = true }
+into_vec = { workspace = true }
+read_on_dev_embed_on_release = { workspace = true }

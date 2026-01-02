@@ -14,9 +14,9 @@ pub type Query = HashMap<String, String>;
 
 /// Holds all the parsed information from an HTTP request.
  
-pub struct ProcessedHttpStream {
-    headers: Vec<u8>,
-    body: Vec<u8>,
+pub struct ParsedHttpRequestStream {
+    request_line_and_headers: String,
+    body_bytes: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
@@ -25,7 +25,7 @@ pub struct RequestData {
     pub path: String,
     pub query: Query,
     pub path_with_query: String,
-    pub body: String,
+    pub body_bytes: Vec<u8>,
     pub cookies: HashMap<String, String>,
 }
 
@@ -34,22 +34,6 @@ pub enum HttpRequestParsingError {
     ContentTooLarge,
     BadRequest
 }
-
-// pub trait StripPrefixCaseInsensitive {
-//     fn strip_prefix_case_insensitive<'a>(s: &'a str, prefix: &str) -> Option<&'a str>;
-// }
-// impl StripPrefixCaseInsensitive for str {
-//     fn strip_prefix_case_insensitive<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
-//     if s.len() >= prefix.len()
-//         && s[..prefix.len()].eq_ignore_ascii_case(prefix)
-//     {
-//         Some(&s[prefix.len()..])
-//     } else {
-//         None
-//     }
-//     }
-// }
-
 pub trait StripPrefixASCIICaseInsensitive {
   fn strip_prefix_ascii_case_insensitive(&self, prefix: &str) -> Option<&str> ;
 }
@@ -66,18 +50,18 @@ impl StripPrefixASCIICaseInsensitive for str {
 }
 
 
-pub fn parse_request_data_new(
+pub fn parse_http_request_stream(
     stream: &mut TcpStream,
-) -> Result<(RequestData), HttpRequestParsingError> {
+) -> Result<ParsedHttpRequestStream, HttpRequestParsingError> {
     match stream.set_read_timeout(Some(Duration::from_secs(STREAM_READ_TIMEOUT_SECS))) {
         Err(_) => return Err(HttpRequestParsingError::SomeSortOfStreamError),
         _ => {}
     };
 
-    let mut headers: Vec<u8> = Vec::new();
-    let mut headers_buf: [u8; 512] = [0; 512];
+    let mut request_line_and_headers: Vec<u8> = Vec::new();
+    let mut request_line_and_headers_buf: [u8; 512] = [0; 512];
     loop {
-        let bytes_read = match stream.read(&mut headers_buf) {
+        let bytes_read = match stream.read(&mut request_line_and_headers_buf) {
             Ok(n) => n,
             Err(_) => return Err(HttpRequestParsingError::SomeSortOfStreamError),
 
@@ -86,20 +70,20 @@ pub fn parse_request_data_new(
             return Err(HttpRequestParsingError::BadRequest);
         }
 
-        headers.extend_from_slice(&headers_buf[..bytes_read]);
+        request_line_and_headers.extend_from_slice(&request_line_and_headers_buf[..bytes_read]);
 
-        if headers.len() > MAX_HEADER_BYTES {
+        if request_line_and_headers.len() > MAX_HEADER_BYTES {
             return Err(HttpRequestParsingError::ContentTooLarge);
         }
 
-        if headers.windows(4).any(|w| w == b"\r\n\r\n") {
+        if request_line_and_headers.windows(4).any(|w| w == b"\r\n\r\n") {
             break;
         }
     }
 
-    let headers_text = String::from_utf8_lossy(&headers);
+    let request_line_and_headers_string = String::from_utf8_lossy(&request_line_and_headers);
 
-    let content_length = headers_text
+    let content_length = request_line_and_headers_string
     .lines()
     .find_map(|line| {
         line.strip_prefix_ascii_case_insensitive("Content-Length:")
@@ -111,7 +95,9 @@ pub fn parse_request_data_new(
         return Err(HttpRequestParsingError::ContentTooLarge);
     }
 
-    let mut body: Vec<u8> = Vec::with_capacity(content_length.clone());
+
+
+    let mut body_bytes: Vec<u8> = Vec::with_capacity(content_length.clone());
     let mut body_remaining = content_length.clone();
     let mut body_buf: [u8; 8192] = [0; 8192];
 
@@ -123,94 +109,47 @@ pub fn parse_request_data_new(
     if n == 0 {
         return Err(HttpRequestParsingError::SomeSortOfStreamError);
     }
-    body.extend_from_slice(&body_buf[..n]);
+    body_bytes.extend_from_slice(&body_buf[..n]);
     body_remaining -= n;
 
-    if body.len() >= MAX_BODY_BYTES {
+    if body_bytes.len() >= MAX_BODY_BYTES {
         return Err(HttpRequestParsingError::ContentTooLarge);
     }
 
     }
 
-    // so here I have access to headers_text, body
-    dbg!(String::from_utf8(body), headers_text);
-    todo!()
+    Ok(ParsedHttpRequestStream { request_line_and_headers: request_line_and_headers_string.to_string(), body_bytes })
 }
 
 
-pub fn parse_request_data(stream: &mut TcpStream) -> Option<RequestData> {
-    let mut reader = BufReader::new(stream);
+pub fn parse_request_data( stream: &mut TcpStream,) -> Result<RequestData, String> {
+    let ParsedHttpRequestStream { request_line_and_headers, body_bytes } = parse_http_request_stream(stream);
+  let mut headers = HashMap::new();
 
-    // Read the request line
-    let mut request_line = String::new();
-    if reader.read_line(&mut request_line).is_err() {
-        return None;
+  let mut at_request_line = true;
+  let mut request_line = String::from("");
+  for line in request_line_and_headers.clone().lines() {
+    if at_request_line {
+        request_line = line.to_string();
+        at_request_line = false;
+        continue;
     }
-
-    let parts: Vec<&str> = request_line.split_whitespace().collect();
-    if parts.len() < 2 {
-        return None;
+    if let Some((key, value)) = line.split_once(':') {
+        headers.insert(key.trim().to_lowercase(), value.trim().to_string());
     }
+  }
 
-    let method = parts[0];
-    let path_with_query = parts[1];
+  let split_request_line: Vec<&str> =  request_line.split_whitespace().collect();
+  if split_request_line.len() < 2 {
+    return Err(format!("Request line {request_line} is invalid"));
+  }
+    let method = split_request_line[0];
+    let path_with_query = split_request_line[1];
 
-    // Read headers
-    let mut headers = HashMap::new();
-    loop {
-        let mut line = String::new();
-        if reader.read_line(&mut line).is_err() || line == "\r\n" || line == "\n" {
-            break;
-        }
-        if let Some((key, value)) = line.split_once(':') {
-            headers.insert(key.trim().to_lowercase(), value.trim().to_string());
-        }
-    }
+      let cookies = parse_cookies(headers.clone());
+     let (path, query) = parse_path_and_query(path_with_query);
 
-    // Read body for POST requests
-    let mut body = String::new();
-    if method == "POST" {
-        // Check content-length header
-        if let Some(content_length_str) = headers.get("content-length")
-            && let Ok(content_length) = content_length_str.parse::<usize>()
-        {
-            let mut body_bytes = vec![0; content_length];
-            if reader.read_exact(&mut body_bytes).is_ok() {
-                body = String::from_utf8_lossy(&body_bytes).to_string();
-            }
-        }
-    }
-
-    // Parse cookies
-    let cookies = parse_cookies(&headers);
-
-    // Parse path and query
-    let (path, query) = parse_path_and_query(path_with_query);
-
-    // url decode
-    // I noticed that if pluses are not replaced, if I enter whitespace into input fields, I basically create a user with username like "++++" and is_empty() does not work.
-    let body = body.replace('+', " ");
-    let body_bytes = urlencoding::decode_binary(body.as_bytes());
-    let body = String::from_utf8_lossy(&body_bytes).into_owned();
-
-    let query = query
-        .into_iter()
-        .map(|(key, value)| {
-            let value = value.replace('+', " ");
-            let decoded_bytes = urlencoding::decode_binary(value.as_bytes());
-            let decoded = String::from_utf8_lossy(&decoded_bytes).into_owned();
-            (key, decoded)
-        })
-        .collect();
-
-    Some(RequestData {
-        method: method.to_string(),
-        body,
-        cookies,
-        path_with_query: path_with_query.to_string(),
-        query,
-        path,
-    })
+     Ok(RequestData { method: method.to_string(), path, query, path_with_query: path_with_query.to_string(), body_bytes, cookies })
 }
 
 fn parse_path_and_query(path_with_query: &str) -> (String, HashMap<String, String>) {
@@ -230,7 +169,7 @@ fn parse_path_and_query(path_with_query: &str) -> (String, HashMap<String, Strin
     (path, query)
 }
 
-fn parse_cookies(headers: &HashMap<String, String>) -> HashMap<String, String> {
+fn parse_cookies(headers: HashMap<String, String>) -> HashMap<String, String> {
     let mut cookies = HashMap::new();
     if let Some(cookie_header) = headers.get("cookie") {
         for cookie in cookie_header.split(';') {

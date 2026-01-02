@@ -19,9 +19,10 @@ pub fn route(
         path,
         method,
         query,
-        body,
+        body_bytes,
         ..
     } = request_data;
+    let body_string = String::from_utf8_lossy(&body_bytes.clone()).to_string();
     let response = 'response_block: {
         if created_new_session {
             break 'response_block format!(
@@ -69,12 +70,12 @@ pub fn route(
         match (method.as_str(), path.as_str()) {
             ("GET", "/signup") => routes::signup::get(session, db_pool).into_bytes(),
             ("POST", "/signup") => {
-                routes::signup::post(session, body.clone(), db_pool).into_bytes()
+                routes::signup::post(session, body_string, db_pool).into_bytes()
             }
             ("GET", "/dashboard") => routes::dashboard::get(session, db_pool).into_bytes(),
             ("GET", "/logout") => routes::logout::get(db_pool, session).into_bytes(),
             ("GET", "/login") => routes::login::get(db_pool, session).into_bytes(),
-            ("POST", "/login") => routes::login::post(session, body.clone(), db_pool).into_bytes(),
+            ("POST", "/login") => routes::login::post(session, body_string, db_pool).into_bytes(),
             ("GET", "/forum") => routes::forum::get(session, query, db_pool).into_bytes(),
             ("GET", "/create_thread") => {
                 routes::create_thread::get(session, query, db_pool).into_bytes()

@@ -70,10 +70,12 @@ pub fn parse_http_request(stream: &mut TcpStream) -> Result<HttpRequestData, Htt
 
         total_header_bytes += n;
         if total_header_bytes > MAX_HEADER_BYTES {
+            dbg!("Headers: content too large", total_header_bytes.clone(), MAX_HEADER_BYTES);
             return Err(HttpRequestParsingError::ContentTooLarge);
         }
 
         if line.len() > MAX_HEADER_LINE_LEN {
+            dbg!("Headers: line too large", line.clone().len(), MAX_HEADER_LINE_LEN);
             return Err(HttpRequestParsingError::ContentTooLarge);
         }
 
@@ -111,6 +113,7 @@ pub fn parse_http_request(stream: &mut TcpStream) -> Result<HttpRequestData, Htt
         .unwrap_or(0);
 
     if content_length > MAX_BODY_BYTES {
+        dbg!("body: content too large", content_length.clone(), MAX_BODY_BYTES);
         return Err(HttpRequestParsingError::ContentTooLarge);
     }
 

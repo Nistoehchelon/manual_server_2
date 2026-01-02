@@ -1,6 +1,6 @@
 use db_manager::DbPool;
 use http_stuff::{
-    http_request_parsing::RequestData,
+    http_request_parsing::HttpRequestData,
     http_response::{internal_server_error_500, redirect_to},
 };
 use session::{self, Session, SessionNotification, add_session_notification};
@@ -12,9 +12,9 @@ pub fn route(
     db_pool: &db_manager::DbPool,
     session: Session,
     created_new_session: bool,
-    request_data: RequestData,
+    request_data: HttpRequestData,
 ) -> Vec<u8> {
-    let RequestData {
+    let HttpRequestData {
         path_with_query,
         path,
         method,
@@ -126,7 +126,7 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
     }
 }
 
-pub fn generate_response(request_data: RequestData, db_pool: &DbPool) -> Vec<u8> {
+pub fn generate_response(request_data: HttpRequestData, db_pool: &DbPool) -> Vec<u8> {
     let cookies = request_data.cookies.clone();
     let (session, created_new_session) =
         match session::get_existing_or_make_new_session(db_pool, cookies) {
@@ -144,8 +144,8 @@ pub fn is_requesting_static_resource(path: String) -> bool {
     return static_paths.contains(&path.as_str());
 }
 
-pub fn generate_static_response(request_data: RequestData) -> Vec<u8> {
-    let RequestData { method, path, .. } = request_data;
+pub fn generate_static_response(request_data: HttpRequestData) -> Vec<u8> {
+    let HttpRequestData { method, path, .. } = request_data;
     assert!(is_requesting_static_resource(path.clone()));
     dbg!(format!("Entering static routing for {method} {path}"));
     let response = match (method.as_str(), path.as_str()) {

@@ -1,6 +1,6 @@
 use db_manager;
 use env_reader::{Env, get_env};
-use http_stuff::http_request_parsing::parse_request_data;
+use http_stuff::{http_request_parsing::parse_http_request, http_response::internal_server_error_500};
 use server::thread_pool;
 
 use std::{io::Write, net::TcpListener};
@@ -19,9 +19,14 @@ fn main() {
     let thread_pool = thread_pool::ThreadPool::new(8);
     for stream in listener.incoming() {
         let mut stream = stream.unwrap();
-        let request_data = match parse_request_data(&mut stream) {
-            Some(data) => data,
-            None => {
+        let request_data = match parse_http_request(&mut stream) {
+            Ok(data) => data,
+            Err(e) => {
+                match e {
+                    _ =>  {
+                        let _ = stream.write_all(&internal_server_error_500().into_bytes());
+                    },
+                };
                 let _ = stream.shutdown(std::net::Shutdown::Both);
                 continue;
             }

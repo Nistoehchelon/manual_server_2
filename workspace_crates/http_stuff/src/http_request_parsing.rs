@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::{ BufRead, BufReader, Read},
+    io::{Read},
     net::TcpStream,
     time::Duration,
 };
@@ -20,7 +20,7 @@ pub struct ParsedHttpRequestStream {
 }
 
 #[derive(Clone, Debug)]
-pub struct RequestData {
+pub struct HttpRequestData {
     pub method: String,
     pub path: String,
     pub query: Query,
@@ -122,8 +122,8 @@ pub fn parse_http_request_stream(
 }
 
 
-pub fn parse_request_data( stream: &mut TcpStream,) -> Result<RequestData, String> {
-    let ParsedHttpRequestStream { request_line_and_headers, body_bytes } = parse_http_request_stream(stream);
+pub fn parse_http_request( stream: &mut TcpStream,) -> Result<HttpRequestData, HttpRequestParsingError> {
+    let ParsedHttpRequestStream { request_line_and_headers, body_bytes } = parse_http_request_stream(stream)?;
   let mut headers = HashMap::new();
 
   let mut at_request_line = true;
@@ -141,7 +141,7 @@ pub fn parse_request_data( stream: &mut TcpStream,) -> Result<RequestData, Strin
 
   let split_request_line: Vec<&str> =  request_line.split_whitespace().collect();
   if split_request_line.len() < 2 {
-    return Err(format!("Request line {request_line} is invalid"));
+    return Err(HttpRequestParsingError::BadRequest);
   }
     let method = split_request_line[0];
     let path_with_query = split_request_line[1];
@@ -149,7 +149,7 @@ pub fn parse_request_data( stream: &mut TcpStream,) -> Result<RequestData, Strin
       let cookies = parse_cookies(headers.clone());
      let (path, query) = parse_path_and_query(path_with_query);
 
-     Ok(RequestData { method: method.to_string(), path, query, path_with_query: path_with_query.to_string(), body_bytes, cookies })
+     Ok(HttpRequestData { method: method.to_string(), path, query, path_with_query: path_with_query.to_string(), body_bytes, cookies })
 }
 
 fn parse_path_and_query(path_with_query: &str) -> (String, HashMap<String, String>) {

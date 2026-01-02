@@ -22,6 +22,7 @@ pub fn route(
         body_bytes,
         ..
     } = request_data;
+
     let response = 'response_block: {
         if created_new_session {
             break 'response_block format!(

@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::{self, Display}, io::{BufRead, BufReader, R
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_HEADER_LINE_LEN: usize = 4 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
-pub const STREAM_READ_TIMEOUT_SECS: u64 = 5;
+pub const STREAM_READ_TIMEOUT_SECS: u64 = 8;
 
 pub type Query = HashMap<String, String>;
 
@@ -15,7 +15,7 @@ pub struct HttpRequestData {
     pub path: String,
     pub query: Query,
     pub path_with_query: String,
-    pub body_bytes: Vec<u8>,
+    pub body_bytes: Option<Vec<u8>>,
     pub cookies: HashMap<String, String>,
 }
 
@@ -24,6 +24,7 @@ pub enum HttpRequestParsingError {
     SomeSortOfStreamError,
     ContentTooLarge,
     BadRequest,
+    UnexpectedEof,
 }
 impl Display for HttpRequestParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -31,6 +32,7 @@ impl Display for HttpRequestParsingError {
             Self::BadRequest => "Bad Request",
             Self::ContentTooLarge => "Content Too Large",
             Self::SomeSortOfStreamError => "Some Sort Of Stream Error",
+            Self::UnexpectedEof => "Unexpected End Of File",
         };
         write!(f, "{}", s)
     }
@@ -48,43 +50,56 @@ impl StripPrefixASCIICaseInsensitive for str {
     }
 }
 
+
+fn read_headers(stream: &mut TcpStream) 
+  -> Result<(Vec<u8>, Vec<u8>), HttpRequestParsingError>
+{
+    let mut buf = Vec::with_capacity(8192);
+    let mut tmp = [0u8; 4096];
+
+    loop {
+        let n = stream.read(&mut tmp)
+            .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+
+        if n == 0 {
+            return Err(HttpRequestParsingError::UnexpectedEof);
+        }
+
+        buf.extend_from_slice(&tmp[..n]);
+
+        if buf.len() > MAX_HEADER_BYTES {
+            return Err(HttpRequestParsingError::ContentTooLarge);
+        }
+
+        if let Some(pos) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
+            let header_end = pos + 4;
+            let rest = buf.split_off(header_end);
+            return Ok((buf, rest));
+        }
+    }
+}
+
+
+
 pub fn parse_http_request(stream: &mut TcpStream) -> Result<HttpRequestData, HttpRequestParsingError> {
     stream
         .set_read_timeout(Some(Duration::from_secs(STREAM_READ_TIMEOUT_SECS)))
         .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
 
-    let mut reader = BufReader::new(stream);
+let (header_bytes, mut leftover) = read_headers(stream)?;
 
-    // --- Read headers ---
+let header_string = std::str::from_utf8(&header_bytes)
+    .map_err(|_| HttpRequestParsingError::BadRequest)?;
+
     let mut headers = HashMap::new();
     let mut request_line = String::new();
     let mut total_header_bytes = 0;
     let mut at_request_line = true;
 
-    loop {
-        let mut line = String::new();
-        let n = reader.read_line(&mut line).map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
-        if n == 0 {
-            return Err(HttpRequestParsingError::BadRequest); // client closed connection
-        }
-
-        total_header_bytes += n;
-        if total_header_bytes > MAX_HEADER_BYTES {
-            dbg!("Headers: content too large", total_header_bytes.clone(), MAX_HEADER_BYTES);
-            return Err(HttpRequestParsingError::ContentTooLarge);
-        }
-
-        if line.len() > MAX_HEADER_LINE_LEN {
-            dbg!("Headers: line too large", line.clone().len(), MAX_HEADER_LINE_LEN);
-            return Err(HttpRequestParsingError::ContentTooLarge);
-        }
-
-        let line = line.trim_end_matches(|c| c == '\r' || c == '\n');
-
-        if line.is_empty() {
-            break; // headers finished
-        }
-
+    for line in header_string.lines() {
+    if line.len() > MAX_HEADER_LINE_LEN {
+        return Err(HttpRequestParsingError::BadRequest);
+    }
         if at_request_line {
             request_line = line.to_string();
             at_request_line = false;
@@ -117,13 +132,34 @@ pub fn parse_http_request(stream: &mut TcpStream) -> Result<HttpRequestData, Htt
         return Err(HttpRequestParsingError::ContentTooLarge);
     }
 
-    let mut body_bytes = vec![0u8; content_length];
-    if content_length > 0 {
-        reader
-            .read_exact(&mut body_bytes)
-            .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+let mut body_bytes = Vec::with_capacity(content_length);
+let mut body_present = false;
+if !leftover.is_empty() {
+    let take = leftover.len().min(content_length);
+    body_bytes.extend_from_slice(&leftover[..take]);
+    body_present = true;
+}
+
+while body_bytes.len() < content_length {
+    let mut tmp = [0u8; 8192];
+    let n = stream.read(&mut tmp)
+        .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+
+    if n == 0 {
+        return Err(HttpRequestParsingError::UnexpectedEof);
     }
 
+    body_bytes.extend_from_slice(&tmp[..n]);
+   body_present = true;
+    if body_bytes.len() > MAX_BODY_BYTES {
+        return Err(HttpRequestParsingError::ContentTooLarge);
+    }
+}
+
+let mut body_bytes_final: Option<Vec<u8>> = None;
+if body_present {
+  body_bytes_final = Some(body_bytes);
+} 
     // --- Parse cookies ---
     let cookies = parse_cookies(headers.clone());
 
@@ -132,7 +168,7 @@ pub fn parse_http_request(stream: &mut TcpStream) -> Result<HttpRequestData, Htt
         path,
         path_with_query: path_with_query.to_string(),
         query,
-        body_bytes,
+        body_bytes: body_bytes_final,
         cookies,
         headers,
     })

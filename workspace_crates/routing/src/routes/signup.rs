@@ -42,7 +42,11 @@ fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
     });
 }
 
-pub fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool) -> String {
+pub fn post(session: Session, body: Option<Vec<u8>>, db_pool: &db_manager::DbPool) -> String {
+   let body = match body {
+    Some(b)=>b,
+    None=> return internal_server_error_500(),
+  };
     if session.logged_in {
         return redirect_to("/".to_string());
     }

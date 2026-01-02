@@ -3,8 +3,7 @@ use env_reader::{Env, get_env};
 use http_stuff::http_request_parsing::parse_request_data;
 use server::thread_pool;
 
-
-use std::{io::Write, net::{TcpListener}};
+use std::{io::Write, net::TcpListener};
 
 fn main() {
     let env = get_env();
@@ -25,13 +24,13 @@ fn main() {
             None => {
                 let _ = stream.shutdown(std::net::Shutdown::Both);
                 continue;
-            },
+            }
         };
         if routing::is_requesting_static_resource(request_data.path.clone()) {
             thread_pool.execute(move || {
                 let response = routing::generate_static_response(request_data);
                 stream.write_all(&response).ok();
-                let _ =stream.shutdown(std::net::Shutdown::Both);
+                let _ = stream.shutdown(std::net::Shutdown::Both);
             });
             continue;
         }

@@ -1,9 +1,9 @@
+use forum::{Forum, ForumThread, get_forum_by_id};
+use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::{
     http_request_parsing::Query,
     http_response::{self, internal_server_error_500, redirect_to},
 };
-use forum::{Forum, ForumThread, get_forum_by_id};
-use html_templating::html_template_structs::{self, MainInfo};
 use into_vec::into_vec;
 use session::{
     Session, SessionNotification, add_session_notification, read_and_delete_session_notifications,
@@ -54,7 +54,15 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Stri
         Ok(notifs) => notifs,
         _ => return internal_server_error_500(),
     };
-    let html = get_html(title, true, true, forum, forum_threads, subforums, notifications);
+    let html = get_html(
+        title,
+        true,
+        true,
+        forum,
+        forum_threads,
+        subforums,
+        notifications,
+    );
     http_response::ok_html(html)
 }
 

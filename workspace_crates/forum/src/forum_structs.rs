@@ -6,9 +6,6 @@ pub struct ForumThreadMessage {
     pub message: String,
 }
 
-
-
-
 #[derive(Clone, Debug, Default)]
 pub struct ForumThread {
     pub id: String,
@@ -22,5 +19,3 @@ pub struct Forum {
     pub name: String,
     pub parent_id: String,
 }
-
-

@@ -1,9 +1,8 @@
+use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::parse_username_and_password_from_body,
-    http_response::internal_server_error_500,
-    http_response::redirect_to,
+    http_response::internal_server_error_500, http_response::redirect_to,
 };
-use html_templating::html_template_structs;
 use into_vec::into_vec;
 use session::{
     Session, SessionNotification, add_session_notification, edit_session,

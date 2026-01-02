@@ -1,8 +1,8 @@
+use std::collections::HashMap;
 use std::{
     fmt::{self, Display},
     str::FromStr,
 };
-use std::collections::HashMap;
 
 pub const NAME_OF_COOKIE_CONTAINING_SESSION_ID: &str = "session_id";
 
@@ -54,7 +54,6 @@ pub struct SessionNotification {
     pub message: String,
     pub notification_type: SessionNotificationType,
 }
-
 
 pub fn edit_session(db_pool: &db_manager::DbPool, session_id: String, modified_session: Session) {
     let _ = storage_specific_edit_session(db_pool, session_id, modified_session);
@@ -117,19 +116,27 @@ pub fn create_new_session_with_id(
     Ok(new_session)
 }
 
-
-pub fn get_existing_or_make_new_session(db_pool: &db_manager::DbPool, cookies: HashMap<String, String>) -> Result<(Session, bool), String> {
+pub fn get_existing_or_make_new_session(
+    db_pool: &db_manager::DbPool,
+    cookies: HashMap<String, String>,
+) -> Result<(Session, bool), String> {
     let mut created_new_session = false;
     let session: Session = {
         let session_id: String = match cookies
             .get(get_name_of_cookie_containing_session_id().as_str())
         {
             Some(session_id) => {
-                let session_exists =
-                    match session_with_specified_id_exists(session_id.clone(), &db_pool) {
-                        Ok(answer) => answer,
-                        Err(_) => return Err(format!("Initial id from cookie: Could not check whether session with such id exists due to DB error")),
-                    };
+                let session_exists = match session_with_specified_id_exists(
+                    session_id.clone(),
+                    &db_pool,
+                ) {
+                    Ok(answer) => answer,
+                    Err(_) => {
+                        return Err(format!(
+                            "Initial id from cookie: Could not check whether session with such id exists due to DB error"
+                        ));
+                    }
+                };
                 if !session_exists {
                     created_new_session = true;
                     generate_session_id()
@@ -143,15 +150,22 @@ pub fn get_existing_or_make_new_session(db_pool: &db_manager::DbPool, cookies: H
             }
         };
 
-        let session_exists =
-            match session_with_specified_id_exists(session_id.clone(), db_pool) {
-                Ok(b) => b,
-                Err(_) => return Err(format!("Checking session id to decide whether we will create it or reuse if exists: Could not check whether session was created due to DB Error")),
-            };
+        let session_exists = match session_with_specified_id_exists(session_id.clone(), db_pool) {
+            Ok(b) => b,
+            Err(_) => {
+                return Err(format!(
+                    "Checking session id to decide whether we will create it or reuse if exists: Could not check whether session was created due to DB Error"
+                ));
+            }
+        };
         if session_exists {
             match get_session_by_session_id(session_id.clone(), db_pool) {
                 Ok(Some(sess)) => sess,
-                _ => return Err(format!("Could not get existing session by id due to DB error")),
+                _ => {
+                    return Err(format!(
+                        "Could not get existing session by id due to DB error"
+                    ));
+                }
             }
         } else {
             match create_new_session_with_id(session_id.clone(), db_pool) {
@@ -162,8 +176,6 @@ pub fn get_existing_or_make_new_session(db_pool: &db_manager::DbPool, cookies: H
     };
     return Ok((session, created_new_session));
 }
-
-
 
 // separation between general functions above and storage specific stuff
 

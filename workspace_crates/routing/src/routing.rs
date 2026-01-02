@@ -1,11 +1,19 @@
 use db_manager::DbPool;
-use http_stuff::{http_request_parsing::RequestData, http_response::{internal_server_error_500, redirect_to}};
-use user::{self, get_user_by_user_id};
+use http_stuff::{
+    http_request_parsing::RequestData,
+    http_response::{internal_server_error_500, redirect_to},
+};
 use session::{self, Session, SessionNotification, add_session_notification};
+use user::{self, get_user_by_user_id};
 
 use crate::routes;
 
-pub fn route(db_pool: &db_manager::DbPool, session: Session, created_new_session: bool, request_data: RequestData) -> Vec<u8> {
+pub fn route(
+    db_pool: &db_manager::DbPool,
+    session: Session,
+    created_new_session: bool,
+    request_data: RequestData,
+) -> Vec<u8> {
     let RequestData {
         path_with_query,
         path,
@@ -14,7 +22,7 @@ pub fn route(db_pool: &db_manager::DbPool, session: Session, created_new_session
         body,
         ..
     } = request_data;
-   let response =  'response_block: {
+    let response = 'response_block: {
         if created_new_session {
             break 'response_block format!(
                 "HTTP/1.1 302 Found\r\n\
@@ -78,8 +86,6 @@ pub fn route(db_pool: &db_manager::DbPool, session: Session, created_new_session
     return response;
 }
 
-
-
 fn check_if_user_can_access_path(session: Session, path: String) -> bool {
     let mut access_level = 0;
     if session.logged_in == true {
@@ -119,16 +125,13 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
     }
 }
 
-
-
-
 pub fn generate_response(request_data: RequestData, db_pool: &DbPool) -> Vec<u8> {
-
     let cookies = request_data.cookies.clone();
-    let (session, created_new_session) = match session::get_existing_or_make_new_session(db_pool, cookies) {
-        Ok((s, cns)) => (s, cns),
-        Err(_) => return internal_server_error_500().into_bytes(),
-    };
+    let (session, created_new_session) =
+        match session::get_existing_or_make_new_session(db_pool, cookies) {
+            Ok((s, cns)) => (s, cns),
+            Err(_) => return internal_server_error_500().into_bytes(),
+        };
     // Route handling
     let response = route(db_pool, session, created_new_session, request_data);
 
@@ -141,11 +144,7 @@ pub fn is_requesting_static_resource(path: String) -> bool {
 }
 
 pub fn generate_static_response(request_data: RequestData) -> Vec<u8> {
-    let RequestData {
-        method,
-        path,
-        ..
-    } = request_data;
+    let RequestData { method, path, .. } = request_data;
     assert!(is_requesting_static_resource(path.clone()));
     dbg!(format!("Entering static routing for {method} {path}"));
     let response = match (method.as_str(), path.as_str()) {
@@ -157,4 +156,3 @@ pub fn generate_static_response(request_data: RequestData) -> Vec<u8> {
 
     return response;
 }
-

@@ -4,7 +4,7 @@ use std::{
     net::TcpStream,
 };
 
-pub const MAX_HEADER_BYTES: usize = 8 * 1024;      // 8 KB
+pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 
 pub type Query = HashMap<String, String>;

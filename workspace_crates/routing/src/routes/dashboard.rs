@@ -1,4 +1,3 @@
-
 use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::http_response::{internal_server_error_500, redirect_to};
 use session::Session;

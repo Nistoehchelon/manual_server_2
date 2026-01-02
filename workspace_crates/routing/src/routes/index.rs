@@ -1,5 +1,5 @@
 use html_templating::html_template_structs::{
-    self, IndexLoggedInTemplate, IndexNotLoggedInTemplate, MainInfo
+    self, IndexLoggedInTemplate, IndexNotLoggedInTemplate, MainInfo,
 };
 
 use into_vec::into_vec;
@@ -31,7 +31,9 @@ fn get_html(session: Session, notifications: Vec<SessionNotification>, user: Use
                 title: format!("Welcome back!"),
                 notifications: into_vec(notifications),
             },
-            user: html_template_structs::User { username: user.username.clone() },
+            user: html_template_structs::User {
+                username: user.username.clone(),
+            },
         };
         html_templating::render(index_template)
     } else {

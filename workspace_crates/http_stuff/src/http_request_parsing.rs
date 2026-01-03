@@ -1,10 +1,11 @@
 use std::{
     collections::HashMap,
     fmt::{self, Display},
-    io::Read,
-    net::TcpStream,
-    time::Duration,
+    io::{Read, Write},
+    net::{Shutdown, TcpStream}, time::Instant,
 };
+
+use crate::http_response::{self, ok_html};
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
@@ -42,33 +43,59 @@ impl Display for HttpRequestParsingError {
         write!(f, "{}", s)
     }
 }
-pub struct ParsedStream {
-    pub body: Vec<u8>,
-    pub headers: HashMap<String, String>,
-    pub path_and_query: String,
-    pub method: String,
+pub struct ParsedHeaderStream {
+    pub headers: Vec<u8>,
+    pub path_and_query: Vec<u8>,
+    pub method: Vec<u8>,
 }
 
-fn parse_stream(stream: &mut TcpStream) -> Result<ParsedStream, HttpRequestParsingError> {
+fn parse_stream(stream: &mut TcpStream) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
+//    // stream.set_read_timeout(Some(std::time::Duration::from_secs(7))).unwrap();
+//     let mut read_stream: Vec<u8> = vec![];
+//     let mut curr_iter = 0;
+//     let mut buf = [0u8; 1];
+//     let start = Instant::now();
+//     let mut encountered_zero_times = 0;
+//     dbg!("...");
+//     loop {
+//         let dur_ms = start.elapsed().as_secs();
+//         if dur_ms > 10 {
+//             dbg!("timeout", curr_iter, encountered_zero_times );
+//         }
+//         let read = stream.read(&mut buf).unwrap();
+//         if read == 0 {
+//             dbg!("Closed");
+//             return Err(HttpRequestParsingError::BadRequest);
+//         }
+//         read_stream.extend_from_slice(&buf[..read]);
+//         let read_stream_string = String::from_utf8_lossy(&read_stream);
+//         if read_stream_string.contains("\r\n\r\n") {
+//             let dur_ms = start.elapsed().as_millis();
+//             println!("took {dur_ms} ms and  {curr_iter} iterations and encountered zero from stream.read {encountered_zero_times} times");
+//             println!("request: {read_stream_string}");
+//             stream.write_all(&ok_html("Ok".to_string())).unwrap();
+//             return Err(HttpRequestParsingError::BadRequest);
+//         }
+//         curr_iter += 1;
+
+//     }
     let mut byte_buf = [0u8; 1];
 
     let mut body_bytes: Vec<u8> = Vec::new();
-    let mut request_line_bytes: Vec<u8> = Vec::new();
-    let mut method = String::from("");
-    let mut path_and_query = String::from("");
-    let mut http_version = String::from("");
-    let mut accumulated_rnrn = String::from("");
-    let mut headers_string: String = String::from("");
-    let mut headers_hash_map: HashMap<String, String> = HashMap::new();
+    let mut method_bytes: Vec<u8> = Vec::new();
+    let mut method_string = String::new();
+    let mut path_and_query_bytes: Vec<u8> = Vec::new();
+    let mut http_version: Vec<u8> = Vec::new();
+    let mut accumulated_rnrn: Vec<u8> = Vec::new();
+    let mut header_bytes: Vec<u8> = Vec::new();
 
     let mut read_header_bytes_len = 0;
-    let mut read_body_bytes_len = 0;
-    let mut read_request_line_bytes = 0;
+    let mut read_method_bytes_len = 0;
     let mut read_total_bytes = 0;
 
 
 
-    let mut time_to_parse_method = false;
+    let mut time_to_parse_method = true;
     let mut time_to_parse_path_and_query = false;
     let mut time_to_parse_http_version = false;
     let mut begun_parsing_path_and_query = false;
@@ -93,45 +120,51 @@ fn parse_stream(stream: &mut TcpStream) -> Result<ParsedStream, HttpRequestParsi
             return Err(HttpRequestParsingError::BadRequest);
         }
         read_total_bytes += 1;
-        if time_to_parse_body {
-            read_body_bytes_len += 1;
+        if time_to_parse_method {
+            read_method_bytes_len += 1;
         } else {
             read_header_bytes_len += 1;
         }
 
-        if read_request_line_bytes < 4 {
-            read_request_line_bytes += 1;
-            request_line_bytes.push(byte_buf[0].clone());
-        } else if time_to_parse_method && read_header_bytes_len == 4 {
-            method = match String::from_utf8(request_line_bytes.clone()) {
+        if time_to_parse_method && method_bytes.len() < 4 {
+            method_bytes.push(byte_buf[0].clone());
+        } else if time_to_parse_method && method_bytes.len() == 4 {
+            method_string = match String::from_utf8(method_bytes.clone()) {
                 Ok(s) => s,
-                Err(_) => {
-                    dbg!("Invalid bytes?");
+                Err(e) => {
+                    dbg!(format!("Invalid bytes? {e:#?}"));
                     return Err(HttpRequestParsingError::BadRequest);
                 }
             };
-            if method != "GET " || method != "POST" {
+            if method_string != "GET " && method_string != "POST" {
                 dbg!(format!(
-                    "Received unknown/unimplemented method {method}, aborting"
+                    "Received unknown/unimplemented method {method_string}, aborting"
                 ));
                 return Err(HttpRequestParsingError::BadRequest);
             }
-            method = method.trim().to_string();
+            method_string = method_string.trim().to_string();
             time_to_parse_method = false;
             time_to_parse_path_and_query = true;
-        } else if time_to_parse_method && read_header_bytes_len > 4 {
+        } else if time_to_parse_method && method_bytes.len() > 4 {
             dbg!("I don't think this can be allowed to happen unless logic errors...");
             return Err(HttpRequestParsingError::BadRequest);
         }
 
         if time_to_parse_path_and_query {
             if !begun_parsing_path_and_query {
-                let byte = byte_buf[0].clone() as char;
-                if method == "POST" && byte == ' ' {
+                let byte = byte_buf[0].clone();
+                let byte_string = match String::from_utf8(vec![byte]) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        dbg!(format!("Could not convert byte {e:#?}"));
+                        return Err(HttpRequestParsingError::BadRequest);
+                    }
+                };
+                if method_string == "POST" && byte_string == " " {
                     time_to_parse_path_and_query = false;
                     time_to_parse_http_version = true;
-                } else if method == "GET" && byte == '/' {
-                    path_and_query.push(byte);
+                } else if method_string == "GET" && byte_string == "/" {
+                    path_and_query_bytes.push(byte);
                     time_to_parse_path_and_query = false;
                     time_to_parse_http_version = true;
                 } else {
@@ -140,24 +173,36 @@ fn parse_stream(stream: &mut TcpStream) -> Result<ParsedStream, HttpRequestParsi
                 }
                 begun_parsing_path_and_query = true;
             } else {
-                let byte = byte_buf[0].clone() as char;
-                if byte == ' ' {
+                let byte = byte_buf[0].clone();
+                let byte_string = match String::from_utf8(vec![byte]) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        dbg!(format!("Could not convert byte {e:#?}"));
+                        return Err(HttpRequestParsingError::BadRequest);
+                    }
+                };
+                if byte_string == " " {
                     time_to_parse_http_version = true;
                     time_to_parse_path_and_query = false;
                 }
-                path_and_query.push(byte);
+                path_and_query_bytes.push(byte);
             }
         }
 
         if time_to_parse_http_version {
-            let byte = byte_buf[0].clone() as char;
+            let byte = byte_buf[0].clone();
             http_version.push(byte);
-            if http_version.contains("\r\n") {
+            if !http_version.is_ascii() {
+                dbg!(format!("non ascii http ver {http_version:#?}"));
+                return Err(HttpRequestParsingError::BadRequest);
+            }
+            let mut http_version_string = String::from_utf8(http_version.clone()).unwrap();
+            if http_version_string.contains("\r\n") {
                 time_to_parse_http_version = false;
                 time_to_parse_headers = true;
-                http_version = http_version.replace("\r\n", "");
-                if http_version != "HTTP/1.1" {
-                    dbg!(format!("Expected HTTP/1.1, got {http_version}"));
+                http_version_string = http_version_string.replace("\r\n", "");
+                if http_version_string != "HTTP/1.1" {
+                    dbg!(format!("Expected HTTP/1.1, got {http_version_string}"));
                     return Err(HttpRequestParsingError::BadRequest);
                 }
                 continue;
@@ -165,60 +210,16 @@ fn parse_stream(stream: &mut TcpStream) -> Result<ParsedStream, HttpRequestParsi
         }
 
         if time_to_parse_headers {
-            let byte = byte_buf[0].clone() as char;
+            let byte = byte_buf[0].clone();
             accumulated_rnrn.push(byte);
-            if accumulated_rnrn.contains("\r\n\r\n") {
+
+            let accumulated_rnrn_string = String::from_utf8_lossy(&accumulated_rnrn);
+            if accumulated_rnrn_string.contains("\r\n\r\n") {
                 time_to_parse_headers = false;
-                time_to_parse_body = true;
-                let headers_string_clone = headers_string.clone();
-                for line in headers_string_clone.split("\r\n") {
-                    if let Some((key, value)) = line.split_once(':') {
-                        headers_hash_map
-                            .insert(key.trim().to_lowercase(), value.trim().to_string());
-                    } else {
-                        dbg!(format!("Incorrect header value {line}"));
-                        return Err(HttpRequestParsingError::BadRequest);
-                    }
-                }
-                match headers_hash_map.get("transfer-encoding") {
-                    Some(_) => {
-                        dbg!("Client sent transfer-encoding which I did not implement");
-                        return Err(HttpRequestParsingError::BadRequest);
-                    }
-                    _ => {}
-                }
-
-                continue;
-            }
-            headers_string.push(byte);
-        }
-
-        if time_to_parse_body {
-            let content_length = match headers_hash_map.get("content-length") {
-                Some(v) => v,
-                None => "0",
-            };
-            let content_length: usize = match content_length.parse() {
-                Ok(n) => n,
-                Err(_) => {
-                    dbg!(format!(
-                        "Could not convert content_length's value ({content_length}) into number, rejecting request"
-                    ));
-                    return Err(HttpRequestParsingError::BadRequest);
-                }
-            };
-            if bytes_read != 0 && body_bytes.len() >= content_length {
-                dbg!(
-                    "Client is sending more bytes than it promised to send using content-length header, rejecting"
-                );
-                return Err(HttpRequestParsingError::BadRequest);
-            } else if bytes_read == 0 && body_bytes.len() == content_length {
-                time_to_parse_body = false;
                 finished_parsing_stream = true;
                 continue;
             }
-            let byte = byte_buf[0];
-            body_bytes.push(byte);
+            header_bytes.push(byte);
         }
 
         if read_header_bytes_len > MAX_HEADER_BYTES {
@@ -227,55 +228,66 @@ fn parse_stream(stream: &mut TcpStream) -> Result<ParsedStream, HttpRequestParsi
             ));
             return Err(HttpRequestParsingError::ContentTooLarge);
         }
-        if read_body_bytes_len > MAX_BODY_BYTES {
-            dbg!(format!(
-                "Body bytes length ({read_body_bytes_len}) exceeded MAX_BODY_BYTES ({MAX_BODY_BYTES})"
-            ));
-            return Err(HttpRequestParsingError::ContentTooLarge);
-        }
         if finished_parsing_stream {
             break;
         }
     }
 
-    return Ok(ParsedStream {
-        body: body_bytes.clone(),
-        headers: headers_hash_map.clone(),
-        path_and_query: path_and_query,
-        method: method.clone(),
+    let method_string = match String::from_utf8(method_bytes.clone()) {
+        Ok(s) => s,
+        Err(e) => {
+            dbg!(format!("{e:#?}"));
+            return Err(HttpRequestParsingError::BadRequest);
+        },
+    };
+    let path_and_query_string = match String::from_utf8(path_and_query_bytes.clone()) {
+        Ok(s) => s,
+        Err(e) => {
+            dbg!(format!("{e:#?}"));
+            return Err(HttpRequestParsingError::BadRequest);
+        },
+    };
+
+    return Ok(ParsedHeaderStream {
+        headers: header_bytes,
+        path_and_query: path_and_query_bytes,
+        method: method_bytes,
     });
 }
 
 pub fn parse_http_request(
     stream: &mut TcpStream,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
-    stream
-        .set_read_timeout(Some(Duration::from_secs(STREAM_READ_TIMEOUT_SECS)))
-        .map_err(|_| {
-            dbg!("Could not set timeout :(");
-            HttpRequestParsingError::SomeSortOfStreamError
-        })?;
 
-    let ParsedStream {
-        body,
+    let ParsedHeaderStream {
         headers,
         path_and_query,
         method,
     } = parse_stream(stream)?;
 
-    let (path, query) = parse_path_and_query(path_and_query.clone());
+
+    let mut headers_map: HashMap<String, String> = HashMap::new();
+    for line in (String::from_utf8_lossy(&headers)).lines() {
+        if let Some((key, value)) = line.split_once(':') {
+            headers_map.insert(key.trim().to_lowercase(), value.trim().to_string());
+        }
+    }
+    let method = String::from_utf8_lossy(&method).to_string();
+
+    let (path, query) = parse_path_and_query(String::from_utf8_lossy(&path_and_query).to_string());
 
     // --- Parse cookies ---
-    let cookies = parse_cookies(headers.clone());
+    let cookies = parse_cookies(headers_map.clone());
 
+    let body: Vec<u8> = vec![];
     Ok(HttpRequestData {
-        method,
+        method: method,
         path,
-        path_and_query: path_and_query.to_string(),
+        path_and_query: String::from_utf8_lossy(&path_and_query).to_string(),
         query,
         body_bytes: body,
         cookies,
-        headers,
+        headers: headers_map,
     })
 }
 

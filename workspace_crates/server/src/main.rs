@@ -1,7 +1,7 @@
 use db_manager;
 use env_reader::{Env, get_env};
 use http_stuff::{
-    http_request_parsing::parse_http_request, http_response::internal_server_error_500,
+    http_request_parsing::parse_http_request, http_response::{internal_server_error_500, ok_html},
 };
 use server::thread_pool;
 
@@ -26,12 +26,12 @@ fn main() {
             Err(e) => {
                 match e {
                     _ => {
-                        eprintln!("{:?}", e);
-                        let _ = stream.write_all(&internal_server_error_500());
+                        eprintln!("main error {:?}", e);
+                        let _ = stream.write_all(&ok_html(format!("Hmm")));
                     }
                 };
-                let _ = stream.shutdown(std::net::Shutdown::Both);
-                drop(stream);
+               // let _ = stream.shutdown(std::net::Shutdown::Both);
+                //drop(stream);
                 continue;
             }
         };

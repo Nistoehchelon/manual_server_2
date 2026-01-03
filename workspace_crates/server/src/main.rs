@@ -1,6 +1,8 @@
 use db_manager;
 use env_reader::{Env, get_env};
-use http_stuff::{http_request_parsing::parse_http_request, http_response::internal_server_error_500};
+use http_stuff::{
+    http_request_parsing::parse_http_request, http_response::internal_server_error_500,
+};
 use server::thread_pool;
 
 use std::{io::Write, net::TcpListener};
@@ -23,12 +25,13 @@ fn main() {
             Ok(data) => data,
             Err(e) => {
                 match e {
-                    _ =>  {
-                        eprintln!("{:?}",e);
+                    _ => {
+                        eprintln!("{:?}", e);
                         let _ = stream.write_all(&internal_server_error_500());
-                    },
+                    }
                 };
                 let _ = stream.shutdown(std::net::Shutdown::Both);
+                drop(stream);
                 continue;
             }
         };

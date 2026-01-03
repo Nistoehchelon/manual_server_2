@@ -15,7 +15,7 @@ pub fn route(
     request_data: HttpRequestData,
 ) -> Vec<u8> {
     let HttpRequestData {
-        path_with_query,
+        path_and_query: path_with_query,
         path,
         method,
         query,
@@ -70,17 +70,13 @@ Content-Type: text/html\r\n\r\n",
         dbg!(format!("Entering routing for {method} {path}"));
         match (method.as_str(), path.as_str()) {
             ("GET", "/signup") => routes::signup::get(session, db_pool),
-            ("POST", "/signup") => {
-                routes::signup::post(session, body_bytes, db_pool)
-            }
+            ("POST", "/signup") => routes::signup::post(session, body_bytes, db_pool),
             ("GET", "/dashboard") => routes::dashboard::get(session, db_pool),
             ("GET", "/logout") => routes::logout::get(db_pool, session),
             ("GET", "/login") => routes::login::get(db_pool, session),
             ("POST", "/login") => routes::login::post(session, body_bytes, db_pool),
             ("GET", "/forum") => routes::forum::get(session, query, db_pool),
-            ("GET", "/create_thread") => {
-                routes::create_thread::get(session, query, db_pool)
-            }
+            ("GET", "/create_thread") => routes::create_thread::get(session, query, db_pool),
 
             _ => routes::index::get(session, db_pool),
         }

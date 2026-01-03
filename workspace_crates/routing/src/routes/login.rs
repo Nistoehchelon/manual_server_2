@@ -1,7 +1,7 @@
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::parse_username_and_password_from_body,
-    http_response::internal_server_error_500, http_response::redirect_to,
+    http_response::{HttpResponse, internal_server_error_500, redirect_to},
 };
 use into_vec::into_vec;
 use session::{
@@ -10,7 +10,7 @@ use session::{
 };
 use user::get_by_username_and_password;
 
-pub fn get(db_pool: &db_manager::DbPool, session: Session) -> String {
+pub fn get(db_pool: &db_manager::DbPool, session: Session) -> HttpResponse {
     if session.logged_in {
         return redirect_to("/".to_string());
     }
@@ -21,7 +21,7 @@ pub fn get(db_pool: &db_manager::DbPool, session: Session) -> String {
     http_stuff::http_response::ok_html(get_html(notifs))
 }
 
-pub fn post(session: Session, body: Option<Vec<u8>>, db_pool: &db_manager::DbPool) -> String {
+pub fn post(session: Session, body: Option<Vec<u8>>, db_pool: &db_manager::DbPool) -> HttpResponse {
 
   let body = match body {
     Some(b)=>b,

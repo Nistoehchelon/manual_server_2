@@ -25,7 +25,7 @@ fn main() {
                 match e {
                     _ =>  {
                         eprintln!("{:?}",e);
-                        let _ = stream.write_all(&internal_server_error_500().into_bytes());
+                        let _ = stream.write_all(&internal_server_error_500());
                     },
                 };
                 let _ = stream.shutdown(std::net::Shutdown::Both);

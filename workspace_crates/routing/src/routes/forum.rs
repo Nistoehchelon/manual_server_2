@@ -2,7 +2,7 @@ use forum::{Forum, ForumThread, get_forum_by_id};
 use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::{
     http_request_parsing::Query,
-    http_response::{self, internal_server_error_500, redirect_to},
+    http_response::{self, HttpResponse, internal_server_error_500, redirect_to},
 };
 use into_vec::into_vec;
 use session::{
@@ -10,7 +10,7 @@ use session::{
 };
 use user::get_user_by_user_id;
 
-pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> String {
+pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> HttpResponse {
     let forum_id = 'forum_id: {
         for kv in query.clone() {
             if kv.0 == "id" {

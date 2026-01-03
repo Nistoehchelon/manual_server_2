@@ -1,9 +1,9 @@
 use html_templating::html_template_structs::{self, MainInfo};
-use http_stuff::http_response::{internal_server_error_500, redirect_to};
+use http_stuff::http_response::{HttpResponse, internal_server_error_500, redirect_to};
 use session::Session;
 use user;
 
-pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
+pub fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
     if !session.logged_in {
         return redirect_to("/".to_string());
     }

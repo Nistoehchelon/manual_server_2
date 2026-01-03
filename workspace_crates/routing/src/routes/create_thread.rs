@@ -2,12 +2,12 @@ use forum::{Forum, get_forum_by_id};
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::Query,
-    http_response::{internal_server_error_500, ok_html, redirect_to},
+    http_response::{HttpResponse, internal_server_error_500, ok_html, redirect_to},
 };
 use session::{Session, SessionNotification, add_session_notification};
 use user;
 
-pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> String {
+pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> HttpResponse {
     let _user = user::get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool).unwrap();
     let forum_id = query
         .get("forum_id")

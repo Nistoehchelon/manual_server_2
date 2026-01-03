@@ -48,41 +48,41 @@ Content-Type: text/html\r\n\r\n",
                 },
             ) {
                 Ok(_) => {}
-                Err(_) => return internal_server_error_500().into_bytes(),
+                Err(_) => return internal_server_error_500(),
             }
-            break 'response_block redirect_to("/".to_string()).into_bytes();
+            break 'response_block redirect_to("/".to_string());
         }
         if session.logged_in {
             let user_associated_with_session_actually_exists =
                 match get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool) {
                     Ok(Some(_)) => true,
                     Ok(None) => false,
-                    Err(_) => return internal_server_error_500().into_bytes(),
+                    Err(_) => return internal_server_error_500(),
                 };
             if !user_associated_with_session_actually_exists {
                 let mut modified_session = session.clone();
                 modified_session.logged_in = false;
                 modified_session.user_public_inapp_id = "".to_string();
                 session::edit_session(db_pool, modified_session.id.clone(), modified_session);
-                break 'response_block redirect_to("/".to_string()).into_bytes();
+                break 'response_block redirect_to("/".to_string());
             }
         }
         dbg!(format!("Entering routing for {method} {path}"));
         match (method.as_str(), path.as_str()) {
-            ("GET", "/signup") => routes::signup::get(session, db_pool).into_bytes(),
+            ("GET", "/signup") => routes::signup::get(session, db_pool),
             ("POST", "/signup") => {
-                routes::signup::post(session, body_bytes, db_pool).into_bytes()
+                routes::signup::post(session, body_bytes, db_pool)
             }
-            ("GET", "/dashboard") => routes::dashboard::get(session, db_pool).into_bytes(),
-            ("GET", "/logout") => routes::logout::get(db_pool, session).into_bytes(),
-            ("GET", "/login") => routes::login::get(db_pool, session).into_bytes(),
-            ("POST", "/login") => routes::login::post(session, body_bytes, db_pool).into_bytes(),
-            ("GET", "/forum") => routes::forum::get(session, query, db_pool).into_bytes(),
+            ("GET", "/dashboard") => routes::dashboard::get(session, db_pool),
+            ("GET", "/logout") => routes::logout::get(db_pool, session),
+            ("GET", "/login") => routes::login::get(db_pool, session),
+            ("POST", "/login") => routes::login::post(session, body_bytes, db_pool),
+            ("GET", "/forum") => routes::forum::get(session, query, db_pool),
             ("GET", "/create_thread") => {
-                routes::create_thread::get(session, query, db_pool).into_bytes()
+                routes::create_thread::get(session, query, db_pool)
             }
 
-            _ => routes::index::get(session, db_pool).into_bytes(),
+            _ => routes::index::get(session, db_pool),
         }
     };
     return response;
@@ -132,7 +132,7 @@ pub fn generate_response(request_data: HttpRequestData, db_pool: &DbPool) -> Vec
     let (session, created_new_session) =
         match session::get_existing_or_make_new_session(db_pool, cookies) {
             Ok((s, cns)) => (s, cns),
-            Err(_) => return internal_server_error_500().into_bytes(),
+            Err(_) => return internal_server_error_500(),
         };
     // Route handling
     let response = route(db_pool, session, created_new_session, request_data);

@@ -1,7 +1,7 @@
 use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::{
     http_request_parsing::parse_username_and_password_from_body,
-    http_response::{internal_server_error_500, ok_html, redirect_to},
+    http_response::{HttpResponse, internal_server_error_500, ok_html, redirect_to},
 };
 use into_vec::into_vec;
 use session::{
@@ -10,7 +10,7 @@ use session::{
 };
 use user::try_to_create_new_user;
 
-pub fn get(session: Session, db_pool: &db_manager::DbPool) -> String {
+pub fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
     if session.logged_in {
         let _ = add_session_notification(
             db_pool,
@@ -42,7 +42,7 @@ fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
     });
 }
 
-pub fn post(session: Session, body: Option<Vec<u8>>, db_pool: &db_manager::DbPool) -> String {
+pub fn post(session: Session, body: Option<Vec<u8>>, db_pool: &db_manager::DbPool) -> HttpResponse {
    let body = match body {
     Some(b)=>b,
     None=> return internal_server_error_500(),

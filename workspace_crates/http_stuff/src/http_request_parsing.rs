@@ -101,7 +101,7 @@ fn parse_stream(stream: &mut TcpStream) -> Result<ParsedHeaderStream, HttpReques
         headers: header_bytes,
     });
 }
-
+ 
 pub fn parse_http_request(
     stream: &mut TcpStream,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {

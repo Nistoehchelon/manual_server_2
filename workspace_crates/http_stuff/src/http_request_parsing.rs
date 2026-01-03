@@ -52,7 +52,6 @@ fn parse_headers_stream(stream: &mut TcpStream) -> Result<ParsedHeaderStream, Ht
     let mut header_bytes: Vec<u8> = Vec::new();
     let mut read_total_bytes = 0;
 
-
     let mut time_to_parse_headers = true;
     let mut finished_parsing_stream = false;
     loop {

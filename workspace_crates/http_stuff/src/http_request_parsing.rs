@@ -46,6 +46,8 @@ pub struct ParsedHeaderStream {
     pub headers: Vec<u8>,
 }
 
+
+
 fn parse_headers_stream(stream: &mut TcpStream) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
     const BYTES_PER_READ: usize = 1;
     let mut byte_buf = [0u8; BYTES_PER_READ];

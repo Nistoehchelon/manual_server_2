@@ -46,12 +46,11 @@ pub struct ParsedHeaderStream {
     pub headers: Vec<u8>,
 }
 
-fn parse_stream(stream: &mut TcpStream) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
-    let mut byte_buf = [0u8; 1];
+fn parse_headers_stream(stream: &mut TcpStream) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
+    const BYTES_PER_READ: usize = 1;
+    let mut byte_buf = [0u8; BYTES_PER_READ];
     let mut header_bytes: Vec<u8> = Vec::new();
     let mut read_total_bytes = 0;
-
-    let mut full_stream: Vec<u8> = Vec::new();
 
 
     let mut time_to_parse_headers = true;
@@ -72,12 +71,10 @@ fn parse_stream(stream: &mut TcpStream) -> Result<ParsedHeaderStream, HttpReques
             return Err(HttpRequestParsingError::BadRequest);
         }
 
-        full_stream.push(byte_buf[0]);
-
-        read_total_bytes += 1;
+        read_total_bytes += BYTES_PER_READ;
 
         if time_to_parse_headers {
-            let byte = byte_buf[0].clone();
+            let [byte] = byte_buf;
             header_bytes.push(byte);
 
             let head_bytes_string = String::from_utf8_lossy(&header_bytes);
@@ -108,7 +105,7 @@ pub fn parse_http_request(
 
     let ParsedHeaderStream {
         headers,
-    } = parse_stream(stream)?;
+    } = parse_headers_stream(stream)?;
 
 
     let mut headers_hash_map: HashMap<String, String> = HashMap::new();

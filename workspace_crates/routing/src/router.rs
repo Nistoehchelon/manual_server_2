@@ -27,9 +27,10 @@ pub fn route(
         if created_new_session {
             break 'response_block format!(
                 "HTTP/1.1 302 Found\r\n\
-                Set-Cookie: {}={}; Path=/\r\n\
-                Location: {path_with_query}\r\n\
-                Content-Type: text/html\r\n\r\n",
+Set-Cookie: {}={}; Path=/\r\n\
+Location: {path_with_query}\r\n\
+Connection: close\r\n\
+Content-Type: text/html\r\n\r\n",
                 session::get_name_of_cookie_containing_session_id(),
                 session.id.clone()
             )

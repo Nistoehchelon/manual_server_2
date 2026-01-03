@@ -37,18 +37,7 @@ impl Display for HttpRequestParsingError {
         write!(f, "{}", s)
     }
 }
-pub trait StripPrefixASCIICaseInsensitive {
-    fn strip_prefix_ascii_case_insensitive(&self, prefix: &str) -> Option<&str>;
-}
-impl StripPrefixASCIICaseInsensitive for str {
-    fn strip_prefix_ascii_case_insensitive(&self, prefix: &str) -> Option<&str> {
-        if self.len() >= prefix.len() && self[..prefix.len()].eq_ignore_ascii_case(prefix) {
-            Some(&self[prefix.len()..])
-        } else {
-            None
-        }
-    }
-}
+
 
 
 fn read_headers(stream: &mut TcpStream) 
@@ -242,5 +231,19 @@ pub fn parse_username_and_password_from_body(body: Vec<u8>) -> Result<(String, S
         Ok((username, password))
     } else {
         Err(String::from("Invalid body"))
+    }
+}
+
+
+pub trait StripPrefixASCIICaseInsensitive {
+    fn strip_prefix_ascii_case_insensitive(&self, prefix: &str) -> Option<&str>;
+}
+impl StripPrefixASCIICaseInsensitive for str {
+    fn strip_prefix_ascii_case_insensitive(&self, prefix: &str) -> Option<&str> {
+        if self.len() >= prefix.len() && self[..prefix.len()].eq_ignore_ascii_case(prefix) {
+            Some(&self[prefix.len()..])
+        } else {
+            None
+        }
     }
 }

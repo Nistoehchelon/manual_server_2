@@ -1,6 +1,6 @@
 pub mod routes;
-pub mod routing;
-pub use routing::generate_response;
-pub use routing::generate_static_response;
-pub use routing::is_requesting_static_resource;
-pub use routing::route;
+pub mod router;
+pub use router::generate_response;
+pub use router::generate_static_response;
+pub use router::is_requesting_static_resource;
+pub use router::route;

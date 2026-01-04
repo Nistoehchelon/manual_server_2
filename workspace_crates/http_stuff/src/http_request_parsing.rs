@@ -41,7 +41,7 @@ impl Display for HttpRequestParsingError {
         };
         write!(f, "{}", s)
     }
-}
+} 
 pub struct ParsedHeaderStream {
     pub headers: Vec<u8>,
 }

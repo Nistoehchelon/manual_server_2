@@ -1,7 +1,7 @@
 use db_manager::DbError;
 use error_structs::PublicError;
 
-use crate::{get_query_str, user_structs_and_so_on::User};
+use crate::{user_structs_and_so_on::User};
 
 pub fn get_user_by_user_id(
     user_id: String,
@@ -79,7 +79,7 @@ pub fn get_by_username(
     match result {
         Some(row) => {
             let id: String = row.get("public_inapp_id");
-            let user_query = get_query_str(crate::QueryStr::GetUserByPublicInappId);
+            let user_query = "SELECT internal_id, public_inapp_id, username, password_hash, password_salt, bio, role_id FROM public.users WHERE public_inapp_id = $1";
             let user_row = match transaction.query_one(user_query, &[&id]) {
                 Ok(ur) => ur,
                 Err(e) => {
@@ -189,7 +189,7 @@ fn storage_specific_get_user_by_user_id(
 
     let result = db_manager::query_opt(
         client,
-        crate::get_query_str(crate::QueryStr::GetUserByPublicInappId),
+        "SELECT internal_id, public_inapp_id, username, password_hash, password_salt, bio, role_id FROM public.users WHERE public_inapp_id = $1",
         &[&user_id],
     )?;
     Ok(result.map(User::from))

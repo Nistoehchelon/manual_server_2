@@ -44,68 +44,69 @@ impl Display for HttpRequestParsingError {
 } 
 pub struct ParsedHeaderStream {
     pub headers: Vec<u8>,
+    pub leftover: Vec<u8>,
 }
 
 
+fn parse_headers_stream(
+    stream: &mut TcpStream,
+) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
+    const BYTES_PER_READ: usize = 1024;
 
-fn parse_headers_stream(stream: &mut TcpStream) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
-    const BYTES_PER_READ: usize = 1;
     let mut byte_buf = [0u8; BYTES_PER_READ];
-    let mut header_bytes: Vec<u8> = Vec::new();
+    let mut header_bytes = Vec::new();
     let mut read_total_bytes = 0;
 
-    let mut time_to_parse_headers = true;
-    let mut finished_parsing_stream = false;
     loop {
-        if finished_parsing_stream {
-            break;
-        }
         let bytes_read = match stream.read(&mut byte_buf) {
-            Ok(n) => n,
+            Ok(0) => {
+                dbg!("Connection closed? 0 bytes read before headers completed");
+                return Err(HttpRequestParsingError::BadRequest);
+            },
+
+            Ok(n) => {
+                
+                n
+            },
             Err(e) => {
-                dbg!(format!("Stream read error: {e:#?}"));
+                dbg!("Stream read error", e);
                 return Err(HttpRequestParsingError::SomeSortOfStreamError);
-            }
+            },
         };
-        if bytes_read == 0 {
-            dbg!("Hm, read 0 bytes? Closed?", read_total_bytes);
-            return Err(HttpRequestParsingError::BadRequest);
-        }
 
-        read_total_bytes += BYTES_PER_READ;
-
-        if time_to_parse_headers {
-            let [byte] = byte_buf;
-            header_bytes.push(byte);
-
-            let head_bytes_string = String::from_utf8_lossy(&header_bytes);
-            if head_bytes_string.contains("\r\n\r\n") {
-                time_to_parse_headers = false;
-                finished_parsing_stream = true;
-                continue;
-            }
-        }
+        read_total_bytes += bytes_read;
 
         if read_total_bytes > MAX_HEADER_BYTES {
-            dbg!(format!(
-                "Header bytes length ({read_total_bytes}) exceeded MAX_HEADER_BYTES ({MAX_HEADER_BYTES})"
-            ));
             return Err(HttpRequestParsingError::ContentTooLarge);
         }
 
-    }
+        // Append the bytes we just read
+        header_bytes.extend_from_slice(&byte_buf[..bytes_read]);
 
-    return Ok(ParsedHeaderStream {
-        headers: header_bytes,
-    });
+        // Check for header-body boundary
+        if let Some(pos) = header_bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+            // `pos` points to the start of the \r\n\r\n sequence
+            let body_start = pos + 4; // skip the \r\n\r\n
+            let leftover_body = header_bytes[body_start..].to_vec(); // save bytes beyond headers
+
+            // truncate header_bytes to only the headers
+            header_bytes.truncate(body_start);
+
+            return Ok(ParsedHeaderStream { headers: header_bytes, leftover: leftover_body });
+        }
+    }
 }
- 
+
+
+
+
 pub fn parse_http_request(
     stream: &mut TcpStream,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
 
     let ParsedHeaderStream {
         headers,
+        leftover: leftover_from_headers_parsing,
     } = parse_headers_stream(stream)?;
 
 
@@ -134,7 +135,7 @@ pub fn parse_http_request(
 
     let mut body: Vec<u8> = vec![];
 
-    let content_length = match headers_hash_map.get("content-length").unwrap_or(&"0".to_string()).parse::<usize>() {
+    let mut content_length = match headers_hash_map.get("content-length").unwrap_or(&"0".to_string()).parse::<usize>() {
         Err(e) => {
             dbg!("Parse error", e);
             return Err(HttpRequestParsingError::BadRequest);
@@ -145,6 +146,15 @@ pub fn parse_http_request(
         dbg!(content_length, "exceeds", MAX_BODY_BYTES);
         return Err(HttpRequestParsingError::ContentTooLarge);
     } else if method == "POST" {
+        if leftover_from_headers_parsing.len() > 0 {
+        if leftover_from_headers_parsing.len() > content_length {
+            dbg!("Leftover from header reading is greater than promised content length, rejecting", leftover_from_headers_parsing.len(), content_length);
+            return Err(HttpRequestParsingError::BadRequest);
+        }
+        content_length -= leftover_from_headers_parsing.len();
+        body.extend(leftover_from_headers_parsing);
+        } 
+        if content_length > 0 {
         let mut reader = BufReader::new(stream);
         let mut body_bytes_exact = vec![0; content_length];
         match reader.read_exact(&mut body_bytes_exact) {
@@ -156,6 +166,7 @@ pub fn parse_http_request(
             },
         }
         body.extend(body_bytes_exact);
+    }
     }
 
 

@@ -1,8 +1,6 @@
 use db_manager;
 use env_reader::{Env, get_env};
-use http_stuff::{
-    http_request_parsing::parse_http_request, http_response::ok_html,
-};
+use http_stuff::{http_request_parsing::parse_http_request, http_response::ok_html};
 use server::thread_pool;
 
 use std::{io::Write, net::TcpListener};
@@ -19,37 +17,37 @@ fn main() {
     let listener = TcpListener::bind(ip_and_port.clone()).expect("Failed to bind to address");
     println!("Server listening on http://{}", ip_and_port.clone());
     let thread_pool = thread_pool::ThreadPool::new(8);
+
     for stream in listener.incoming() {
+        let db_pool = db_pool.clone();
         let mut stream = stream.unwrap();
-        let request_data = match parse_http_request(&mut stream) {
-            Ok(data) => data,
-            Err(e) => {
-                match e {
-                    _ => {
-                        eprintln!("main error {:?}", e);
-                        let _ = stream.write_all(&ok_html(format!("Hmm")));
-                    }
-                };
-               // let _ = stream.shutdown(std::net::Shutdown::Both);
-                //drop(stream);
-                continue;
-            }
-        };
-        if routing::is_requesting_static_resource(request_data.path.clone()) {
-            thread_pool.execute(move || {
+        thread_pool.execute(move || {
+            let request_data = match parse_http_request(&mut stream) {
+                Ok(data) => data,
+                Err(e) => {
+                    match e {
+                        _ => {
+                            eprintln!("main error {:?}", e);
+                            let _ = stream.write_all(&ok_html(format!("Hmm")));
+                        }
+                    };
+                    let _ = stream.shutdown(std::net::Shutdown::Both);
+                    drop(stream);
+                    return;
+                }
+            };
+            if routing::is_requesting_static_resource(request_data.path.clone()) {
                 let response = routing::generate_static_response(request_data);
                 stream.write_all(&response).ok();
                 let _ = stream.shutdown(std::net::Shutdown::Both);
-            });
-            continue;
-        }
+                drop(stream);
+                return;
+            }
 
-        let db_pool = db_pool.clone();
-
-        thread_pool.execute(move || {
             let response = routing::generate_response(request_data, &db_pool);
             stream.write_all(&response).ok();
             let _ = stream.shutdown(std::net::Shutdown::Both);
+            drop(stream);
         });
     }
 

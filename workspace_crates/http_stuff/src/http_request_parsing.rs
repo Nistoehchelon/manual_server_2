@@ -77,6 +77,7 @@ fn parse_headers_stream(
         read_total_bytes += bytes_read;
 
         if read_total_bytes > MAX_HEADER_BYTES {
+            dbg!("Header size exceeded max allowed", read_total_bytes, MAX_HEADER_BYTES);
             return Err(HttpRequestParsingError::ContentTooLarge);
         }
 

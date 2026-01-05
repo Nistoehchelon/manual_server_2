@@ -1,10 +1,10 @@
 use db_manager;
-use env_reader::get_env;
+use config_reader::read_config;
 use session;
 
 #[test]
 fn test_read_write() {
-    let env = get_env();
+    let env = read_config();
     let pool = db_manager::get_pool(env.database_str).expect("Could not connect to DB");
     let mut client = db_manager::get_client(pool).expect("Could not get client conn from db pool");
     let session = session::Session {

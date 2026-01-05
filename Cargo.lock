@@ -155,6 +155,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
+name = "config_reader"
+version = "0.1.0"
+
+[[package]]
 name = "constant_time_eq"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -198,10 +202,6 @@ dependencies = [
  "crypto-common",
  "subtle",
 ]
-
-[[package]]
-name = "env_reader"
-version = "0.1.0"
 
 [[package]]
 name = "error_structs"
@@ -735,8 +735,8 @@ dependencies = [
 name = "server"
 version = "0.1.0"
 dependencies = [
+ "config_reader",
  "db_manager",
- "env_reader",
  "forum",
  "html_templating",
  "http_stuff",
@@ -827,8 +827,8 @@ dependencies = [
 name = "tests"
 version = "0.1.0"
 dependencies = [
+ "config_reader",
  "db_manager",
- "env_reader",
  "id_generator",
  "session",
 ]

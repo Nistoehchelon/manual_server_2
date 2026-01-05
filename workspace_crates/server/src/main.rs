@@ -1,5 +1,5 @@
 use db_manager;
-use env_reader::{Env, get_env};
+use config_reader::{Config, read_config};
 use http_stuff::{http_request_parsing::parse_http_request, http_response::ok_html};
 use server::{thread_pool, token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket}};
 
@@ -8,8 +8,8 @@ use std::{collections::HashMap, io::Write, net::TcpListener, sync::{Arc, Mutex}}
 
 
 fn main() {
-    let env = get_env();
-    let Env {
+    let env = read_config();
+    let Config {
         ip_and_port,
         database_str,
         server_global_requests_token_bucket_capacity,

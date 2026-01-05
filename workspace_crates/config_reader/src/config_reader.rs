@@ -1,5 +1,5 @@
 use std::fs::read_to_string;
-pub struct Env {
+pub struct Config {
     pub ip_and_port: String,
     pub database_str: String,
     pub server_global_requests_token_bucket_capacity: f64,
@@ -8,8 +8,8 @@ pub struct Env {
     pub per_ip_token_bucket_refill_rate_per_millis: f64,
 }
 
-pub fn get_env() -> Env {
-    let contents = read_to_string("env").expect("Could't file or read env file");
+pub fn read_config() -> Config {
+    let contents = read_to_string("config").expect("Couldn't find or read config file");
 
     let mut ip: Option<String> = None;
     let mut port: Option<String> = None;
@@ -28,7 +28,7 @@ pub fn get_env() -> Env {
     {
         let (key, value) = line
             .split_once('=')
-            .expect(format!("Invalid env line {line} expected KEY=VALUE").as_str());
+            .expect(format!("Invalid config line {line} expected KEY=VALUE").as_str());
 
         let value = value.trim().to_string();
 
@@ -56,15 +56,15 @@ pub fn get_env() -> Env {
         }
     }
 
-    let ip = ip.expect("Missing IP in env file");
-    let port = port.expect("Missing PORT in env file");
-    let db_url = db_url.expect("Missing DATABASE_URL in env file");
-    let server_token_bucket_capacity = server_token_bucket_capacity.expect("Missing SERVER_TOKEN_BUCKET_CAPACITY in env");
-    let server_token_bucket_refill_rate = server_token_bucket_refill_rate.expect("Missing SERVER_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in env file");
-    let per_ip_token_bucket_capacity = per_ip_token_bucket_capacity.expect("Missing PER_IP_TOKEN_BUCKET_CAPACITY in env");
-    let per_ip_token_bucket_refill_rate = per_ip_token_bucket_refill_rate.expect("Missing PER_IP_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in env file");
+    let ip = ip.expect("Missing IP in config file");
+    let port = port.expect("Missing PORT in config file");
+    let db_url = db_url.expect("Missing DATABASE_URL in config file");
+    let server_token_bucket_capacity = server_token_bucket_capacity.expect("Missing SERVER_TOKEN_BUCKET_CAPACITY in config");
+    let server_token_bucket_refill_rate = server_token_bucket_refill_rate.expect("Missing SERVER_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in config file");
+    let per_ip_token_bucket_capacity = per_ip_token_bucket_capacity.expect("Missing PER_IP_TOKEN_BUCKET_CAPACITY in config");
+    let per_ip_token_bucket_refill_rate = per_ip_token_bucket_refill_rate.expect("Missing PER_IP_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in config file");
 
-    Env {
+    Config {
         ip_and_port: format!("{ip}:{port}"),
         database_str: db_url.to_string(),
         server_global_requests_token_bucket_capacity: server_token_bucket_capacity,

@@ -7,7 +7,7 @@ members = ["workspace_crates/*"]
 # internal workspace crates
 
 db_manager = { path = "workspace_crates/db_manager" }
-env_reader = { path = "workspace_crates/env_reader" } 
+config_reader = { path = "workspace_crates/config_reader" } 
 error_structs = { path = "workspace_crates/error_structs" }
 forum = { path = "workspace_crates/forum" }
 html_templating = { path = "workspace_crates/html_templating" }

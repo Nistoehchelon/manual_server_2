@@ -7,7 +7,7 @@ edition = "2024"
 urlencoding = {workspace = true}
 routing = { workspace = true }
 http_stuff = { workspace = true }
-env_reader = { workspace = true }
+config_reader = { workspace = true }
 db_manager = { workspace = true }
 html_templating = { workspace = true }
 read_on_dev_embed_on_release = { workspace = true }

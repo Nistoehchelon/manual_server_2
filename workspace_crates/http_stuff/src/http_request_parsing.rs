@@ -1,9 +1,9 @@
 use std::{
     collections::HashMap,
     fmt::{self, Display},
-    io::{BufReader, Read},
-    net::TcpStream,
 };
+use tokio::io::{BufReader};
+use tokio::io::AsyncReadExt;
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
@@ -96,8 +96,8 @@ fn decode_post_string(s: String) -> Result<String, String> {
 }
 
 
-fn parse_headers_stream(
-    stream: &mut TcpStream,
+async fn parse_headers_stream(
+    stream: &mut tokio::net::TcpStream,
 ) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
     const BYTES_PER_READ: usize = 1024;
 
@@ -106,7 +106,7 @@ fn parse_headers_stream(
     let mut read_total_bytes = 0;
 
     loop {
-        let bytes_read = match stream.read(&mut byte_buf) {
+        let bytes_read = match stream.read(&mut byte_buf).await {
             Ok(0) => {
                 dbg!("Connection closed? 0 bytes read before headers completed");
                 return Err(HttpRequestParsingError::BadRequest);
@@ -156,13 +156,13 @@ fn parse_headers_stream(
     }
 }
 
-pub fn parse_http_request(
-    stream: &mut TcpStream,
+pub async fn parse_http_request(
+    stream: &mut tokio::net::TcpStream,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
     let ParsedHeaderStream {
         headers,
         leftover: leftover_from_headers_parsing,
-    } = parse_headers_stream(stream)?;
+    } = parse_headers_stream(stream).await?;
 
     let mut headers_hash_map: HashMap<String, String> = HashMap::new();
     for line in (String::from_utf8_lossy(&headers)).lines() {
@@ -224,7 +224,7 @@ pub fn parse_http_request(
         if content_length > 0 {
             let mut reader = BufReader::new(stream);
             let mut body_bytes_exact = vec![0; content_length];
-            match reader.read_exact(&mut body_bytes_exact) {
+            match reader.read_exact(&mut body_bytes_exact).await {
                 Err(e) => {
                     dbg!("read_exact error body", e);
                     return Err(HttpRequestParsingError::BadRequest);

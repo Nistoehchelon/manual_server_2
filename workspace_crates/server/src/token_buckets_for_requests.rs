@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
+use tokio::sync::Mutex;
 use std::time::{Instant};
 
 pub type GlobalBucket = Arc<Mutex<TokenBucket>>;

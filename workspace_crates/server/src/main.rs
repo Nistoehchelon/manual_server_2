@@ -5,10 +5,10 @@ use server::{thread_pool, token_buckets_for_requests::{GlobalBucket, IpBuckets, 
 
 
 
-use std::{collections::HashMap, io::Write, net::{IpAddr, SocketAddr}, sync::{Arc, Mutex}};
+use std::{collections::HashMap, io::Write, net::{IpAddr, SocketAddr}, sync::{Arc}};
 
 
-use tokio::{io::AsyncWriteExt, net::{TcpListener, TcpStream}};
+use tokio::{sync::Mutex, io::AsyncWriteExt, net::{TcpListener, TcpStream}};
 
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 8)]
@@ -48,7 +48,7 @@ async fn main() -> std::io::Result<()>{
 
         let db_pool = db_pool.clone();
         tokio::spawn(async move {
-            handle(stream, db_pool, peer_ip.ip(), global_bucket, ip_buckets, per_ip_token_bucket_capacity, per_ip_token_bucket_refill_rate_per_millis)
+            handle(stream, db_pool, peer_ip.ip(), global_bucket, ip_buckets, per_ip_token_bucket_capacity, per_ip_token_bucket_refill_rate_per_millis).await;
         });
     }
 
@@ -60,14 +60,14 @@ pub async fn handle(mut stream: TcpStream, db_pool: DbPool, peer_ip: IpAddr, glo
             
             dbg!("Peer with IP ", peer_ip, "just issued a request");
             // Check global bucket
-            if !global_bucket.lock().unwrap().try_to_consume_one_token() {
+            if !global_bucket.lock().await.try_to_consume_one_token() {
                 dbg!("Server bucket empty");
             let _ = stream.write_all(&ok_html("Hello".to_string()));
             return Ok(());
             }
             // ip bucket
             {
-            let mut ip_buckets = ip_buckets.lock().unwrap();
+            let mut ip_buckets = ip_buckets.lock().await;
             let ip_bucket = ip_buckets.entry(peer_ip.clone())
                 .or_insert_with(|| TokenBucket::new(per_ip_token_bucket_capacity, per_ip_token_bucket_refill_rate_per_millis));
             

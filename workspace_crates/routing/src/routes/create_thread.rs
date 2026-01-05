@@ -4,7 +4,7 @@ use forum::{Forum, get_forum_by_id};
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::{self, Query},
-    http_response::{HttpResponse, internal_server_error_500, ok_html, redirect_to},
+    http_response::{HttpResponse, ResponseData, internal_server_error_500, ok_html, redirect_to, response},
 };
 use session::{Session, SessionNotification, add_session_notification};
 use user;
@@ -63,14 +63,24 @@ fn get_html(
 
 
 pub fn post(session: Session, body_bytes: Vec<u8> , db_pool: &db_manager::DbPool) -> HttpResponse {
-    let params = match http_request_parsing::parse_body_into_post_params(body_bytes) {
+    let params = match http_request_parsing::parse_body_into_string_post_params(body_bytes) {
         Ok(params) => params,
         Err(e) => {
             dbg!(e);
             return internal_server_error_500();
         }
     };
-    dbg!(params);
+    dbg!(params.clone());
+    let mut resp_body = format!(r##"
+        
+    "##);
+    for param in params.iter() {
+        let k = param.0;
+        let v = param.1;
+        resp_body = format!("{resp_body} ||| {k} .... {v}");
+    }
 
+    
+    return response(ResponseData { code: http_stuff::http_response::ResponseCode::Ok200, content_type: "text/html".to_string(), body: Some(format!("{resp_body}").into_bytes()), set_cookie_headers: None });
     todo!();
 }

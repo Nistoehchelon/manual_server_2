@@ -5,7 +5,6 @@ use std::{
     net::TcpStream,
 };
 
-
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 pub const STREAM_READ_TIMEOUT_SECS: u64 = 8;
@@ -41,25 +40,18 @@ impl Display for HttpRequestParsingError {
         };
         write!(f, "{}", s)
     }
-} 
+}
 pub struct ParsedHeaderStream {
     pub headers: Vec<u8>,
     pub leftover: Vec<u8>,
 }
 
-pub fn parse_body_into_post_params(body: Vec<u8>) -> Result<HashMap<String, String>, String> {
-let body = match String::from_utf8(body) {
-    Ok(b) => b,
-    Err(e) => return Err(format!("Could not parse body into valid utf8, {e:#?}")),
-};
-    let body = match urlencoding::decode(&body) {
-        Err(_) => {
-            return Err(format!("Could not decode body into string"));
-        }
-        Ok(s) => s,
+pub fn parse_body_into_string_post_params(body: Vec<u8>) -> Result<HashMap<String, String>, String> {
+    let body = match String::from_utf8(body) {
+        Ok(b) => b,
+        Err(e) => return Err(format!("Could not parse body into valid utf8, {e:#?}")),
     };
-    let body = body.replace("+", " ");
-
+    dbg!("body raw unparsed string", body.clone());
 
     let body_clone = body.clone();
     let split: Vec<&str> = body_clone.split('&').collect();
@@ -68,14 +60,39 @@ let body = match String::from_utf8(body) {
         let (key, value) = match pair.split_once('=') {
             Some((k, v)) => (k, v),
             None => {
-                dbg!("Could not split post param"); 
+                dbg!("Could not split post param");
                 return Err(format!("Could not split by = in post"));
             }
         };
+
+        let key = match decode_post_string(key.to_string()) {
+            Err(e) => {
+                return Err(format!("Could not decode key into string, {e:#?}"));
+            }
+            Ok(s) => s,
+        };
+
+        let value = match decode_post_string(value.to_string()) {
+            Err(e) => {
+                return Err(format!("Could not decode key into string, {e:#?}"));
+            }
+            Ok(s) => s,
+        };
+
         params.insert(key.to_string(), value.to_string());
     }
     return Ok(params);
-    
+}
+
+fn decode_post_string(s: String) -> Result<String, String> {
+            let s = match urlencoding::decode(&s) {
+            Err(e) => {
+                return Err(format!("Could not decode string into string, {e:#?}"));
+            }
+            Ok(s) => s,
+        };
+        let s = s.replace("+", " ");
+        Ok(s)
 }
 
 
@@ -93,22 +110,23 @@ fn parse_headers_stream(
             Ok(0) => {
                 dbg!("Connection closed? 0 bytes read before headers completed");
                 return Err(HttpRequestParsingError::BadRequest);
-            },
+            }
 
-            Ok(n) => {
-                
-                n
-            },
+            Ok(n) => n,
             Err(e) => {
                 dbg!("Stream read error", e);
                 return Err(HttpRequestParsingError::SomeSortOfStreamError);
-            },
+            }
         };
 
         read_total_bytes += bytes_read;
 
         if read_total_bytes > MAX_HEADER_BYTES {
-            dbg!("Header size exceeded max allowed", read_total_bytes, MAX_HEADER_BYTES);
+            dbg!(
+                "Header size exceeded max allowed",
+                read_total_bytes,
+                MAX_HEADER_BYTES
+            );
             return Err(HttpRequestParsingError::ContentTooLarge);
         }
 
@@ -130,23 +148,21 @@ fn parse_headers_stream(
                 return Err(HttpRequestParsingError::BadRequest);
             }
 
-            return Ok(ParsedHeaderStream { headers: header_bytes, leftover: leftover_body });
+            return Ok(ParsedHeaderStream {
+                headers: header_bytes,
+                leftover: leftover_body,
+            });
         }
     }
 }
 
-
-
-
 pub fn parse_http_request(
     stream: &mut TcpStream,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
-
     let ParsedHeaderStream {
         headers,
         leftover: leftover_from_headers_parsing,
     } = parse_headers_stream(stream)?;
-
 
     let mut headers_hash_map: HashMap<String, String> = HashMap::new();
     for line in (String::from_utf8_lossy(&headers)).lines() {
@@ -154,10 +170,15 @@ pub fn parse_http_request(
             headers_hash_map.insert(key.trim().to_lowercase(), value.trim().to_string());
         }
     }
-    let binding = ((String::from_utf8_lossy(&headers)).lines().collect::<Vec<&str>>()[0]).to_string();
+    let binding = ((String::from_utf8_lossy(&headers))
+        .lines()
+        .collect::<Vec<&str>>()[0])
+        .to_string();
     let first_line_split = binding.split(" ").collect::<Vec<&str>>();
     if first_line_split.len() != 3 {
-        dbg!(format!("I expected something other than {first_line_split:#?} for first header line"));
+        dbg!(format!(
+            "I expected something other than {first_line_split:#?} for first header line"
+        ));
         return Err(HttpRequestParsingError::BadRequest);
     }
     let method = first_line_split[0].to_string();
@@ -173,11 +194,15 @@ pub fn parse_http_request(
 
     let mut body: Vec<u8> = vec![];
 
-    let mut content_length = match headers_hash_map.get("content-length").unwrap_or(&"0".to_string()).parse::<usize>() {
+    let mut content_length = match headers_hash_map
+        .get("content-length")
+        .unwrap_or(&"0".to_string())
+        .parse::<usize>()
+    {
         Err(e) => {
             dbg!("Parse error", e);
             return Err(HttpRequestParsingError::BadRequest);
-        },
+        }
         Ok(v) => v,
     };
     if content_length > MAX_BODY_BYTES {
@@ -185,29 +210,30 @@ pub fn parse_http_request(
         return Err(HttpRequestParsingError::ContentTooLarge);
     } else if method == "POST" {
         if leftover_from_headers_parsing.len() > 0 {
-        if leftover_from_headers_parsing.len() > content_length {
-            dbg!("Leftover from header reading is greater than promised content length, rejecting", leftover_from_headers_parsing.len(), content_length);
-            return Err(HttpRequestParsingError::BadRequest);
-        }
-        content_length -= leftover_from_headers_parsing.len();
-        body.extend(leftover_from_headers_parsing);
-        } 
-        if content_length > 0 {
-        let mut reader = BufReader::new(stream);
-        let mut body_bytes_exact = vec![0; content_length];
-        match reader.read_exact(&mut body_bytes_exact) {
-            Err(e) => {
-                dbg!("read_exact error body", e);
+            if leftover_from_headers_parsing.len() > content_length {
+                dbg!(
+                    "Leftover from header reading is greater than promised content length, rejecting",
+                    leftover_from_headers_parsing.len(),
+                    content_length
+                );
                 return Err(HttpRequestParsingError::BadRequest);
-            },
-            Ok(_) => {
-            },
+            }
+            content_length -= leftover_from_headers_parsing.len();
+            body.extend(leftover_from_headers_parsing);
         }
-        body.extend(body_bytes_exact);
+        if content_length > 0 {
+            let mut reader = BufReader::new(stream);
+            let mut body_bytes_exact = vec![0; content_length];
+            match reader.read_exact(&mut body_bytes_exact) {
+                Err(e) => {
+                    dbg!("read_exact error body", e);
+                    return Err(HttpRequestParsingError::BadRequest);
+                }
+                Ok(_) => {}
+            }
+            body.extend(body_bytes_exact);
+        }
     }
-    }
-
-
 
     Ok(HttpRequestData {
         method: method,

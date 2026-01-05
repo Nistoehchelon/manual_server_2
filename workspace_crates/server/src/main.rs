@@ -35,7 +35,7 @@ async fn main() -> std::io::Result<()>{
     let ip_buckets: IpBuckets = Arc::new(Mutex::new(HashMap::new()));
     
     loop {
-        let (socket, addr) = match listener.accept().await {
+        let (stream, peer_ip) = match listener.accept().await {
             Ok((s, a)) => (s, a),
             Err(e) => {
                 dbg!("Could not unwrap stream? :(");
@@ -48,7 +48,7 @@ async fn main() -> std::io::Result<()>{
 
         let db_pool = db_pool.clone();
         tokio::spawn(async move {
-
+            handle(stream, db_pool, peer_ip.ip(), global_bucket, ip_buckets, per_ip_token_bucket_capacity, per_ip_token_bucket_refill_rate_per_millis)
         });
     }
 

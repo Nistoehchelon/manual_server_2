@@ -93,6 +93,12 @@ fn parse_headers_stream(
             // truncate header_bytes to only the headers
             header_bytes.truncate(body_start);
 
+            // not sure if there is a point to this check... Vec u8 will by definition only contain ascii  bytes, right?
+            if !header_bytes.is_ascii() {
+                dbg!("I do not accept headers with non-ascii bytes");
+                return Err(HttpRequestParsingError::BadRequest);
+            }
+
             return Ok(ParsedHeaderStream { headers: header_bytes, leftover: leftover_body });
         }
     }

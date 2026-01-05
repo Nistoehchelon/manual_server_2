@@ -66,7 +66,7 @@ pub async fn handle(mut stream: TcpStream, db_pool: DbPool, peer_ip: IpAddr, glo
             return Ok(());
             }
             // ip bucket
-            {
+            {   
             let mut ip_buckets = ip_buckets.lock().await;
             let ip_bucket = ip_buckets.entry(peer_ip.clone())
                 .or_insert_with(|| TokenBucket::new(per_ip_token_bucket_capacity, per_ip_token_bucket_refill_rate_per_millis));

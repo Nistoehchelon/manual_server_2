@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use forum::{Forum, get_forum_by_id};
 use html_templating::html_template_structs;
 use http_stuff::{
-    http_request_parsing::Query,
+    http_request_parsing::{self, Query},
     http_response::{HttpResponse, internal_server_error_500, ok_html, redirect_to},
 };
 use session::{Session, SessionNotification, add_session_notification};
@@ -57,4 +59,18 @@ fn get_html(
     });
 
     return html;
+}
+
+
+pub fn post(session: Session, body_bytes: Vec<u8> , db_pool: &db_manager::DbPool) -> HttpResponse {
+    let params = match http_request_parsing::parse_body_into_post_params(body_bytes) {
+        Ok(params) => params,
+        Err(e) => {
+            dbg!(e);
+            return internal_server_error_500();
+        }
+    };
+    dbg!(params);
+
+    todo!();
 }

@@ -1,6 +1,6 @@
 use db_manager::DbPool;
 use http_stuff::{
-    http_request_parsing::HttpRequestData,
+    http_request_parsing::{self, HttpRequestData},
     http_response::{internal_server_error_500, redirect_to},
 };
 use session::{self, Session, SessionNotification, add_session_notification};
@@ -77,6 +77,7 @@ Content-Type: text/html\r\n\r\n",
             ("POST", "/login") => routes::login::post(session, body_bytes, db_pool),
             ("GET", "/forum") => routes::forum::get(session, query, db_pool),
             ("GET", "/create_thread") => routes::create_thread::get(session, query, db_pool),
+            ("POST", "/create_thread") => routes::create_thread::post(session, body_bytes, db_pool),
 
             _ => routes::index::get(session, db_pool),
         }

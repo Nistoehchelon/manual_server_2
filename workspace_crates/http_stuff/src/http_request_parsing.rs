@@ -47,6 +47,37 @@ pub struct ParsedHeaderStream {
     pub leftover: Vec<u8>,
 }
 
+pub fn parse_body_into_post_params(body: Vec<u8>) -> Result<HashMap<String, String>, String> {
+let body = match String::from_utf8(body) {
+    Ok(b) => b,
+    Err(e) => return Err(format!("Could not parse body into valid utf8, {e:#?}")),
+};
+    let body = match urlencoding::decode(&body) {
+        Err(_) => {
+            return Err(format!("Could not decode body into string"));
+        }
+        Ok(s) => s,
+    };
+    let body = body.replace("+", " ");
+
+
+    let body_clone = body.clone();
+    let split: Vec<&str> = body_clone.split('&').collect();
+    let mut params: HashMap<String, String> = HashMap::new();
+    for pair in split {
+        let (key, value) = match pair.split_once('=') {
+            Some((k, v)) => (k, v),
+            None => {
+                dbg!("Could not split post param"); 
+                return Err(format!("Could not split by = in post"));
+            }
+        };
+        params.insert(key.to_string(), value.to_string());
+    }
+    return Ok(params);
+    
+}
+
 
 fn parse_headers_stream(
     stream: &mut TcpStream,

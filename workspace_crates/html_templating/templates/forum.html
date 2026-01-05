@@ -1,7 +1,9 @@
 {% extends "template_base.html" %}
 
 {% block content %}
- {% if user_can_create_child_forum %}
+{% include "includes/notifications.html" %}
+
+{% if user_can_create_child_forum %}
  <a href="/create_forum?parent_id={{ forum.id }}">Create a forum</a><br>
  {% endif %}
  {% if user_can_create_thread %}

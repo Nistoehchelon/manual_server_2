@@ -12,6 +12,10 @@ fn main() {
     let Env {
         ip_and_port,
         database_str,
+        server_global_requests_token_bucket_capacity,
+        server_global_requests_token_bucket_refill_rate_per_millis,
+        per_ip_token_bucket_capacity,
+        per_ip_token_bucket_refill_rate_per_millis
     } = env;
     let listener = TcpListener::bind(ip_and_port.clone()).expect(
         &format!("I expected to bind to address {ip_and_port}")
@@ -22,10 +26,9 @@ fn main() {
     
     let thread_pool = thread_pool::ThreadPool::new(8);
 
-    let global_bucket: GlobalBucket = Arc::new(Mutex::new(TokenBucket::new(1000.0, 0.010)));
+    let global_bucket: GlobalBucket = Arc::new(Mutex::new(TokenBucket::new(server_global_requests_token_bucket_capacity, server_global_requests_token_bucket_refill_rate_per_millis)));
+
     let ip_buckets: IpBuckets = Arc::new(Mutex::new(HashMap::new()));
-    const CAPACITY_OF_IP_BUCKET: f64 = 60.0;
-    const REFILL_RATE_PER_MILLIS_OF_IP_BUCKET: f64 = 0.001;
     
     for stream in listener.incoming() {
 
@@ -54,16 +57,19 @@ fn main() {
             dbg!("Peer with IP ", peer_ip, "just issued a request");
             // Check global bucket
             if !global_bucket.lock().unwrap().try_to_consume_one_token() {
-            let _ = stream.write_all(&ok_html("Server overloaded".to_string()));
+                dbg!("Server bucket empty");
+            let _ = stream.write_all(&ok_html("Hello".to_string()));
             return;
             }
+            // ip bucket
             {
             let mut ip_buckets = ip_buckets.lock().unwrap();
             let ip_bucket = ip_buckets.entry(peer_ip.clone())
-                .or_insert_with(|| TokenBucket::new(CAPACITY_OF_IP_BUCKET, REFILL_RATE_PER_MILLIS_OF_IP_BUCKET));
+                .or_insert_with(|| TokenBucket::new(per_ip_token_bucket_capacity, per_ip_token_bucket_refill_rate_per_millis));
             
             if !ip_bucket.try_to_consume_one_token() {
-                let _ = stream.write_all(&ok_html("Server overloaded".to_string()));
+                dbg!(&format!("Bucket for IP {peer_ip} is empty"));
+                let _ = stream.write_all(&ok_html("Hello".to_string()));
                 let _ = stream.shutdown(std::net::Shutdown::Both);
                 return;
             }

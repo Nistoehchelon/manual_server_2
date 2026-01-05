@@ -5,7 +5,7 @@ use crate::forum_structs::{Forum, ForumThread};
 pub fn get_forum_by_id(db_pool: &db_manager::DbPool, id: String) -> Result<Option<Forum>, DbError> {
     if id == "0" {
         return Ok(Some(Forum {
-            id: "0".to_string(),
+            public_id: "0".to_string(),
             name: "Default forum".to_string(),
             parent_id: "0".to_string(),
         }));

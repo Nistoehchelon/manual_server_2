@@ -40,11 +40,11 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Http
         _ => return internal_server_error_500(),
     };
 
-    let forum_threads = match forum::get_forum_threads(forum.id.clone()) {
+    let forum_threads = match forum::get_forum_threads(forum.public_id.clone()) {
         Ok(ft) => ft,
         Err(_) => return internal_server_error_500(),
     };
-    let subforums = match forum::get_subforums(forum.id.clone()) {
+    let subforums = match forum::get_subforums(forum.public_id.clone()) {
         Ok(ss) => ss,
         Err(_) => return internal_server_error_500(),
     };

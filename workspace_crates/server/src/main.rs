@@ -11,11 +11,13 @@ fn main() {
         ip_and_port,
         database_str,
     } = env;
-
-    let db_pool = db_manager::get_pool(database_str).expect("Could not connect to db");
-
-    let listener = TcpListener::bind(ip_and_port.clone()).expect("Failed to bind to address");
+    let listener = TcpListener::bind(ip_and_port.clone()).expect(
+        &format!("I expected to bind to address {ip_and_port}")
+    );
+    let db_pool = db_manager::get_pool(database_str).expect("I expected to get a db pool :)");
+    
     println!("Server listening on http://{}", ip_and_port.clone());
+    
     let thread_pool = thread_pool::ThreadPool::new(8);
 
     for stream in listener.incoming() {

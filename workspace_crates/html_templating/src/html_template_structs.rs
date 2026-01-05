@@ -11,7 +11,7 @@ pub struct Forum {
 impl From<forum::Forum> for Forum {
     fn from(f: forum::Forum) -> Self {
         Self {
-            id: f.id,
+            id: f.public_id,
             name: f.name,
         }
     }
@@ -24,7 +24,7 @@ pub struct ForumThread {
 impl From<forum::ForumThread> for ForumThread {
     fn from(src: forum::ForumThread) -> Self {
         Self {
-            id: src.id,
+            id: src.public_id,
             name: src.name,
         }
     }

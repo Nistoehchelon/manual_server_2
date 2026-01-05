@@ -40,7 +40,7 @@ pub fn get_env() -> Env {
             let value = value.parse::<f64>().expect(&format!("Expected f64 parsing of {value}  to work out"));
              server_token_bucket_capacity = Some(value)
             },
-            "SERVER_TOKEN_BUCKET_REFILL_RATE" =>  {
+            "SERVER_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS" =>  {
             let value = value.parse::<f64>().expect(&format!("Expected f64 parsing of {value}  to work out"));
              server_token_bucket_refill_rate = Some(value)
             },
@@ -48,7 +48,7 @@ pub fn get_env() -> Env {
             let value = value.parse::<f64>().expect(&format!("Expected f64 parsing of {value}  to work out"));
              per_ip_token_bucket_capacity = Some(value)
             },
-            "PER_IP_TOKEN_BUCKET_REFILL_RATE" =>  {
+            "PER_IP_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS" =>  {
             let value = value.parse::<f64>().expect(&format!("Expected f64 parsing of {value}  to work out"));
              per_ip_token_bucket_refill_rate = Some(value)
             },
@@ -60,9 +60,9 @@ pub fn get_env() -> Env {
     let port = port.expect("Missing PORT in env file");
     let db_url = db_url.expect("Missing DATABASE_URL in env file");
     let server_token_bucket_capacity = server_token_bucket_capacity.expect("Missing SERVER_TOKEN_BUCKET_CAPACITY in env");
-    let server_token_bucket_refill_rate = server_token_bucket_refill_rate.expect("Missing SERVER_TOKEN_BUCKET_REFILL_RATE in env file");
+    let server_token_bucket_refill_rate = server_token_bucket_refill_rate.expect("Missing SERVER_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in env file");
     let per_ip_token_bucket_capacity = per_ip_token_bucket_capacity.expect("Missing PER_IP_TOKEN_BUCKET_CAPACITY in env");
-    let per_ip_token_bucket_refill_rate = per_ip_token_bucket_refill_rate.expect("Missing PER_IP_TOKEN_BUCKET_REFILL_RATE in env file");
+    let per_ip_token_bucket_refill_rate = per_ip_token_bucket_refill_rate.expect("Missing PER_IP_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in env file");
 
     Env {
         ip_and_port: format!("{ip}:{port}"),

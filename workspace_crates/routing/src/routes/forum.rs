@@ -11,14 +11,8 @@ use session::{
 use user::get_user_by_user_id;
 
 pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> HttpResponse {
-    let forum_id = 'forum_id: {
-        for kv in query.clone() {
-            if kv.0 == "id" {
-                break 'forum_id kv.1;
-            }
-        }
-        "0".to_string()
-    };
+    let forum_id = query.clone().iter().find(|(k, _)| k.as_str() == "id").map(|(_, v)| v.clone()).unwrap_or_else(|| "0".to_string());
+
     let forum = match get_forum_by_id(db_pool, forum_id.clone()) {
         Ok(Some(f)) => f,
         Ok(None) => {
@@ -40,11 +34,11 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Http
         _ => return internal_server_error_500(),
     };
 
-    let forum_threads = match forum::get_forum_threads(forum.public_id.clone()) {
+    let forum_threads = match forum::get_forum_threads(db_pool, forum.public_id.clone()) {
         Ok(ft) => ft,
         Err(_) => return internal_server_error_500(),
     };
-    let subforums = match forum::get_subforums(forum.public_id.clone()) {
+    let subforums = match forum::get_subforums(db_pool, forum.public_id.clone()) {
         Ok(ss) => ss,
         Err(_) => return internal_server_error_500(),
     };

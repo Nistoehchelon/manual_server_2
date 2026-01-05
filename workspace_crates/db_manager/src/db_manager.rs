@@ -3,10 +3,13 @@ use std::fmt::Debug;
 use postgres::NoTls;
 use r2d2::{Pool, PooledConnection};
 use r2d2_postgres::PostgresConnectionManager;
+use postgres::types::ToSql;
 
 pub type DbPool = Pool<PostgresConnectionManager<NoTls>>;
 pub type DbClient = PooledConnection<PostgresConnectionManager<NoTls>>;
 pub type DbRow = postgres::Row;
+pub type DbParam<'a> = &'a (dyn ToSql + Sync);
+pub type DbParams<'a> = &'a [DbParam<'a>];
 
 #[derive(Debug)]
 pub struct DbError {
@@ -46,12 +49,21 @@ pub fn get_client(pool: DbPool) -> Result<DbClient, DbError> {
     }
 }
 
-use postgres::types::ToSql;
+pub fn query<T>(mut client: DbClient, query: &T, params: DbParams) -> Result<Vec<DbRow>, DbError>
+    where
+        T: ?Sized + postgres::ToStatement,
+    {
+        let result = client.query(query, params);
+        match result {
+            Ok(r) => return Ok(r),
+            Err(e) => return Err(DbError::new(e)),
+        }
+    }
 
 pub fn query_one<T>(
     mut client: DbClient,
     query: &T,
-    params: &[&(dyn ToSql + Sync)],
+    params: DbParams,
 ) -> Result<DbRow, DbError>
 where
     T: ?Sized + postgres::ToStatement,
@@ -66,7 +78,7 @@ where
 pub fn execute<T>(
     mut client: DbClient,
     query: &T,
-    params: &[&(dyn ToSql + Sync)],
+    params: DbParams,
 ) -> Result<u64, DbError>
 where
     T: ?Sized + postgres::ToStatement,
@@ -81,7 +93,7 @@ where
 pub fn query_opt<T>(
     mut client: DbClient,
     query: &T,
-    params: &[&(dyn ToSql + Sync)],
+    params: DbParams,
 ) -> Result<Option<DbRow>, DbError>
 where
     T: ?Sized + postgres::ToStatement,

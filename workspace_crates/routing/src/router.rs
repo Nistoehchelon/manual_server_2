@@ -124,6 +124,11 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
 }
 
 pub fn generate_response(request_data: HttpRequestData, db_pool: &DbPool) -> Vec<u8> {
+    if is_requesting_static_resource(request_data.path.clone()) {
+        let response = generate_static_response(request_data);
+        return response;
+    }
+
     let cookies = request_data.cookies.clone();
     let (session, created_new_session) =
         match session::get_existing_or_make_new_session(db_pool, cookies) {

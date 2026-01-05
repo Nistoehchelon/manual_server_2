@@ -25,6 +25,8 @@ http_stuff = { path = "workspace_crates/http_stuff" }
 
 
 # third-party external crates
+#tokio = { version = "1.49.0", features = ["full"] }
+
 askama = { version = "0.15", features = ["std", "derive"] }
 
 blake3 = "1.8.2"

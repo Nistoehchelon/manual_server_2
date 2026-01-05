@@ -13,9 +13,10 @@
     {% else %} 
     
  {% endif %}
- 
+ <br>
  {% if forum_threads.len() == 0 %}
-    This forum has no threads.
+    This forum has no threads{% if subforums.len() == 0 %}, either {% endif %}.
+
     {% else %} 
     
  {% endif %}

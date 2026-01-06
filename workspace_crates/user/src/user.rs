@@ -77,8 +77,9 @@ pub async fn get_by_username(
     match result {
         Some(row) => {
             let id: String = row.get("public_id");
-            let user_query = "SELECT primary_key, public_id, username, password_hash, password_salt, bio, role_id FROM public.users WHERE public_id = $1";
-            let user_row = match transaction.query_one(user_query, &[&id]).await {
+            let params: DbParams = &[&id];
+            let (user_query, params) = sql_queries::get_user_by_user_id(params);
+            let user_row = match transaction.query_one(user_query, params).await {
                 Ok(ur) => ur,
                 Err(e) => {
                     return Err(DbError::new(e));

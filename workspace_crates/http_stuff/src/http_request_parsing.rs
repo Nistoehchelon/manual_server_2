@@ -105,17 +105,20 @@ async fn parse_headers_stream(
     let mut byte_buf = [0u8; BYTES_PER_READ];
     let mut header_bytes = Vec::new();
     let mut read_total_bytes = 0;
+    let mut count_calls_to_stream_read = 0;
 
     loop {
+        count_calls_to_stream_read += 1;
         let bytes_read = match stream.read(&mut byte_buf).await {
             Ok(0) => {
-                dbg!("Connection closed? 0 bytes read before headers completed");
+                dbg!(format!("Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} having called stream.read {count_calls_to_stream_read} times) "));
                 return Err(HttpRequestParsingError::BadRequest);
             }
 
             Ok(n) => n,
             Err(e) => {
                 dbg!("Stream read error", e);
+                dbg!(format!("(in total read {read_total_bytes} having called stream.read {count_calls_to_stream_read} times) "));
                 return Err(HttpRequestParsingError::SomeSortOfStreamError);
             }
         };

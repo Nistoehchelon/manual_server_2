@@ -8,5 +8,3 @@ password_hashing = { workspace = true }
 id_generator = { workspace = true }
 db_manager = { workspace = true }
 error_structs = { workspace = true }
-
-postgres-types = {workspace = true}

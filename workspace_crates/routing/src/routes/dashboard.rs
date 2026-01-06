@@ -3,16 +3,16 @@ use http_stuff::http_response::{HttpResponse, internal_server_error_500, redirec
 use session::Session;
 use user;
 
-pub fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
+pub async fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
     if !session.logged_in {
         return redirect_to("/".to_string());
     }
-    let user = match user::get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool) {
+    let user = match user::get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool).await {
         Ok(Some(u)) => u,
         _ => return internal_server_error_500(),
     };
     let notifications =
-        match session::read_and_delete_session_notifications(db_pool, session.id.clone()) {
+        match session::read_and_delete_session_notifications(db_pool, session.id.clone()).await {
             Ok(n) => n,
             _ => return internal_server_error_500(),
         };

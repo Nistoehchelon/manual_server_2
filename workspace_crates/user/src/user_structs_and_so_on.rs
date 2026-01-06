@@ -1,4 +1,4 @@
-use db_manager::Row;
+use db_manager::DbRow;
 
 #[derive(Clone, Debug, Default)]
 pub struct User {
@@ -11,8 +11,8 @@ pub struct User {
     pub role_id: i64,
 }
 
-impl From<Row> for User {
-    fn from(row: Row) -> Self {
+impl From<DbRow> for User {
+    fn from(row: DbRow) -> Self {
         Self {
             internal_id: row.get("internal_id"),
             public_inapp_id: row.get("public_inapp_id"),

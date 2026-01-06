@@ -1,13 +1,12 @@
 use std::fmt::Debug;
 
-use postgres::NoTls;
-use r2d2::{Pool, PooledConnection};
-use r2d2_postgres::PostgresConnectionManager;
-use postgres::types::ToSql;
+use deadpool_postgres::{Client, Config, Pool, Runtime};
+use tokio_postgres::types::ToSql;
+use tokio_postgres::{NoTls, Row, ToStatement};
 
-pub type DbPool = Pool<PostgresConnectionManager<NoTls>>;
-pub type DbClient = PooledConnection<PostgresConnectionManager<NoTls>>;
-pub type DbRow = postgres::Row;
+pub type DbPool = Pool;
+pub type DbClient = Client;
+pub type DbRow = Row;
 pub type DbParam<'a> = &'a (dyn ToSql + Sync);
 pub type DbParams<'a> = &'a [DbParam<'a>];
 
@@ -35,72 +34,69 @@ impl DbSuccess {
     }
 }
 pub fn get_pool(db_str: String) -> Result<DbPool, DbError> {
-    let db_manager = PostgresConnectionManager::new(db_str.parse().unwrap(), NoTls);
-    match r2d2::Pool::new(db_manager) {
-        Ok(p) => return Ok(p),
-        Err(e) => return Err(DbError::new(e)),
-    }
+    let mut cfg = Config::new();
+    cfg.url = Some(db_str);
+
+    cfg.create_pool(Some(Runtime::Tokio1), NoTls)
+        .map_err(DbError::new)
 }
 
-pub fn get_client(pool: DbPool) -> Result<DbClient, DbError> {
-    match pool.get() {
-        Ok(c) => return Ok(c),
-        Err(e) => return Err(DbError::new(e)),
-    }
+pub async fn get_client(pool: &DbPool) -> Result<DbClient, DbError> {
+    pool.get().await.map_err(DbError::new)
 }
 
-pub fn query<T>(mut client: DbClient, query: &T, params: DbParams) -> Result<Vec<DbRow>, DbError>
-    where
-        T: ?Sized + postgres::ToStatement,
-    {
-        let result = client.query(query, params);
-        match result {
-            Ok(r) => return Ok(r),
-            Err(e) => return Err(DbError::new(e)),
-        }
-    }
-
-pub fn query_one<T>(
-    mut client: DbClient,
+pub async fn query<T>(
+    client: &DbClient,
     query: &T,
-    params: DbParams,
+    params: &[&(dyn ToSql + Sync)],
+) -> Result<Vec<DbRow>, DbError>
+where
+    T: ?Sized + ToStatement,
+{
+    client.query(query, params).await.map_err(DbError::new)
+}
+
+pub async fn query_one<T>(
+    client: &DbClient,
+    statement: &T,
+    params: &[&(dyn ToSql + Sync)],
 ) -> Result<DbRow, DbError>
 where
-    T: ?Sized + postgres::ToStatement,
+    T: ?Sized + ToStatement,
 {
-    let result = client.query_one(query, params);
-    match result {
-        Ok(r) => return Ok(r),
-        Err(e) => return Err(DbError::new(e)),
-    }
+    let result = client
+        .query_one(statement, params)
+        .await
+        .map_err(DbError::new);
+    result
 }
 
-pub fn execute<T>(
-    mut client: DbClient,
-    query: &T,
-    params: DbParams,
+pub async fn execute<T>(
+    client: &DbClient,
+    statement: &T,
+    params: &[&(dyn ToSql + Sync)],
 ) -> Result<u64, DbError>
 where
-    T: ?Sized + postgres::ToStatement,
+    T: ?Sized + ToStatement,
 {
-    let result = client.execute(query, params);
-    match result {
-        Err(e) => return Err(DbError::new(e)),
-        Ok(rows_modified) => return Ok(rows_modified),
-    }
+    let result = client
+        .execute(statement, params)
+        .await
+        .map_err(DbError::new);
+    result
 }
 
-pub fn query_opt<T>(
-    mut client: DbClient,
-    query: &T,
-    params: DbParams,
-) -> Result<Option<DbRow>, DbError>
+pub async fn query_opt<T>(
+    client: &DbClient,
+    statement: &T,
+    params: &[&(dyn ToSql + Sync)],
+) -> Result<Option<Row>, DbError>
 where
-    T: ?Sized + postgres::ToStatement,
+    T: ?Sized + ToStatement,
 {
-    let result = client.query_opt(query, params);
-    match result {
-        Err(e) => return Err(DbError::new(e)),
-        Ok(opt) => return Ok(opt),
-    }
+    let result = client
+        .query_opt(statement, params)
+        .await
+        .map_err(DbError::new);
+    return result;
 }

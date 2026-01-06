@@ -8,14 +8,14 @@ use http_stuff::{
 use session::{Session, SessionNotification, add_session_notification};
 use user;
 
-pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> HttpResponse {
-    let _user = user::get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool).unwrap();
+pub async  fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> HttpResponse {
+    let _user = user::get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool).await.unwrap();
     let forum_id = query
         .get("forum_id")
         .cloned()
         .unwrap_or_else(|| "0".to_string());
 
-    let forum = match get_forum_by_id(db_pool, forum_id.clone()) {
+    let forum = match get_forum_by_id(db_pool, forum_id.clone()).await {
         Ok(opt) => opt,
         Err(_) => return internal_server_error_500(),
     };
@@ -32,7 +32,7 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Http
         return redirect_to("/forum".to_string());
     }
     let forum = forum.unwrap();
-    let notifs = match session::read_and_delete_session_notifications(db_pool, session.id.clone()) {
+    let notifs = match session::read_and_delete_session_notifications(db_pool, session.id.clone()).await {
         Ok(n) => n,
         Err(_) => return internal_server_error_500(),
     };

@@ -11,4 +11,4 @@ pub use db_manager::get_pool;
 pub use db_manager::query_one;
 pub use db_manager::query_opt;
 pub use db_manager::query;
-pub use postgres::Row;
+pub use db_manager::DbRow;

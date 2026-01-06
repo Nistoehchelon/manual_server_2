@@ -2,11 +2,11 @@ use db_manager;
 use config_reader::read_config;
 use session;
 
-#[test]
-fn test_read_write() {
+#[tokio::test(flavor="multi_thread", worker_threads = 2)]
+async fn test_read_write() {
     let env = read_config();
     let pool = db_manager::get_pool(env.database_str).expect("Could not connect to DB");
-    let mut client = db_manager::get_client(pool).expect("Could not get client conn from db pool");
+    let client = db_manager::get_client(&pool).await.expect("Could not get client conn from db pool");
     let session = session::Session {
         id: format!("32ed32"),
         user_public_inapp_id: format!("user_id_1232"),
@@ -20,7 +20,7 @@ fn test_read_write() {
                 &session.user_public_inapp_id,
                 &session.logged_in,
             ],
-        )
+        ).await
         .unwrap();
     // now test for retrieving?;
 
@@ -28,7 +28,7 @@ fn test_read_write() {
         .query_one(
             "SELECT id, user_id, logged_in FROM public.sessions WHERE id = $1",
             &[&session.id],
-        )
+        ).await
         .unwrap();
 
     let retrieved_session = session::Session {
@@ -46,5 +46,6 @@ fn test_read_write() {
 
     client
         .execute("DELETE FROM public.sessions WHERE id = $1", &[&session.id])
+        .await
         .unwrap();
 }

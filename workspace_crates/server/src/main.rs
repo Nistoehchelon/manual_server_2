@@ -1,5 +1,4 @@
 use db_manager::{self, DbPool};
-use config_reader::{Config, read_config};
 use http_stuff::{http_request_parsing::parse_http_request, http_response::ok_html};
 use server::token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket};
 
@@ -13,8 +12,8 @@ use tokio::{sync::Mutex, io::AsyncWriteExt, net::{TcpListener, TcpStream}};
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 8)]
 async fn main() -> std::io::Result<()>{
-    let env = read_config();
-    let Config {
+    let env = config_reader::read_config();
+    let config_reader::Config {
         ip_and_port,
         database_str,
         server_global_requests_token_bucket_capacity,
@@ -92,7 +91,7 @@ pub async fn handle(mut stream: TcpStream, db_pool: DbPool, peer_ip: IpAddr, glo
                 }
             };
 
-            let response = routing::generate_response(request_data, &db_pool);
+            let response = routing::generate_response(request_data, &db_pool).await;
             let _ = stream.write_all(&response).await;
             let _ = stream.shutdown().await;
             drop(stream);

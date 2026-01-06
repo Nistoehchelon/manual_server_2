@@ -10,9 +10,9 @@ use session::{
 };
 use user::try_to_create_new_user;
 
-pub fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
+pub async fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
     if session.logged_in {
-        let _ = add_session_notification(
+        let _result = add_session_notification(
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),
@@ -21,11 +21,11 @@ pub fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
                 ),
                 notification_type: session::SessionNotificationType::Error,
             },
-        );
+        ).await;
         return redirect_to("/".to_string());
     }
 
-    let notifs = match read_and_delete_session_notifications(db_pool, session.id) {
+    let notifs = match read_and_delete_session_notifications(db_pool, session.id).await {
         Ok(ns) => ns,
         Err(_) => return internal_server_error_500(),
     };
@@ -42,7 +42,7 @@ fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
     });
 }
 
-pub fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool) -> HttpResponse {
+pub async fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool) -> HttpResponse {
     if session.logged_in {
         return redirect_to("/".to_string());
     }
@@ -50,19 +50,19 @@ pub fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool) -> Ht
     let (username, password) = match parse_username_and_password_from_body(body.clone()) {
         Ok((u, p)) => (u, p),
         Err(_) => {
-            let _ = add_session_notification(
+            let _result = add_session_notification(
                 db_pool,
                 SessionNotification {
                     message: format!("Invalid body"),
                     session_id: session.id.clone(),
                     notification_type: session::SessionNotificationType::Error,
                 },
-            );
+            ).await;
             return redirect_to("/".to_string());
         }
     };
 
-    let user_creation_result = match try_to_create_new_user(db_pool, username, password) {
+    let user_creation_result = match try_to_create_new_user(db_pool, username, password).await {
         Ok(ucr) => ucr,
         Err(_) => return internal_server_error_500(),
     };
@@ -71,17 +71,17 @@ pub fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool) -> Ht
             let mut modified_session = session.clone();
             modified_session.logged_in = true;
             modified_session.user_public_inapp_id = user.public_inapp_id.clone();
-            edit_session(db_pool, session.id.clone(), modified_session);
+            let _unused = edit_session(db_pool, session.id.clone(), modified_session).await;
         }
         Err(e) => {
-            let _ = add_session_notification(
+            let _unused = add_session_notification(
                 db_pool,
                 SessionNotification {
                     session_id: session.id.clone(),
                     message: e.message,
                     notification_type: session::SessionNotificationType::Error,
                 },
-            );
+            ).await;
             return redirect_to("/signup".to_string());
         }
     }

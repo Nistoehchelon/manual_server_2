@@ -8,7 +8,7 @@ use user::{self, get_user_by_user_id};
 
 use crate::routes;
 
-pub fn route(
+pub async fn route(
     db_pool: &db_manager::DbPool,
     session: Session,
     created_new_session: bool,
@@ -46,7 +46,7 @@ Content-Type: text/html\r\n\r\n",
                         "Page {path} is inaccessible at this particular nanosecond *sigh*"
                     ),
                 },
-            ) {
+            ).await {
                 Ok(_) => {}
                 Err(_) => return internal_server_error_500(),
             }
@@ -54,7 +54,7 @@ Content-Type: text/html\r\n\r\n",
         }
         if session.logged_in {
             let user_associated_with_session_actually_exists =
-                match get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool) {
+                match get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool).await {
                     Ok(Some(_)) => true,
                     Ok(None) => false,
                     Err(_) => return internal_server_error_500(),
@@ -63,23 +63,23 @@ Content-Type: text/html\r\n\r\n",
                 let mut modified_session = session.clone();
                 modified_session.logged_in = false;
                 modified_session.user_public_inapp_id = "".to_string();
-                session::edit_session(db_pool, modified_session.id.clone(), modified_session);
+                let _unused = session::edit_session(db_pool, modified_session.id.clone(), modified_session).await;
                 break 'response_block redirect_to("/".to_string());
             }
         }
         dbg!(format!("Entering routing for {method} {path}"));
         match (method.as_str(), path.as_str()) {
-            ("GET", "/signup") => routes::signup::get(session, db_pool),
-            ("POST", "/signup") => routes::signup::post(session, body_bytes, db_pool),
-            ("GET", "/dashboard") => routes::dashboard::get(session, db_pool),
-            ("GET", "/logout") => routes::logout::get(db_pool, session),
-            ("GET", "/login") => routes::login::get(db_pool, session),
-            ("POST", "/login") => routes::login::post(session, body_bytes, db_pool),
-            ("GET", "/forum") => routes::forum::get(session, query, db_pool),
-            ("GET", "/create_thread") => routes::create_thread::get(session, query, db_pool),
+            ("GET", "/signup") => routes::signup::get(session, db_pool).await,
+            ("POST", "/signup") => routes::signup::post(session, body_bytes, db_pool).await,
+            ("GET", "/dashboard") => routes::dashboard::get(session, db_pool).await,
+            ("GET", "/logout") => routes::logout::get(db_pool, session).await,
+            ("GET", "/login") => routes::login::get(db_pool, session).await,
+            ("POST", "/login") => routes::login::post(session, body_bytes, db_pool).await,
+            ("GET", "/forum") => routes::forum::get(session, query, db_pool).await,
+            ("GET", "/create_thread") => routes::create_thread::get(session, query, db_pool).await,
             ("POST", "/create_thread") => routes::create_thread::post(session, body_bytes, db_pool),
 
-            _ => routes::index::get(session, db_pool),
+            _ => routes::index::get(session, db_pool).await,
         }
     };
     return response;
@@ -124,7 +124,7 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
     }
 }
 
-pub fn generate_response(request_data: HttpRequestData, db_pool: &DbPool) -> Vec<u8> {
+pub async fn generate_response(request_data: HttpRequestData, db_pool: &DbPool) -> Vec<u8> {
     if is_requesting_static_resource(request_data.path.clone()) {
         let response = generate_static_response(request_data);
         return response;
@@ -132,12 +132,12 @@ pub fn generate_response(request_data: HttpRequestData, db_pool: &DbPool) -> Vec
 
     let cookies = request_data.cookies.clone();
     let (session, created_new_session) =
-        match session::get_existing_or_make_new_session(db_pool, cookies) {
+        match session::get_existing_or_make_new_session(db_pool, cookies).await {
             Ok((s, cns)) => (s, cns),
             Err(_) => return internal_server_error_500(),
         };
     // Route handling
-    let response = route(db_pool, session, created_new_session, request_data);
+    let response = route(db_pool, session, created_new_session, request_data).await;
 
     return response;
 }

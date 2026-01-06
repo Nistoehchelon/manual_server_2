@@ -10,10 +10,10 @@ use session::{
 };
 use user::get_user_by_user_id;
 
-pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> HttpResponse {
+pub async fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> HttpResponse {
     let forum_id = query.clone().iter().find(|(k, _)| k.as_str() == "id").map(|(_, v)| v.clone()).unwrap_or_else(|| "0".to_string());
 
-    let forum = match get_forum_by_id(db_pool, forum_id.clone()) {
+    let forum = match get_forum_by_id(db_pool, forum_id.clone()).await {
         Ok(Some(f)) => f,
         Ok(None) => {
             let _ = add_session_notification(
@@ -29,22 +29,22 @@ pub fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> Http
         Err(_) => return internal_server_error_500(),
     };
 
-    let _user = match get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool) {
+    let _user = match get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool).await {
         Ok(Some(u)) => u,
         _ => return internal_server_error_500(),
     };
 
-    let forum_threads = match forum::get_forum_threads(db_pool, forum.public_id.clone()) {
+    let forum_threads = match forum::get_forum_threads(db_pool, forum.public_id.clone()).await {
         Ok(ft) => ft,
         Err(_) => return internal_server_error_500(),
     };
-    let subforums = match forum::get_subforums(db_pool, forum.public_id.clone()) {
+    let subforums = match forum::get_subforums(db_pool, forum.public_id.clone()).await {
         Ok(ss) => ss,
         Err(_) => return internal_server_error_500(),
     };
 
     let title = forum.name.clone();
-    let notifications = match read_and_delete_session_notifications(db_pool, session.id.clone()) {
+    let notifications = match read_and_delete_session_notifications(db_pool, session.id.clone()).await {
         Ok(notifs) => notifs,
         _ => return internal_server_error_500(),
     };

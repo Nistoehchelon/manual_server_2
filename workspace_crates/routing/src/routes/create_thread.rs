@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use forum::{Forum, get_forum_by_id};
 use html_templating::html_template_structs;
@@ -62,7 +61,7 @@ fn get_html(
 }
 
 
-pub fn post(session: Session, body_bytes: Vec<u8> , db_pool: &db_manager::DbPool) -> HttpResponse {
+pub fn post(_session: Session, body_bytes: Vec<u8> , _db_pool: &db_manager::DbPool) -> HttpResponse {
     let params = match http_request_parsing::parse_body_into_string_post_params(body_bytes) {
         Ok(params) => params,
         Err(e) => {
@@ -82,5 +81,4 @@ pub fn post(session: Session, body_bytes: Vec<u8> , db_pool: &db_manager::DbPool
 
     
     return response(ResponseData { code: http_stuff::http_response::ResponseCode::Ok200, content_type: "text/html".to_string(), body: Some(format!("{resp_body}").into_bytes()), set_cookie_headers: None });
-    todo!();
 }

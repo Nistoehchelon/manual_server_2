@@ -1,11 +1,11 @@
 use db_manager::{self, DbPool};
 use config_reader::{Config, read_config};
 use http_stuff::{http_request_parsing::parse_http_request, http_response::ok_html};
-use server::{thread_pool, token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket}};
+use server::token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket};
 
 
 
-use std::{collections::HashMap, io::Write, net::{IpAddr, SocketAddr}, sync::{Arc}};
+use std::{collections::HashMap, net::IpAddr, sync::{Arc}};
 
 
 use tokio::{sync::Mutex, io::AsyncWriteExt, net::{TcpListener, TcpStream}};
@@ -38,7 +38,7 @@ async fn main() -> std::io::Result<()>{
         let (stream, peer_ip) = match listener.accept().await {
             Ok((s, a)) => (s, a),
             Err(e) => {
-                dbg!("Could not unwrap stream? :(");
+                dbg!("Could not unwrap stream? :( ", e);
                 continue;
             }
         };
@@ -48,12 +48,10 @@ async fn main() -> std::io::Result<()>{
 
         let db_pool = db_pool.clone();
         tokio::spawn(async move {
-            handle(stream, db_pool, peer_ip.ip(), global_bucket, ip_buckets, per_ip_token_bucket_capacity, per_ip_token_bucket_refill_rate_per_millis).await;
+            let _ = handle(stream, db_pool, peer_ip.ip(), global_bucket, ip_buckets, per_ip_token_bucket_capacity, per_ip_token_bucket_refill_rate_per_millis).await;
         });
     }
 
-    println!("Shutting down server.");
-    Ok(())
 }
 
 pub async fn handle(mut stream: TcpStream, db_pool: DbPool, peer_ip: IpAddr, global_bucket: GlobalBucket, ip_buckets: IpBuckets, per_ip_token_bucket_capacity: f64, per_ip_token_bucket_refill_rate_per_millis: f64,) -> std::io::Result<()> {
@@ -62,7 +60,7 @@ pub async fn handle(mut stream: TcpStream, db_pool: DbPool, peer_ip: IpAddr, glo
             // Check global bucket
             if !global_bucket.lock().await.try_to_consume_one_token() {
                 dbg!("Server bucket empty");
-            let _ = stream.write_all(&ok_html("Hello".to_string()));
+            let _ = stream.write_all(&ok_html("Hello".to_string())).await;
             return Ok(());
             }
             // ip bucket
@@ -73,7 +71,7 @@ pub async fn handle(mut stream: TcpStream, db_pool: DbPool, peer_ip: IpAddr, glo
             
             if !ip_bucket.try_to_consume_one_token() {
                 dbg!(&format!("Bucket for IP {peer_ip} is empty"));
-                let _ = stream.write_all(&ok_html("Hello".to_string()));
+                let _ = stream.write_all(&ok_html("Hello".to_string())).await;
                 let _ = stream.shutdown().await;
                 return Ok(());
             }
@@ -85,7 +83,7 @@ pub async fn handle(mut stream: TcpStream, db_pool: DbPool, peer_ip: IpAddr, glo
                     match e {
                         _ => {
                             eprintln!("main error, could not parse request {:?}", e);
-                            let _ = stream.write_all(&ok_html(format!("Hmm")));
+                            let _ = stream.write_all(&ok_html(format!("Hmm"))).await;
                         }
                     };
                     let _ = stream.shutdown().await;
@@ -95,7 +93,7 @@ pub async fn handle(mut stream: TcpStream, db_pool: DbPool, peer_ip: IpAddr, glo
             };
 
             let response = routing::generate_response(request_data, &db_pool);
-            stream.write_all(&response).await;
+            let _ = stream.write_all(&response).await;
             let _ = stream.shutdown().await;
             drop(stream);
 

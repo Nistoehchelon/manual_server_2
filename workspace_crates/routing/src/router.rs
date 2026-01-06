@@ -1,6 +1,6 @@
 use db_manager::DbPool;
 use http_stuff::{
-    http_request_parsing::{self, HttpRequestData},
+    http_request_parsing::HttpRequestData,
     http_response::{internal_server_error_500, redirect_to},
 };
 use session::{self, Session, SessionNotification, add_session_notification};

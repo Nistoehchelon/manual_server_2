@@ -85,13 +85,14 @@ pub fn parse_body_into_string_post_params(body: Vec<u8>) -> Result<HashMap<Strin
 }
 
 fn decode_post_string(s: String) -> Result<String, String> {
-            let s = match urlencoding::decode(&s) {
+    let s = s.replace("+", " ");
+    let s = match urlencoding::decode(&s) {
             Err(e) => {
                 return Err(format!("Could not decode string into string, {e:#?}"));
             }
             Ok(s) => s,
         };
-        let s = s.replace("+", " ");
+        let s = s.to_string();
         Ok(s)
 }
 

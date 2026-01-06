@@ -825,6 +825,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sql_queries"
+version = "0.1.0"
+dependencies = [
+ "db_manager",
+]
+
+[[package]]
 name = "stringprep"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1023,6 +1030,7 @@ dependencies = [
  "error_structs",
  "id_generator",
  "password_hashing",
+ "sql_queries",
 ]
 
 [[package]]

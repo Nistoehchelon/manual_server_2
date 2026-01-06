@@ -1,7 +1,7 @@
-use db_manager::DbError;
+use db_manager::{DbError, DbParams};
 use error_structs::PublicError;
 
-use crate::{user_structs_and_so_on::User};
+use crate::user_structs_and_so_on::User;
 
 pub async fn get_user_by_user_id(
     user_id: String,
@@ -34,15 +34,13 @@ pub async fn try_to_create_new_user(
     }
 
     let hash_and_salt = password_hashing::hash_password_generate_salt(password);
-    let default_user_role = 1;
     let new_user = User {
-        internal_id: 0,
-        public_inapp_id: generate_user_id(),
+        primary_key: 0,
+        public_id: generate_user_id(),
         username,
         password_hash: hash_and_salt.hash,
         password_salt: hash_and_salt.salt,
         bio: format!("Default bio"),
-        role_id: default_user_role,
     };
     let user = storage_specific_create_new_user(db_pool, new_user).await?;
 
@@ -69,7 +67,7 @@ pub async fn get_by_username(
         }
         Ok(tx) => tx,
     };
-    let query = "SELECT public_inapp_id FROM public.users WHERE username = $1";
+    let query = "SELECT public_id FROM public.users WHERE username = $1";
     let result = match transaction.query_opt(query, &[&username]).await {
         Ok(res) => res,
         Err(e) => {
@@ -78,8 +76,8 @@ pub async fn get_by_username(
     };
     match result {
         Some(row) => {
-            let id: String = row.get("public_inapp_id");
-            let user_query = "SELECT internal_id, public_inapp_id, username, password_hash, password_salt, bio, role_id FROM public.users WHERE public_inapp_id = $1";
+            let id: String = row.get("public_id");
+            let user_query = "SELECT primary_key, public_id, username, password_hash, password_salt, bio, role_id FROM public.users WHERE public_id = $1";
             let user_row = match transaction.query_one(user_query, &[&id]).await {
                 Ok(ur) => ur,
                 Err(e) => {
@@ -133,10 +131,13 @@ async fn storage_specific_is_username_available(
 ) -> Result<bool, DbError> {
     let client = db_manager::get_client(&db_pool).await?;
 
-    let row = match client.query_one(
-        "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1) as exists",
-        &[&username],
-    ).await {
+    let row = match client
+        .query_one(
+            "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1) as exists",
+            &[&username],
+        )
+        .await
+    {
         Ok(r) => r,
         Err(e) => {
             return Err(DbError::new(e));
@@ -163,19 +164,20 @@ async fn storage_specific_add_user(
     user: User,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
     let client = db_manager::get_client(&db_pool).await?;
-    let query = "INSERT INTO public.users (public_inapp_id, username, password_hash, password_salt, bio, role_id) VALUES ($1, $2, $3, $4, $5, $6 )";
-    let _modified_rows = db_manager::execute(
-        &client,
-        query,
-        &[
-            &user.public_inapp_id,
+    let params: DbParams =  &[
+            &user.public_id,
             &user.username,
             &user.password_hash,
             &user.password_salt,
             &user.bio,
-            &user.role_id,
-        ],
-    ).await?;
+        ];
+    let (query, params) = sql_queries::add_user(params);
+    let _modified_rows = db_manager::execute(
+        &client,
+        query,
+        params,
+    )
+    .await?;
     Ok(db_manager::DbSuccess {
         message: format!("Done!"),
     })
@@ -186,11 +188,8 @@ async fn storage_specific_get_user_by_user_id(
     db_pool: &db_manager::DbPool,
 ) -> Result<Option<User>, db_manager::DbError> {
     let client = db_manager::get_client(&db_pool).await?;
-
-    let result = db_manager::query_opt(
-        &client,
-        "SELECT internal_id, public_inapp_id, username, password_hash, password_salt, bio, role_id FROM public.users WHERE public_inapp_id = $1",
-        &[&user_id],
-    ).await?;
+    let params: DbParams = &[&user_id];
+    let (query, params) = sql_queries::get_user_by_user_id(params);
+    let result = db_manager::query_opt(&client, query, params).await?;
     Ok(result.map(User::from))
 }

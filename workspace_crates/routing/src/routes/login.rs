@@ -14,7 +14,7 @@ pub async fn get(db_pool: &db_manager::DbPool, session: Session) -> HttpResponse
     if session.logged_in {
         return redirect_to("/".to_string());
     }
-    let notifs = match read_and_delete_session_notifications(db_pool, session.id.clone()).await {
+    let notifs = match read_and_delete_session_notifications(db_pool, session.public_id.clone()).await {
         Ok(ns) => ns,
         Err(_) => return internal_server_error_500(),
     };
@@ -26,7 +26,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool)
         let _ = add_session_notification(
             db_pool,
             SessionNotification {
-                session_id: session.id.clone(),
+                session_id: session.public_id.clone(),
                 message: format!("You are already logged in."),
                 notification_type: session::SessionNotificationType::Information,
             },
@@ -40,7 +40,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool)
                 db_pool,
                 SessionNotification {
                     message: format!("Could not extract username and password from body"),
-                    session_id: session.id.clone(),
+                    session_id: session.public_id.clone(),
                     notification_type: session::SessionNotificationType::Error,
                 },
             );
@@ -58,7 +58,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool)
         let _result = add_session_notification(
             db_pool,
             SessionNotification {
-                session_id: session.id.clone(),
+                session_id: session.public_id.clone(),
                 message: format!("Username and/or password incorrect"),
                 notification_type: session::SessionNotificationType::Error,
             },
@@ -67,14 +67,14 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool)
     }
     let user = user_result.unwrap();
     let mut session = Session { ..session };
-    session.user_public_inapp_id = user.public_inapp_id.clone();
+    session.user_public_id = user.public_id.clone();
     session.logged_in = true;
-    let _result = edit_session(db_pool, session.id.clone(), session.clone()).await;
+    let _result = edit_session(db_pool, session.public_id.clone(), session.clone()).await;
 
     let _result = add_session_notification(
         db_pool,
         SessionNotification {
-            session_id: session.clone().id,
+            session_id: session.clone().public_id,
             message: format!("Successfully logged in! Welcome!"),
             notification_type: session::SessionNotificationType::Success,
         },

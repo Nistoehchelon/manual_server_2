@@ -9,12 +9,12 @@ use user::{User, get_user_by_user_id};
 use http_stuff::http_response::{HttpResponse, internal_server_error_500};
 
 pub async fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
-    let notifs = match read_and_delete_session_notifications(db_pool, session.id.clone()).await {
+    let notifs = match read_and_delete_session_notifications(db_pool, session.public_id.clone()).await {
         Ok(ns) => ns,
         Err(_) => return internal_server_error_500(),
     };
     if session.logged_in {
-        let user = match get_user_by_user_id(session.user_public_inapp_id.clone(), db_pool).await {
+        let user = match get_user_by_user_id(session.user_public_id.clone(), db_pool).await {
             Ok(Some(u)) => u,
             _ => return internal_server_error_500(),
         };

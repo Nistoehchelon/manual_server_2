@@ -20,6 +20,7 @@ user = { path = "workspace_crates/user" }
 into_vec = { path = "workspace_crates/into_vec" }
 routing = { path = "workspace_crates/routing" }
 http_stuff = { path = "workspace_crates/http_stuff" }
+sql_queries = { path = "workspace_crates/sql_queries" }
 
 
 

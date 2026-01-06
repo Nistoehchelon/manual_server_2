@@ -1,6 +1,6 @@
 #[derive(Clone, Debug, Default)]
 pub struct ForumThreadMessage {
-    pub internal_id: i64,
+    pub primary_key: i64,
     pub public_id: String,
     pub user_id: String,
     pub message: String,

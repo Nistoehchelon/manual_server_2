@@ -7,8 +7,7 @@ use tokio_postgres::{NoTls, Row, ToStatement};
 pub type DbPool = Pool;
 pub type DbClient = Client;
 pub type DbRow = Row;
-pub type DbParam<'a> = &'a (dyn ToSql + Sync);
-pub type DbParams<'a> = &'a [DbParam<'a>];
+pub type DbParams<'a> = &'a [&'a (dyn ToSql + Sync)];
 
 #[derive(Debug)]
 pub struct DbError {
@@ -45,10 +44,10 @@ pub async fn get_client(pool: &DbPool) -> Result<DbClient, DbError> {
     pool.get().await.map_err(DbError::new)
 }
 
-pub async fn query<T>(
+pub async fn query<'a, T>(
     client: &DbClient,
     query: &T,
-    params: &[&(dyn ToSql + Sync)],
+    params: DbParams<'a>,
 ) -> Result<Vec<DbRow>, DbError>
 where
     T: ?Sized + ToStatement,
@@ -56,10 +55,11 @@ where
     client.query(query, params).await.map_err(DbError::new)
 }
 
-pub async fn query_one<T>(
+
+pub async fn query_one<'a, T>(
     client: &DbClient,
     statement: &T,
-    params: &[&(dyn ToSql + Sync)],
+    params: DbParams<'a>,
 ) -> Result<DbRow, DbError>
 where
     T: ?Sized + ToStatement,
@@ -71,10 +71,10 @@ where
     result
 }
 
-pub async fn execute<T>(
+pub async fn execute<'a, T>(
     client: &DbClient,
     statement: &T,
-    params: &[&(dyn ToSql + Sync)],
+    params: DbParams<'a>,
 ) -> Result<u64, DbError>
 where
     T: ?Sized + ToStatement,
@@ -86,10 +86,10 @@ where
     result
 }
 
-pub async fn query_opt<T>(
+pub async fn query_opt<'a, T>(
     client: &DbClient,
     statement: &T,
-    params: &[&(dyn ToSql + Sync)],
+    params: DbParams<'a>,
 ) -> Result<Option<Row>, DbError>
 where
     T: ?Sized + ToStatement,

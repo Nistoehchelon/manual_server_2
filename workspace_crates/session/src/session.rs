@@ -14,8 +14,8 @@ use id_generator::generate_id;
 
 #[derive(Debug, Clone)]
 pub struct Session {
-    pub id: String,
-    pub user_public_inapp_id: String,
+    pub public_id: String,
+    pub user_public_id: String,
     pub logged_in: bool,
 }
 
@@ -108,8 +108,8 @@ pub async fn create_new_session_with_id(
     db_pool: &db_manager::DbPool,
 ) -> Result<Session, DbError> {
     let new_session = Session {
-        id: new_id.clone(),
-        user_public_inapp_id: String::new(),
+        public_id: new_id.clone(),
+        user_public_id: String::new(),
         logged_in: false,
     };
 
@@ -187,10 +187,10 @@ async fn storage_specific_add_session(
     let client = db_manager::get_client(&db_pool).await?;
     db_manager::execute(
         &client,
-        "INSERT INTO public.sessions (id, user_id, logged_in) VALUES ($1, $2, $3)",
+        "INSERT INTO public.sessions (public_id, user_id, logged_in) VALUES ($1, $2, $3)",
         &[
-            &session.id,
-            &session.user_public_inapp_id,
+            &session.public_id,
+            &session.user_public_id,
             &session.logged_in,
         ],
     ).await?;
@@ -205,15 +205,15 @@ async fn storage_specific_get_session_by_session_id(
     let client = db_manager::get_client(&db_pool).await?;
     let retrieved = db_manager::query_opt(
         &client,
-        "SELECT id, user_id, logged_in FROM sessions WHERE id = $1",
+        "SELECT public_id, user_id, logged_in FROM sessions WHERE public_id = $1",
         &[&session_id],
     ).await?;
 
     match retrieved {
         Some(r) => {
             let retrieved_session = Session {
-                id: r.get("id"),
-                user_public_inapp_id: r.get("user_id"),
+                public_id: r.get("public_id"),
+                user_public_id: r.get("user_id"),
                 logged_in: r.get("logged_in"),
             };
             return Ok(Some(retrieved_session));
@@ -280,15 +280,15 @@ async fn storage_specific_edit_session(
     modified_session: Session,
 ) -> Result<DbSuccess, DbError> {
     let client = db_manager::get_client(&db_pool).await?;
-    let query = "UPDATE public.sessions SET user_id = $1, logged_in = $2, id = $3 WHERE id = $4";
+    let query = "UPDATE public.sessions SET user_id = $1, logged_in = $2, public_id = $3 WHERE public_id = $4";
 
     let rows_modified = db_manager::execute(
         &client,
         query,
         &[
-            &modified_session.user_public_inapp_id,
+            &modified_session.user_public_id,
             &modified_session.logged_in,
-            &modified_session.id,
+            &modified_session.public_id,
             &session_id,
         ],
     ).await?;

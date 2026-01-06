@@ -15,7 +15,7 @@ pub async fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse
         let _result = add_session_notification(
             db_pool,
             SessionNotification {
-                session_id: session.id.clone(),
+                session_id: session.public_id.clone(),
                 message: format!(
                     "You are already logged in, so signup is unaccessible. Log out first?"
                 ),
@@ -25,7 +25,7 @@ pub async fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse
         return redirect_to("/".to_string());
     }
 
-    let notifs = match read_and_delete_session_notifications(db_pool, session.id).await {
+    let notifs = match read_and_delete_session_notifications(db_pool, session.public_id).await {
         Ok(ns) => ns,
         Err(_) => return internal_server_error_500(),
     };
@@ -54,7 +54,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool)
                 db_pool,
                 SessionNotification {
                     message: format!("Invalid body"),
-                    session_id: session.id.clone(),
+                    session_id: session.public_id.clone(),
                     notification_type: session::SessionNotificationType::Error,
                 },
             ).await;
@@ -70,14 +70,14 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool)
         Ok(user) => {
             let mut modified_session = session.clone();
             modified_session.logged_in = true;
-            modified_session.user_public_inapp_id = user.public_inapp_id.clone();
-            let _unused = edit_session(db_pool, session.id.clone(), modified_session).await;
+            modified_session.user_public_id = user.public_id.clone();
+            let _unused = edit_session(db_pool, session.public_id.clone(), modified_session).await;
         }
         Err(e) => {
             let _unused = add_session_notification(
                 db_pool,
                 SessionNotification {
-                    session_id: session.id.clone(),
+                    session_id: session.public_id.clone(),
                     message: e.message,
                     notification_type: session::SessionNotificationType::Error,
                 },

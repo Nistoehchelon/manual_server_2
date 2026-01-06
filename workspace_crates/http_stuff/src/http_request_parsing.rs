@@ -111,7 +111,7 @@ async fn parse_headers_stream(
         count_calls_to_stream_read += 1;
         let bytes_read = match stream.read(&mut byte_buf).await {
             Ok(0) => {
-                dbg!(format!("Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} having called stream.read {count_calls_to_stream_read} times) "));
+                dbg!(format!("Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} bytes, having called stream.read {count_calls_to_stream_read} times) "));
                 return Err(HttpRequestParsingError::BadRequest);
             }
 

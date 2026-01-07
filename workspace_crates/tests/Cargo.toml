@@ -9,4 +9,4 @@ db_manager = { workspace = true}
 config_reader = { workspace = true }
 session = { workspace = true }
 id_generator = { workspace = true }
-
+sqlx = { workspace = true }

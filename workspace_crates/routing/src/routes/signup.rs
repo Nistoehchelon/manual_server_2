@@ -10,7 +10,7 @@ use session::{
 };
 use user::try_to_create_new_user;
 
-pub async fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
+pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> HttpResponse {
     if session.logged_in {
         let _result = add_session_notification(
             db_pool,
@@ -42,7 +42,7 @@ fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
     });
 }
 
-pub async fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool) -> HttpResponse {
+pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> HttpResponse {
     if session.logged_in {
         return redirect_to("/".to_string());
     }

@@ -1,4 +1,3 @@
-use db_manager::{self, DbPool};
 use http_stuff::{http_request_parsing::parse_http_request, http_response::ok_html};
 use server::token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket};
 
@@ -24,8 +23,7 @@ async fn main() -> std::io::Result<()>{
     let listener = TcpListener::bind(ip_and_port.clone()).await.expect(
         &format!("I expected to bind to address {ip_and_port}")
     );
-    let db_pool = db_manager::get_pool(database_str).expect("I expected to get a db pool :)");
-    
+    let db_pool = sqlx::PgPool::connect(&database_str).await.expect("Pool construction did not succeed");
     println!("Server listening on http://{}", ip_and_port.clone());
     
 
@@ -47,13 +45,13 @@ async fn main() -> std::io::Result<()>{
 
         let db_pool = db_pool.clone();
         tokio::spawn(async move {
-            let _ = handle(stream, db_pool, peer_ip.ip(), global_bucket, ip_buckets, per_ip_token_bucket_capacity, per_ip_token_bucket_refill_rate_per_millis).await;
+            let _ = handle(stream, &db_pool, peer_ip.ip(), global_bucket, ip_buckets, per_ip_token_bucket_capacity, per_ip_token_bucket_refill_rate_per_millis).await;
         });
     }
 
 }
 
-pub async fn handle(mut stream: TcpStream, db_pool: DbPool, peer_ip: IpAddr, global_bucket: GlobalBucket, ip_buckets: IpBuckets, per_ip_token_bucket_capacity: f64, per_ip_token_bucket_refill_rate_per_millis: f64,) -> std::io::Result<()> {
+pub async fn handle(mut stream: TcpStream, db_pool: &sqlx::PgPool, peer_ip: IpAddr, global_bucket: GlobalBucket, ip_buckets: IpBuckets, per_ip_token_bucket_capacity: f64, per_ip_token_bucket_refill_rate_per_millis: f64,) -> std::io::Result<()> {
             
             dbg!("Peer with IP ", peer_ip, "just issued a request");
             // Check global bucket

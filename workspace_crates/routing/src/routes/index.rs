@@ -8,7 +8,7 @@ use user::{User, get_user_by_user_id};
 
 use http_stuff::http_response::{HttpResponse, internal_server_error_500};
 
-pub async fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
+pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> HttpResponse {
     let notifs = match read_and_delete_session_notifications(db_pool, session.public_id.clone()).await {
         Ok(ns) => ns,
         Err(_) => return internal_server_error_500(),

@@ -1,11 +1,11 @@
-use db_manager::{DbError, DbParams};
+use db_manager::{DbError, DbSuccess};
 use error_structs::PublicError;
 
 use crate::user_structs_and_so_on::User;
 
 pub async fn get_user_by_user_id(
     user_id: String,
-    db_pool: &db_manager::DbPool,
+    db_pool: &sqlx::PgPool,
 ) -> Result<Option<User>, DbError> {
     let user_opt = storage_specific_get_user_by_user_id(user_id, db_pool).await?;
     return Ok(user_opt);
@@ -15,7 +15,7 @@ pub struct CheckingError {
     pub message: String,
 }
 pub async fn try_to_create_new_user(
-    db_pool: &db_manager::DbPool,
+    db_pool: &sqlx::PgPool,
     username: String,
     password: String,
 ) -> Result<Result<User, PublicError>, DbError> {
@@ -49,7 +49,7 @@ pub async fn try_to_create_new_user(
 
 pub async fn is_username_available(
     username: String,
-    db_pool: &db_manager::DbPool,
+    db_pool: &sqlx::PgPool,
 ) -> Result<bool, DbError> {
     let bool_whether_username_available =
         storage_specific_is_username_available(db_pool, username).await?;
@@ -58,34 +58,28 @@ pub async fn is_username_available(
 
 pub async fn get_by_username(
     username: String,
-    db_pool: &db_manager::DbPool,
+    db_pool: &sqlx::PgPool,
 ) -> Result<Option<User>, DbError> {
-    let mut client = db_manager::get_client(&db_pool).await?;
-    let transaction = match client.transaction().await {
-        Err(e) => {
+    let mut transaction = db_pool.begin().await.map_err(DbError::new)?;
+
+   let result = match sqlx::query!(r#"SELECT public_id FROM public.users WHERE username = $1"#, username)
+   .fetch_optional(&mut *transaction).await {
+        Err(e) =>  {
             return Err(DbError::new(e));
-        }
-        Ok(tx) => tx,
-    };
-    let query = "SELECT public_id FROM public.users WHERE username = $1";
-    let result = match transaction.query_opt(query, &[&username]).await {
-        Ok(res) => res,
-        Err(e) => {
-            return Err(DbError::new(e));
-        }
-    };
+        },
+        Ok(opt) => opt,
+   };
+
     match result {
         Some(row) => {
-            let id: String = row.get("public_id");
-            let params: DbParams = &[&id];
-            let (user_query, params) = sql_queries::get_user_by_user_id(params);
-            let user_row = match transaction.query_one(user_query, params).await {
+            let id: String = row.public_id;
+            let user_row = match sqlx::query_as!(User,r#"SELECT primary_key, public_id, username, password_hash, password_salt, bio FROM public.users WHERE public_id = $1"#, id).fetch_one(&mut *transaction).await {
                 Ok(ur) => ur,
                 Err(e) => {
                     return Err(DbError::new(e));
                 }
             };
-            return Ok(Some(User::from(user_row)));
+            return Ok(Some(user_row));
         }
         None => {
             return Ok(None);
@@ -96,7 +90,7 @@ pub async fn get_by_username(
 pub async fn get_by_username_and_password(
     username: String,
     password: String,
-    db_pool: &db_manager::DbPool,
+    db_pool: &sqlx::PgPool,
 ) -> Result<Option<User>, DbError> {
     let user = get_by_username(username.clone(), db_pool).await?;
     let user = match user {
@@ -127,32 +121,30 @@ fn generate_user_id() -> String {
 }
 
 async fn storage_specific_is_username_available(
-    db_pool: &db_manager::DbPool,
+    db_pool: &sqlx::PgPool,
     username: String,
 ) -> Result<bool, DbError> {
-    let client = db_manager::get_client(&db_pool).await?;
 
-    let row = match client
-        .query_one(
-            "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1) as exists",
-            &[&username],
-        )
-        .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(DbError::new(e));
-        }
-    };
+    let exists = match sqlx::query!(
+            r#"SELECT username FROM users WHERE username = $1"#,
+            username,
+        ).fetch_optional(db_pool)
+        .await {
+            Ok(opt) => {
+                opt.is_some()
+            },
+            Err(e) => {
+                return Err(DbError::new(e));
+            }
+        };
 
-    let exists: bool = row.get("exists");
 
     let is_username_available = !exists;
     Ok(is_username_available)
 }
 
 async fn storage_specific_create_new_user(
-    db_pool: &db_manager::DbPool,
+    db_pool: &sqlx::PgPool,
     new_user: User,
 ) -> Result<User, DbError> {
     storage_specific_add_user(db_pool, new_user.clone()).await?;
@@ -161,36 +153,29 @@ async fn storage_specific_create_new_user(
 }
 
 async fn storage_specific_add_user(
-    db_pool: &db_manager::DbPool,
+    db_pool: &sqlx::PgPool,
     user: User,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
-    let client = db_manager::get_client(&db_pool).await?;
-    let params: DbParams =  &[
-            &user.public_id,
-            &user.username,
-            &user.password_hash,
-            &user.password_salt,
-            &user.bio,
-        ];
-    let (query, params) = sql_queries::add_user(params);
-    let _modified_rows = db_manager::execute(
-        &client,
-        query,
-        params,
-    )
-    .await?;
-    Ok(db_manager::DbSuccess {
-        message: format!("Done!"),
-    })
+    match sqlx::query!(r#"INSERT INTO users (public_id, username, password_hash, password_salt, bio) VALUES ($1,$2,$3,$4,$5)"#, user.public_id, user.username, user.password_hash, user.password_salt, user.bio).execute(db_pool).await {
+        Ok(_) => {
+            return Ok(DbSuccess::new("User created"));
+        },
+        Err(e) => {
+            return Err(DbError::new(e));
+        }
+    }
 }
 
 async fn storage_specific_get_user_by_user_id(
     user_id: String,
-    db_pool: &db_manager::DbPool,
+    db_pool: &sqlx::PgPool,
 ) -> Result<Option<User>, db_manager::DbError> {
-    let client = db_manager::get_client(&db_pool).await?;
-    let params: DbParams = &[&user_id];
-    let (query, params) = sql_queries::get_user_by_user_id(params);
-    let result = db_manager::query_opt(&client, query, params).await?;
-    Ok(result.map(User::from))
+    match sqlx::query_as!(User, r#"SELECT primary_key, public_id, username, password_hash, password_salt, bio FROM users WHERE public_id = $1"#, user_id).fetch_optional(db_pool).await {
+        Ok(opt) => {
+            return Ok(opt);
+        },
+        Err(e)=>{
+            return Err(DbError::new(e));
+        }
+    }
 }

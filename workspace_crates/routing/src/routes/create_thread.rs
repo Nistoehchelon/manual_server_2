@@ -8,7 +8,7 @@ use http_stuff::{
 use session::{Session, SessionNotification, add_session_notification};
 use user;
 
-pub async  fn get(session: Session, query: Query, db_pool: &db_manager::DbPool) -> HttpResponse {
+pub async  fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> HttpResponse {
     let _user = user::get_user_by_user_id(session.user_public_id.clone(), db_pool).await.unwrap();
     let forum_id = query
         .get("forum_id")
@@ -61,7 +61,7 @@ fn get_html(
 }
 
 
-pub fn post(_session: Session, body_bytes: Vec<u8> , _db_pool: &db_manager::DbPool) -> HttpResponse {
+pub fn post(_session: Session, body_bytes: Vec<u8> , _db_pool: &sqlx::PgPool) -> HttpResponse {
     let params = match http_request_parsing::parse_body_into_string_post_params(body_bytes) {
         Ok(params) => params,
         Err(e) => {

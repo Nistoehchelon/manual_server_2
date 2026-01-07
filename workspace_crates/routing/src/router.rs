@@ -1,4 +1,4 @@
-use db_manager::DbPool;
+
 use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{internal_server_error_500, redirect_to},
@@ -9,7 +9,7 @@ use user::{self, get_user_by_user_id};
 use crate::routes;
 
 pub async fn route(
-    db_pool: &db_manager::DbPool,
+    db_pool: &sqlx::PgPool,
     session: Session,
     created_new_session: bool,
     request_data: HttpRequestData,
@@ -124,7 +124,7 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
     }
 }
 
-pub async fn generate_response(request_data: HttpRequestData, db_pool: &DbPool) -> Vec<u8> {
+pub async fn generate_response(request_data: HttpRequestData, db_pool: &sqlx::PgPool) -> Vec<u8> {
     if is_requesting_static_resource(request_data.path.clone()) {
         let response = generate_static_response(request_data);
         return response;

@@ -3,7 +3,7 @@ use http_stuff::http_response::{HttpResponse, internal_server_error_500, redirec
 use session::Session;
 use user;
 
-pub async fn get(session: Session, db_pool: &db_manager::DbPool) -> HttpResponse {
+pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> HttpResponse {
     if !session.logged_in {
         return redirect_to("/".to_string());
     }

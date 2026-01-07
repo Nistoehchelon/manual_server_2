@@ -26,10 +26,9 @@ sql_queries = { path = "workspace_crates/sql_queries" }
 
 
 # third-party external crates
+sqlx = { version = "0.8.6", features = ["postgres", "macros", "runtime-tokio"] }
+
 tokio = { version = "1.49.0", features = ["full"] }
-deadpool-postgres = "0.14.1"
-deadpool = "0.12.3"
-tokio-postgres = "0.7.15"
 
 askama = { version = "0.15", features = ["std", "derive"] }
 

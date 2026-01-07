@@ -10,7 +10,7 @@ use session::{
 };
 use user::get_by_username_and_password;
 
-pub async fn get(db_pool: &db_manager::DbPool, session: Session) -> HttpResponse {
+pub async fn get(db_pool: &sqlx::PgPool, session: Session) -> HttpResponse {
     if session.logged_in {
         return redirect_to("/".to_string());
     }
@@ -21,7 +21,7 @@ pub async fn get(db_pool: &db_manager::DbPool, session: Session) -> HttpResponse
     http_stuff::http_response::ok_html(get_html(notifs))
 }
 
-pub async fn post(session: Session, body: Vec<u8>, db_pool: &db_manager::DbPool) -> HttpResponse {
+pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> HttpResponse {
     if session.logged_in {
         let _ = add_session_notification(
             db_pool,

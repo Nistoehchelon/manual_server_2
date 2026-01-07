@@ -3,8 +3,8 @@ use session::{Session, edit_session};
 
 pub async fn get(db_pool: &sqlx::PgPool, mut session: Session) -> HttpResponse {
     session.logged_in = false;
-    session.user_public_id = "".to_string();
-    match edit_session(db_pool, session.clone().public_id, session.clone()).await {
+    session.user_id = "".to_string();
+    match edit_session(db_pool, session.clone().id, session.clone()).await {
         Ok(_) => {},
         Err(e) => {
             dbg!(e);

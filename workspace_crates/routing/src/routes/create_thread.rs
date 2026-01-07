@@ -9,7 +9,7 @@ use session::{Session, SessionNotification, add_session_notification};
 use user;
 
 pub async  fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> HttpResponse {
-    let _user = user::get_user_by_user_id(session.user_public_id.clone(), db_pool).await.unwrap();
+    let _user = user::get_user_by_user_id(session.user_id.clone(), db_pool).await.unwrap();
     let forum_id = query
         .get("forum_id")
         .cloned()
@@ -24,7 +24,7 @@ pub async  fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Htt
         let _ = add_session_notification(
             db_pool,
             SessionNotification {
-                session_id: session.public_id.clone(),
+                session_id: session.id.clone(),
                 message: format!("Forum not found"),
                 notification_type: session::SessionNotificationType::Error,
             },
@@ -32,7 +32,7 @@ pub async  fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Htt
         return redirect_to("/forum".to_string());
     }
     let forum = forum.unwrap();
-    let notifs = match session::read_and_delete_session_notifications(db_pool, session.public_id.clone()).await {
+    let notifs = match session::read_and_delete_session_notifications(db_pool, session.id.clone()).await {
         Ok(n) => n,
         Err(_) => return internal_server_error_500(),
     };

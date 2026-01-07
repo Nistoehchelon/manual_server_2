@@ -14,8 +14,8 @@ use id_generator::generate_id;
 
 #[derive(Debug, Clone)]
 pub struct Session {
-    pub public_id: String,
-    pub user_public_id: String,
+    pub id: String,
+    pub user_id: String,
     pub logged_in: bool,
 }
 
@@ -108,8 +108,8 @@ pub async fn create_new_session_with_id(
     db_pool: &sqlx::PgPool,
 ) -> Result<Session, DbError> {
     let new_session = Session {
-        public_id: new_id.clone(),
-        user_public_id: String::new(),
+        id: new_id.clone(),
+        user_id: String::new(),
         logged_in: false,
     };
 
@@ -185,7 +185,7 @@ async fn storage_specific_add_session(
     db_pool: &sqlx::PgPool,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
 
-    match sqlx::query!(r#"INSERT INTO public.sessions (public_id, user_id, logged_in) VALUES ($1, $2, $3)"#, session.public_id, session.user_public_id, session.logged_in).execute(db_pool).await {
+    match sqlx::query!(r#"INSERT INTO public.sessions (id, user_id, logged_in) VALUES ($1, $2, $3)"#, session.id, session.user_id, session.logged_in).execute(db_pool).await {
         Ok(_) => {
             return     Ok(db_manager::DbSuccess::new("Ok"));
         },
@@ -202,7 +202,7 @@ async fn storage_specific_get_session_by_session_id(
     session_id: String,
 ) -> Result<Option<Session>, db_manager::DbError> {
 
-    let retrieved = match sqlx::query_as!(Session,  r#"SELECT public_id, user_id as user_public_id, logged_in FROM sessions WHERE public_id = $1"#, session_id).fetch_optional(db_pool).await {
+    let retrieved = match sqlx::query_as!(Session,  r#"SELECT id, user_id as user_id, logged_in FROM sessions WHERE id = $1"#, session_id).fetch_optional(db_pool).await {
         Ok(opt) => opt,
         Err(e) => {
             return Err(DbError::new(e));
@@ -264,11 +264,11 @@ async fn storage_specific_edit_session(
     modified_session: Session,
 ) -> Result<DbSuccess, DbError> {
 
-    let rows_modified = match sqlx::query!(r#"UPDATE public.sessions SET user_id = $1, logged_in = $2, public_id = $3 WHERE public_id = $4"#,
+    let rows_modified = match sqlx::query!(r#"UPDATE public.sessions SET user_id = $1, logged_in = $2, id = $3 WHERE id = $4"#,
         
-            modified_session.user_public_id,
+            modified_session.user_id,
             modified_session.logged_in,
-            modified_session.public_id,
+            modified_session.id,
             session_id,
     ).execute(db_pool).await {
         Ok(rm) => rm.rows_affected(),

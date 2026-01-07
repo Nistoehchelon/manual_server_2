@@ -32,7 +32,7 @@ Location: {path_with_query}\r\n\
 Connection: close\r\n\
 Content-Type: text/html\r\n\r\n",
                 session::get_name_of_cookie_containing_session_id(),
-                session.public_id.clone()
+                session.id.clone()
             )
             .into_bytes();
         }
@@ -41,7 +41,7 @@ Content-Type: text/html\r\n\r\n",
                 db_pool,
                 SessionNotification {
                     notification_type: session::SessionNotificationType::Error,
-                    session_id: session.public_id.clone(),
+                    session_id: session.id.clone(),
                     message: format!(
                         "Page {path} is inaccessible at this particular nanosecond *sigh*"
                     ),
@@ -54,7 +54,7 @@ Content-Type: text/html\r\n\r\n",
         }
         if session.logged_in {
             let user_associated_with_session_actually_exists =
-                match get_user_by_user_id(session.user_public_id.clone(), db_pool).await {
+                match get_user_by_user_id(session.user_id.clone(), db_pool).await {
                     Ok(Some(_)) => true,
                     Ok(None) => false,
                     Err(_) => return internal_server_error_500(),
@@ -62,8 +62,8 @@ Content-Type: text/html\r\n\r\n",
             if !user_associated_with_session_actually_exists {
                 let mut modified_session = session.clone();
                 modified_session.logged_in = false;
-                modified_session.user_public_id = "".to_string();
-                let _unused = session::edit_session(db_pool, modified_session.public_id.clone(), modified_session).await;
+                modified_session.user_id = "".to_string();
+                let _unused = session::edit_session(db_pool, modified_session.id.clone(), modified_session).await;
                 break 'response_block redirect_to("/".to_string());
             }
         }

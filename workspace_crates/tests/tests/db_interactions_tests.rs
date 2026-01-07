@@ -6,37 +6,37 @@ async fn test_read_write() {
     let env = read_config();
     let pool = sqlx::PgPool::connect(&env.database_str).await.expect("No pool :(");
     let session = session::Session {
-        public_id: format!("32ed32"),
-        user_public_id: format!("user_id_1232"),
+        id: format!("32ed32"),
+        user_id: format!("user_id_1232"),
         logged_in: false,
-    };
+    }; 
     sqlx::query!(
-            "INSERT INTO public.sessions (public_id, user_id, logged_in) VALUES ($1, $2, $3)",
-                session.public_id,
-                session.user_public_id,
+            "INSERT INTO public.sessions (id, user_id, logged_in) VALUES ($1, $2, $3)",
+                session.id,
+                session.user_id,
                 session.logged_in).execute(&pool).await.unwrap();
     // now test for retrieving?;
 
     let retrieved = sqlx::query!(
-            "SELECT public_id, user_id, logged_in FROM public.sessions WHERE public_id = $1",
-            session.public_id
+            "SELECT id, user_id, logged_in FROM public.sessions WHERE id = $1",
+            session.id
         ).fetch_one(&pool).await
         .unwrap();
 
     let retrieved_session = session::Session {
-        public_id: retrieved.public_id,
-        user_public_id: retrieved.user_id,
+        id: retrieved.id,
+        user_id: retrieved.user_id,
         logged_in: retrieved.logged_in,
     };
 
-    assert_eq!(session.public_id, retrieved_session.public_id);
+    assert_eq!(session.id, retrieved_session.id);
     assert_eq!(
-        session.user_public_id,
-        retrieved_session.user_public_id
+        session.user_id,
+        retrieved_session.user_id
     );
     assert_eq!(session.logged_in, retrieved_session.logged_in);
 
-   sqlx::query!("DELETE FROM public.sessions WHERE public_id = $1", session.public_id).execute(&pool)
+   sqlx::query!("DELETE FROM public.sessions WHERE id = $1", session.id).execute(&pool)
         .await
         .unwrap();
 }

@@ -19,7 +19,7 @@ pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Http
             let _ = add_session_notification(
                 db_pool,
                 SessionNotification {
-                    session_id: session.public_id.clone(),
+                    session_id: session.id.clone(),
                     message: format!("Forum with id {} could not be found", forum_id),
                     notification_type: session::SessionNotificationType::Error,
                 },
@@ -29,22 +29,22 @@ pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Http
         Err(_) => return internal_server_error_500(),
     };
 
-    let _user = match get_user_by_user_id(session.user_public_id.clone(), db_pool).await {
+    let _user = match get_user_by_user_id(session.user_id.clone(), db_pool).await {
         Ok(Some(u)) => u,
         _ => return internal_server_error_500(),
     };
 
-    let forum_threads = match forum::get_forum_threads(db_pool, forum.public_id.clone()).await {
+    let forum_threads = match forum::get_forum_threads(db_pool, forum.id.clone()).await {
         Ok(ft) => ft,
         Err(_) => return internal_server_error_500(),
     };
-    let subforums = match forum::get_subforums(db_pool, forum.public_id.clone()).await {
+    let subforums = match forum::get_subforums(db_pool, forum.id.clone()).await {
         Ok(ss) => ss,
         Err(_) => return internal_server_error_500(),
     };
 
     let title = forum.name.clone();
-    let notifications = match read_and_delete_session_notifications(db_pool, session.public_id.clone()).await {
+    let notifications = match read_and_delete_session_notifications(db_pool, session.id.clone()).await {
         Ok(notifs) => notifs,
         _ => return internal_server_error_500(),
     };

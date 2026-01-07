@@ -7,12 +7,12 @@ pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> HttpResponse {
     if !session.logged_in {
         return redirect_to("/".to_string());
     }
-    let user = match user::get_user_by_user_id(session.user_public_id.clone(), db_pool).await {
+    let user = match user::get_user_by_user_id(session.user_id.clone(), db_pool).await {
         Ok(Some(u)) => u,
         _ => return internal_server_error_500(),
     };
     let notifications =
-        match session::read_and_delete_session_notifications(db_pool, session.public_id.clone()).await {
+        match session::read_and_delete_session_notifications(db_pool, session.id.clone()).await {
             Ok(n) => n,
             _ => return internal_server_error_500(),
         };

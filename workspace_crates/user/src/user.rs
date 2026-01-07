@@ -36,7 +36,7 @@ pub async fn try_to_create_new_user(
     let hash_and_salt = password_hashing::hash_password_generate_salt(password);
     let new_user = User {
         primary_key: 0,
-        public_id: generate_user_id(),
+        id: generate_user_id(),
         username,
         password_hash: hash_and_salt.hash,
         password_salt: hash_and_salt.salt,
@@ -60,9 +60,9 @@ pub async fn get_by_username(
     username: String,
     db_pool: &sqlx::PgPool,
 ) -> Result<Option<User>, DbError> {
-    let mut transaction = db_pool.begin().await.map_err(DbError::new)?;
+    let mut transaction = db_pool.begin().await.map_err(DbError::new)?; 
 
-   let result = match sqlx::query!(r#"SELECT public_id FROM public.users WHERE username = $1"#, username)
+   let result = match sqlx::query!(r#"SELECT id FROM public.users WHERE username = $1"#, username)
    .fetch_optional(&mut *transaction).await {
         Err(e) =>  {
             return Err(DbError::new(e));
@@ -72,8 +72,8 @@ pub async fn get_by_username(
 
     match result {
         Some(row) => {
-            let id: String = row.public_id;
-            let user_row = match sqlx::query_as!(User,r#"SELECT primary_key, public_id, username, password_hash, password_salt, bio FROM public.users WHERE public_id = $1"#, id).fetch_one(&mut *transaction).await {
+            let id: String = row.id;
+            let user_row = match sqlx::query_as!(User,r#"SELECT primary_key, id, username, password_hash, password_salt, bio FROM public.users WHERE id = $1"#, id).fetch_one(&mut *transaction).await {
                 Ok(ur) => ur,
                 Err(e) => {
                     return Err(DbError::new(e));
@@ -156,7 +156,7 @@ async fn storage_specific_add_user(
     db_pool: &sqlx::PgPool,
     user: User,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
-    match sqlx::query!(r#"INSERT INTO users (public_id, username, password_hash, password_salt, bio) VALUES ($1,$2,$3,$4,$5)"#, user.public_id, user.username, user.password_hash, user.password_salt, user.bio).execute(db_pool).await {
+    match sqlx::query!(r#"INSERT INTO users (id, username, password_hash, password_salt, bio) VALUES ($1,$2,$3,$4,$5)"#, user.id, user.username, user.password_hash, user.password_salt, user.bio).execute(db_pool).await {
         Ok(_) => {
             return Ok(DbSuccess::new("User created"));
         },
@@ -165,12 +165,13 @@ async fn storage_specific_add_user(
         }
     }
 }
+ 
 
 async fn storage_specific_get_user_by_user_id(
     user_id: String,
     db_pool: &sqlx::PgPool,
 ) -> Result<Option<User>, db_manager::DbError> {
-    match sqlx::query_as!(User, r#"SELECT primary_key, public_id, username, password_hash, password_salt, bio FROM users WHERE public_id = $1"#, user_id).fetch_optional(db_pool).await {
+    match sqlx::query_as!(User, r#"SELECT primary_key, id, username, password_hash, password_salt, bio FROM users WHERE id = $1"#, user_id).fetch_optional(db_pool).await {
         Ok(opt) => {
             return Ok(opt);
         },

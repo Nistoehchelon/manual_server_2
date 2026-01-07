@@ -5,7 +5,7 @@ use crate::forum_structs::{Forum, ForumThread};
 pub async fn get_forum_by_id(db_pool: &sqlx::PgPool, id: String) -> Result<Option<Forum>, DbError> {
     if id == "0" {
         return Ok(Some(Forum {
-            public_id: "0".to_string(),
+            id: "0".to_string(),
             name: "Default forum".to_string(),
             parent_id: "0".to_string(),
         }));
@@ -22,16 +22,16 @@ pub async fn get_forum_threads(db_pool: &sqlx::PgPool, forum_id: String) -> Resu
         }
     };
 
-    let result_rows = match sqlx::query!(r#"SELECT name, public_id FROM public.forum_threads WHERE forum_id = $1"#, forum_id).fetch_all(db_pool).await {
+    let result_rows = match sqlx::query!(r#"SELECT name, id FROM public.forum_threads WHERE forum_id = $1"#, forum_id).fetch_all(db_pool).await {
         Err(e) => {
             return Err(DbError::new(e));
         },
         Ok(rr) => rr,
     };
     for row in result_rows {
-        let public_id = row.public_id;
+        let id = row.id;
         let name = row.name;
-        threads.push(ForumThread { public_id, name, forum_id: "".to_string() });
+        threads.push(ForumThread { id, name, forum_id: "".to_string() });
     }
     return Ok(threads);
 }
@@ -45,16 +45,16 @@ pub async fn get_subforums(db_pool: &sqlx::PgPool,  forum_id: String) -> Result<
         }
     };
 
-    let result_rows = match sqlx::query!(r#"SELECT name, public_id FROM public.forums WHERE parent_id = $1"#, forum_id).fetch_all(db_pool).await {
+    let result_rows = match sqlx::query!(r#"SELECT name, id FROM public.forums WHERE parent_id = $1"#, forum_id).fetch_all(db_pool).await {
         Err(e) => {
             return Err(DbError::new(e));
         },
         Ok(rr) => rr,
     };
     for row in result_rows {
-        let public_id = row.public_id;
+        let id = row.id;
         let name = row.name;
-        subforums.push(Forum { public_id, name, parent_id: "".to_string() });
+        subforums.push(Forum { id, name, parent_id: "".to_string() });
     }
     return Ok(subforums);
 }
@@ -64,11 +64,11 @@ async fn storage_specific_get_forum_by_id(
     id: String,
 ) -> Result<Option<Forum>, DbError> {
 
-    let forum = match sqlx::query!(r#"SELECT public_id, name FROM public.forums WHERE public_id = $1"#, id).fetch_optional(db_pool).await {
+    let forum = match sqlx::query!(r#"SELECT id, name FROM public.forums WHERE id = $1"#, id).fetch_optional(db_pool).await {
         Ok(Some(f)) => {
-            let public_id = f.public_id;
+            let id = f.id;
             let name = f.name;
-            let f = Forum { public_id, name, parent_id: "".to_string() };
+            let f = Forum { id, name, parent_id: "".to_string() };
             Some(f)
         },
         Ok(None) => None,

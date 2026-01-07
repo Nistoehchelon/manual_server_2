@@ -29,8 +29,8 @@ pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Http
         Err(_) => return internal_server_error_500(),
     };
 
-    let _user = match get_user_by_user_id(session.user_id.clone(), db_pool).await {
-        Ok(Some(u)) => u,
+    let user = match get_user_by_user_id(session.user_id.clone(), db_pool).await {
+        Ok(opt_u) => opt_u,
         _ => return internal_server_error_500(),
     };
 
@@ -48,33 +48,42 @@ pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Http
         Ok(notifs) => notifs,
         _ => return internal_server_error_500(),
     };
+    let mut user_can_create_forum = false;
+    let mut user_can_create_thread = false;
+    if user.is_some() {
+        user_can_create_thread = true;
+        user_can_create_forum = match abac::user_can_create_forum(db_pool, user.unwrap().id.clone()).await {
+            Ok(b) => b,
+            Err(_) => {
+                return internal_server_error_500();
+            }
+        };
+    }
+
     let html = get_html(
-        title,
-        true,
-        true,
-        forum,
-        forum_threads,
-        subforums,
-        notifications,
+        GetHtmlArgs { title, user_can_create_forum, user_can_create_thread, forum, forum_threads, subforums, notifications }
     );
     http_response::ok_html(html)
 }
 
-fn get_html(
-    title: String,
-    user_can_create_child_forum: bool,
-    user_can_create_thread: bool,
-    forum: Forum,
-    forum_threads: Vec<ForumThread>,
-    subforums: Vec<Forum>,
-    notifications: Vec<SessionNotification>,
+
+struct GetHtmlArgs {
+    pub title: String,
+    pub user_can_create_forum: bool,
+    pub user_can_create_thread: bool,
+    pub forum: Forum,
+    pub forum_threads: Vec<ForumThread>,
+    pub subforums: Vec<Forum>,
+    pub notifications: Vec<SessionNotification>,
+}
+fn get_html(GetHtmlArgs { title, user_can_create_forum, user_can_create_thread, forum, forum_threads, subforums, notifications }: GetHtmlArgs
 ) -> String {
     let html = html_templating::render(html_template_structs::ForumTemplate {
         main_info: MainInfo {
             title,
             notifications: into_vec(notifications),
         },
-        user_can_create_child_forum,
+        user_can_create_forum,
         user_can_create_thread,
         forum: forum.into(),
         subforums: into_vec(subforums),

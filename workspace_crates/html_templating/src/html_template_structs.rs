@@ -78,12 +78,12 @@ pub struct DashboardTemplate {
     pub main_info: MainInfo,
     pub username: String,
 }
-
+ 
 #[derive(Template)]
 #[template(path = "forum.html")]
 pub struct ForumTemplate {
     pub main_info: MainInfo,
-    pub user_can_create_child_forum: bool,
+    pub user_can_create_forum: bool,
     pub user_can_create_thread: bool,
     pub forum: Forum,
     pub forum_threads: Vec<ForumThread>,

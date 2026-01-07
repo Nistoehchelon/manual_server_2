@@ -90,7 +90,11 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
     if session.logged_in == true {
         access_level = 1;
     }
+
     let mut allowed: Vec<&str> = vec![];
+
+    let guest_allowed = vec!["/signup", "/login", "/", "/stylesheet.css", "/favicon.ico", "/forum", "/thread"];
+
     let user_allowed = vec![
         "/logout",
         "/dashboard",
@@ -105,7 +109,7 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
 
     match access_level {
         0 => {
-            allowed = vec!["/signup", "/login", "/", "/stylesheet.css", "/favicon.ico"];
+            allowed = guest_allowed;
         }
         1 => {
             allowed = user_allowed;

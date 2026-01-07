@@ -13,3 +13,4 @@ db_manager = { workspace = true }
 into_vec = { workspace = true }
 read_on_dev_embed_on_release = { workspace = true }
 sqlx = { workspace = true }
+abac = { workspace = true }

@@ -67,7 +67,7 @@ Content-Type: text/html\r\n\r\n",
                     _ => {},
                 };
                 break 'response_block redirect_to("/".to_string());
-            }
+            } 
         }
         dbg!(format!("Entering routing for {method} {path}"));
         match (method.as_str(), path.as_str()) {

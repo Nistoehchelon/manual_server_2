@@ -65,6 +65,7 @@ pub struct IndexNotLoggedInTemplate {
 #[template(path = "signup.html")]
 pub struct SignupTemplate {
     pub main_info: MainInfo,
+    pub csrf_token: String,
 }
 
 #[derive(Template)]

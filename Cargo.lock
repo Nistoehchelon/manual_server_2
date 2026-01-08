@@ -256,6 +256,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "csrf_stuff"
+version = "0.1.0"
+
+[[package]]
 name = "db_manager"
 version = "0.1.0"
 dependencies = [
@@ -1081,6 +1085,7 @@ name = "routing"
 version = "0.1.0"
 dependencies = [
  "abac",
+ "csrf_stuff",
  "db_manager",
  "forum",
  "html_templating",

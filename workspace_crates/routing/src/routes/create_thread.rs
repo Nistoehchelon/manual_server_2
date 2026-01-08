@@ -72,7 +72,7 @@ pub fn post(_session: Session, body_bytes: Vec<u8> , _db_pool: &sqlx::PgPool) ->
     dbg!(params.clone());
     let mut resp_body = format!(r##"
         
-    "##);
+    "##); 
     for param in params.iter() {
         let k = param.0;
         let v = param.1;

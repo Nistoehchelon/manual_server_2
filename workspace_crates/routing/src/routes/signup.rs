@@ -24,21 +24,23 @@ pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> HttpResponse {
         ).await;
         return redirect_to("/".to_string());
     }
+    let csrf_token = csrf_stuff::get_token(session.id.clone(), "normal".to_string());
 
     let notifs = match read_and_delete_session_notifications(db_pool, session.id).await {
         Ok(ns) => ns,
         Err(_) => return internal_server_error_500(),
     };
     // Show username form
-    ok_html(get_signup_html(notifs))
+    ok_html(get_signup_html(notifs, csrf_token))
 }
 
-fn get_signup_html(notifications: Vec<session::SessionNotification>) -> String {
+fn get_signup_html(notifications: Vec<session::SessionNotification>, csrf_token: String,) -> String {
     return html_templating::render(html_template_structs::SignupTemplate {
         main_info: MainInfo {
             title: format!("Signup"),
             notifications: into_vec(notifications),
         },
+        csrf_token,
     });
 }
 

@@ -23,27 +23,27 @@ pub async fn get(db_pool: &sqlx::PgPool, session: Session) -> HttpResponse {
 
 pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> HttpResponse {
     if session.logged_in {
-        let _ = add_session_notification(
+        add_session_notification(
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),
                 message: format!("You are already logged in."),
                 notification_type: session::SessionNotificationType::Information,
             },
-        );
+        ).await;
         return redirect_to(String::from("/"));
     }
 
     let (username, password) = match parse_username_and_password_from_body(body) {
         Err(_) => {
-            let _ = add_session_notification(
+            add_session_notification(
                 db_pool,
                 SessionNotification {
                     message: format!("Could not extract username and password from body"),
                     session_id: session.id.clone(),
                     notification_type: session::SessionNotificationType::Error,
                 },
-            );
+            ).await;
             return redirect_to("/login".to_string());
         }
         Ok((u, p)) => (u, p),
@@ -55,7 +55,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Ht
     };
 
     if user_result.is_none() {
-        let _result = add_session_notification(
+        add_session_notification(
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),
@@ -69,9 +69,14 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Ht
     let mut session = Session { ..session };
     session.user_id = user.id.clone();
     session.logged_in = true;
-    let _result = edit_session(db_pool, session.id.clone(), session.clone()).await;
+    match edit_session(db_pool, session.id.clone(), session.clone()).await {
+        Err(_) => {
+            return internal_server_error_500();
+        },
+        _ => {}
+    };
 
-    let _result = add_session_notification(
+    add_session_notification(
         db_pool,
         SessionNotification {
             session_id: session.clone().id,

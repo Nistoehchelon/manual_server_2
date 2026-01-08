@@ -71,7 +71,13 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Ht
             let mut modified_session = session.clone();
             modified_session.logged_in = true;
             modified_session.user_id = user.id.clone();
-            let _unused = edit_session(db_pool, session.id.clone(), modified_session).await;
+            match edit_session(db_pool, session.id.clone(), modified_session).await {
+                Err(_) => {
+                    
+                    return internal_server_error_500();
+                },
+                _ => {}
+            };
         }
         Err(e) => {
             add_session_notification(

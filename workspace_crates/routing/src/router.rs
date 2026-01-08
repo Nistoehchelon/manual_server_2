@@ -60,7 +60,12 @@ Content-Type: text/html\r\n\r\n",
                 let mut modified_session = session.clone();
                 modified_session.logged_in = false;
                 modified_session.user_id = "".to_string();
-                let _unused = session::edit_session(db_pool, modified_session.id.clone(), modified_session).await;
+                match session::edit_session(db_pool, modified_session.id.clone(), modified_session).await {
+                    Err(_) => {
+                        return internal_server_error_500();
+                    }, 
+                    _ => {},
+                };
                 break 'response_block redirect_to("/".to_string());
             }
         }

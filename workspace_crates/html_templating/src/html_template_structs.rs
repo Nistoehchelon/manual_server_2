@@ -71,6 +71,7 @@ pub struct SignupTemplate {
 #[derive(Template)]
 #[template(path = "login.html")]
 pub struct LoginTemplate {
+    pub csrf_token: String,
     pub main_info: MainInfo,
 }
 #[derive(Template)]

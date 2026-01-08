@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 #[derive(Debug)]
 pub struct PublicError {
     pub message: String,
@@ -13,8 +15,9 @@ pub struct InternalAppError {
     pub message: String,
 }
 impl InternalAppError {
-    pub fn new(s: String) -> Self {
-        eprintln!("{s}");
-        Self { message: s }
+    pub fn new<E: Debug>(s: E) -> Self {
+        let message = format!("{s:?}");
+        println!("InternalAppError: {}", message.clone());
+        Self { message }
     }
 }

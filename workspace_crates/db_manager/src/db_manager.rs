@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 
 
+pub type DbPool = sqlx::pool::Pool<sqlx::Postgres>;
+
 #[derive(Debug)]
 pub struct DbError {
     pub message: String,

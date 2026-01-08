@@ -46,7 +46,7 @@ pub struct ParsedHeaderStream {
     pub leftover: Vec<u8>,
 }
 
-pub fn parse_body_into_string_post_params(body: Vec<u8>) -> Result<HashMap<String, String>, String> {
+pub fn parse_body_into_string_form_input_params(body: Vec<u8>) -> Result<HashMap<String, String>, String> {
     let body = match String::from_utf8(body) {
         Ok(b) => b,
         Err(e) => return Err(format!("Could not parse body into valid utf8, {e:#?}")),

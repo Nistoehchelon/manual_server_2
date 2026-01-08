@@ -62,7 +62,7 @@ fn get_html(
 
 
 pub fn post(_session: Session, body_bytes: Vec<u8> , _db_pool: &sqlx::PgPool) -> HttpResponse {
-    let params = match http_request_parsing::parse_body_into_string_post_params(body_bytes) {
+    let params = match http_request_parsing::parse_body_into_string_form_input_params(body_bytes) {
         Ok(params) => params,
         Err(e) => {
             dbg!(e);

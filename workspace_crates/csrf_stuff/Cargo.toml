@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+db_manager = { workspace = true }
+id_generator = { workspace = true }
+error_structs = { workspace = true }

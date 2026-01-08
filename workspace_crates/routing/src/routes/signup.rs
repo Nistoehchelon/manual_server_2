@@ -1,6 +1,6 @@
 use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::{
-    http_request_parsing::parse_username_and_password_from_body,
+    http_request_parsing::{self},
     http_response::{HttpResponse, internal_server_error_500, ok_html, redirect_to},
 };
 use into_vec::into_vec;
@@ -24,7 +24,13 @@ pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> HttpResponse {
         ).await;
         return redirect_to("/".to_string());
     }
-    let csrf_token = csrf_stuff::get_token(session.id.clone(), "normal".to_string());
+    let csrf_token = match csrf_stuff::get_or_create_token(db_pool, session.id.clone(), csrf_stuff::DesignatedPurpose::Normal).await {
+        Ok(t) => t,
+        Err(e) => {
+            dbg!("Could not create token", e);
+            return internal_server_error_500();
+        }
+    };
 
     let notifs = match read_and_delete_session_notifications(db_pool, session.id).await {
         Ok(ns) => ns,
@@ -49,8 +55,8 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Ht
         return redirect_to("/".to_string());
     }
 
-    let (username, password) = match parse_username_and_password_from_body(body.clone()) {
-        Ok((u, p)) => (u, p),
+    let body_params = match http_request_parsing::parse_body_into_string_form_input_params(body) {
+        Ok(bp)=> bp,
         Err(_) => {
            add_session_notification(
                 db_pool,
@@ -63,6 +69,43 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Ht
             return redirect_to("/".to_string());
         }
     };
+let username = body_params.get("username").cloned();
+let password = body_params.get("password").cloned();
+let csrf_token = body_params.get("csrf_token").cloned();
+let (username, password, csrf_token) = match (username, password, csrf_token) {
+    (Some(u), Some(p), Some(c)) => {
+        (u, p, c)
+    },
+    _ => {
+      add_session_notification(
+                db_pool,
+                SessionNotification {
+                    message: format!("Invalid body"),
+                    session_id: session.id.clone(),
+                    notification_type: session::SessionNotificationType::Error,
+                },
+            ).await;
+            return redirect_to("/signup".to_string());  
+    }
+};
+
+let csrf_token_valid = match csrf_stuff::validate_token(db_pool, session.id.clone(), csrf_token.clone()).await {
+    Ok(b) => b,
+    Err(_) => {
+        return internal_server_error_500();
+    }
+};
+if !csrf_token_valid {
+        add_session_notification(
+                db_pool,
+                SessionNotification {
+                    message: format!("csrf_token validation error"),
+                    session_id: session.id.clone(),
+                    notification_type: session::SessionNotificationType::Error,
+                },
+            ).await;
+            return redirect_to("/signup".to_string());  
+}
 
     let user_creation_result = match try_to_create_new_user(db_pool, username, password).await {
         Ok(ucr) => ucr,

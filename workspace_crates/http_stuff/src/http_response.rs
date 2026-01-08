@@ -3,6 +3,7 @@ use std::fmt::Debug;
 
 pub type HttpResponse = Vec<u8>;
 
+#[derive(Debug)]
 pub struct HttpResponseError {
     pub message: String
 }
@@ -138,9 +139,10 @@ pub fn response(
     }
 
     http_response_string.push_str("Connection: close\r\n");
+
+
     let content_type_string = content_type.to_string();
     http_response_string.push_str(&format!("Content-Type: {content_type_string}"));
-
     match charset {
         Some(cs) => {
         http_response_string.push_str("; charset=");
@@ -148,14 +150,15 @@ pub fn response(
         },
         None => {}
     }
+    http_response_string.push_str("\r\n");
+
+
     match location {
         Some(l) => {
             http_response_string.push_str(&format!("Location: {l}\r\n", ));
         },
         None => {}
     }
-
-    http_response_string.push_str("\r\n");
 
     let mut body_bytes_length = 0;
     let body_bytes: Vec<u8> = match body {
@@ -176,9 +179,9 @@ pub fn response(
         return Err(HttpResponseError::new(err));
     } 
 
-    let mut http_response_bytes: Vec<u8> = vec![];
+    let mut http_response_bytes = http_response_string.clone().into_bytes();
+    
     if body_bytes_length > 0 {
-        http_response_bytes = http_response_string.clone().into_bytes();
         http_response_bytes.extend_from_slice(&body_bytes);
     }
 

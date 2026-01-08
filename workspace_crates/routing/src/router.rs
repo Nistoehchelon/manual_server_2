@@ -157,7 +157,8 @@ pub async fn generate_response(request_data: HttpRequestData, db_pool: &sqlx::Pg
     let response_data = route(db_pool, session, created_new_session, request_data).await;
 let response_bytes = match response(response_data) {
         Ok(rb) => rb,
-        Err(_) => {
+        Err(e) => {
+            dbg!(&e);
             standalone_response(StatusCode::InternalServerError500, format!(":("))
         }
      };

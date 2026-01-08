@@ -63,12 +63,12 @@ pub async fn edit_session(db_pool: &sqlx::PgPool, session_id: String, modified_s
 pub async fn add_session_notification(
     db_pool: &sqlx::PgPool,
     session_notification: SessionNotification,
-) -> Result<bool, DbError> {
+) {
     match storage_specific_add_session_notification(db_pool, session_notification).await {
-        Ok(_) => Ok(true),
-        _ => Err(DbError {
-            message: format!(":("),
-        }),
+        Ok(_) => {},
+        Err(e) => {
+            dbg!("Could not create session notification", e);
+        },
     }
 }
 

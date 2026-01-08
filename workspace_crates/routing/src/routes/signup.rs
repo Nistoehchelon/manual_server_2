@@ -12,7 +12,7 @@ use user::try_to_create_new_user;
 
 pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> HttpResponse {
     if session.logged_in {
-        let _result = add_session_notification(
+        add_session_notification(
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),
@@ -50,7 +50,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Ht
     let (username, password) = match parse_username_and_password_from_body(body.clone()) {
         Ok((u, p)) => (u, p),
         Err(_) => {
-            let _result = add_session_notification(
+           add_session_notification(
                 db_pool,
                 SessionNotification {
                     message: format!("Invalid body"),
@@ -74,7 +74,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Ht
             let _unused = edit_session(db_pool, session.id.clone(), modified_session).await;
         }
         Err(e) => {
-            let _unused = add_session_notification(
+            add_session_notification(
                 db_pool,
                 SessionNotification {
                     session_id: session.id.clone(),

@@ -6,6 +6,7 @@
 {% if user_can_create_forum %}
  <a href="/create_forum?parent_id={{ forum.id }}">Create a forum</a><br>
  {% endif %}
+ 
  {% if user_can_create_thread %}
  <a href="/create_thread?forum_id={{ forum.id }}">Create a thread</a><br>
  {% endif %}

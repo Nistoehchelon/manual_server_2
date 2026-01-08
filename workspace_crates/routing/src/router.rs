@@ -37,7 +37,7 @@ Content-Type: text/html\r\n\r\n",
             .into_bytes();
         }
         if !check_if_user_can_access_path(session.clone(), path.clone()) {
-            match add_session_notification(
+            add_session_notification(
                 db_pool,
                 SessionNotification {
                     notification_type: session::SessionNotificationType::Error,
@@ -46,10 +46,7 @@ Content-Type: text/html\r\n\r\n",
                         "Page {path} is inaccessible at this particular nanosecond *sigh*"
                     ),
                 },
-            ).await {
-                Ok(_) => {}
-                Err(_) => return internal_server_error_500(),
-            }
+            ).await;
             break 'response_block redirect_to("/".to_string());
         }
         if session.logged_in {

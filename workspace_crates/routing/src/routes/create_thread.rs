@@ -21,14 +21,14 @@ pub async  fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Htt
     };
 
     if !forum.is_some() {
-        let _ = add_session_notification(
+       add_session_notification(
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),
                 message: format!("Forum not found"),
                 notification_type: session::SessionNotificationType::Error,
             },
-        );
+        ).await;
         return redirect_to("/forum".to_string());
     }
     let forum = forum.unwrap();

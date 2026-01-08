@@ -16,14 +16,14 @@ pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Http
     let forum = match get_forum_by_id(db_pool, forum_id.clone()).await {
         Ok(Some(f)) => f,
         Ok(None) => {
-            let _ = add_session_notification(
+            add_session_notification(
                 db_pool,
                 SessionNotification {
                     session_id: session.id.clone(),
                     message: format!("Forum with id {} could not be found", forum_id),
                     notification_type: session::SessionNotificationType::Error,
                 },
-            );
+            ).await;
             return redirect_to("/forum".to_string());
         }
         Err(_) => return internal_server_error_500(),

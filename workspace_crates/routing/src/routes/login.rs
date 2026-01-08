@@ -2,7 +2,7 @@ use csrf_stuff::validate_token;
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::{self},
-    http_response::{HttpResponse, internal_server_error_500, redirect_to},
+    http_response::{ ResponseData, internal_server_error_500, redirect_to},
 };
 use into_vec::into_vec;
 use session::{
@@ -11,7 +11,7 @@ use session::{
 };
 use user::get_by_username_and_password;
 
-pub async fn get(db_pool: &sqlx::PgPool, session: Session) -> HttpResponse {
+pub async fn get(db_pool: &sqlx::PgPool, session: Session) -> ResponseData {
     if session.logged_in {
         return redirect_to("/".to_string());
     }
@@ -28,7 +28,7 @@ pub async fn get(db_pool: &sqlx::PgPool, session: Session) -> HttpResponse {
     http_stuff::http_response::ok_html(get_html(notifs, csrf_token))
 }
 
-pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> HttpResponse {
+pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> ResponseData {
     if session.logged_in {
         add_session_notification(
             db_pool,

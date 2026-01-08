@@ -1,13 +1,10 @@
+use http_stuff::http_response::*;
 use read_on_dev_embed_on_release::read_to_string_on_dev_embed_on_release;
 
-pub fn get() -> String {
-    let stylesheet = get_stylesheet_css_content();
-    format!(
-        "HTTP/1.1 200 OK\
-Connection: close\r\n\
-Content-Type: text/css; charset=utf-8\r\n\r\n\
-{stylesheet}"
-    )
+pub fn get() -> ResponseData {
+    let stylesheet_bytes = get_stylesheet_css_content().into_bytes();
+
+    ResponseData { status_code: StatusCode::Ok200, content_type: ContentType::TextCss, charset: Some(Charset::Utf8), body: Some(stylesheet_bytes), set_cookie_headers: None, location: None }
 }
 
 fn get_stylesheet_css_content() -> String {

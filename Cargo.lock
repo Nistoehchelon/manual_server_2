@@ -1093,6 +1093,7 @@ dependencies = [
  "abac",
  "csrf_stuff",
  "db_manager",
+ "error_structs",
  "forum",
  "html_templating",
  "http_stuff",

@@ -3,12 +3,12 @@ use forum::{Forum, get_forum_by_id};
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::{self, Query},
-    http_response::{HttpResponse, ResponseData, internal_server_error_500, ok_html, redirect_to, response},
+    http_response::{Charset, ResponseData, internal_server_error_500, ok_html, redirect_to},
 };
 use session::{Session, SessionNotification, add_session_notification};
 use user;
 
-pub async  fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> HttpResponse {
+pub async  fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> ResponseData {
     let _user = user::get_user_by_user_id(session.user_id.clone(), db_pool).await.unwrap();
     let forum_id = query
         .get("forum_id")
@@ -61,7 +61,7 @@ fn get_html(
 }
 
 
-pub fn post(_session: Session, body_bytes: Vec<u8> , _db_pool: &sqlx::PgPool) -> HttpResponse {
+pub fn post(_session: Session, body_bytes: Vec<u8> , _db_pool: &sqlx::PgPool) -> ResponseData {
     let params = match http_request_parsing::parse_body_into_string_form_input_params(body_bytes) {
         Ok(params) => params,
         Err(e) => {
@@ -80,5 +80,12 @@ pub fn post(_session: Session, body_bytes: Vec<u8> , _db_pool: &sqlx::PgPool) ->
     }
 
     
-    return response(ResponseData { code: http_stuff::http_response::ResponseCode::Ok200, content_type: "text/html".to_string(), body: Some(format!("{resp_body}").into_bytes()), set_cookie_headers: None });
+    return ResponseData { 
+        status_code: http_stuff::http_response::StatusCode::Ok200, 
+        content_type: http_stuff::http_response::ContentType::TextHtml, 
+        body: Some(format!("{resp_body}").into_bytes()),
+        charset: Some(Charset::Utf8), 
+        set_cookie_headers: None,
+        location: None, 
+    };
 }

@@ -1,7 +1,7 @@
 use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::{
     http_request_parsing::{self},
-    http_response::{HttpResponse, internal_server_error_500, ok_html, redirect_to},
+    http_response::{ResponseData, internal_server_error_500, ok_html, redirect_to},
 };
 use into_vec::into_vec;
 use session::{
@@ -10,7 +10,7 @@ use session::{
 };
 use user::try_to_create_new_user;
 
-pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> HttpResponse {
+pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> ResponseData {
     if session.logged_in {
         add_session_notification(
             db_pool,
@@ -50,7 +50,7 @@ fn get_signup_html(notifications: Vec<session::SessionNotification>, csrf_token:
     });
 }
 
-pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> HttpResponse {
+pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> ResponseData {
     if session.logged_in {
         return redirect_to("/".to_string());
     }

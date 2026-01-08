@@ -15,3 +15,4 @@ read_on_dev_embed_on_release = { workspace = true }
 sqlx = { workspace = true }
 abac = { workspace = true }
 csrf_stuff = { workspace = true }
+error_structs = { workspace = true }

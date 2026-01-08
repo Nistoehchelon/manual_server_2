@@ -2,7 +2,7 @@ use forum::{Forum, ForumThread, get_forum_by_id};
 use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::{
     http_request_parsing::Query,
-    http_response::{self, HttpResponse, internal_server_error_500, redirect_to},
+    http_response::{self, ResponseData, internal_server_error_500, redirect_to},
 };
 use into_vec::into_vec;
 use session::{
@@ -10,7 +10,7 @@ use session::{
 };
 use user::get_user_by_user_id;
 
-pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> HttpResponse {
+pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> ResponseData {
     let forum_id = query.clone().iter().find(|(k, _)| k.as_str() == "id").map(|(_, v)| v.clone()).unwrap_or_else(|| "0".to_string());
 
     let forum = match get_forum_by_id(db_pool, forum_id.clone()).await {

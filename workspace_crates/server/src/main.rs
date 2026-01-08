@@ -1,4 +1,4 @@
-use http_stuff::{http_request_parsing::parse_http_request, http_response::ok_html};
+use http_stuff::{http_request_parsing::parse_http_request, http_response::{StatusCode, standalone_response}};
 use server::token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket};
 
 
@@ -9,7 +9,7 @@ use std::{collections::HashMap, net::IpAddr, sync::{Arc}};
 use tokio::{sync::Mutex, io::AsyncWriteExt, net::{TcpListener, TcpStream}};
 
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 8)]
+#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()>{
     let env = config_reader::read_config();
     let config_reader::Config {
@@ -57,7 +57,7 @@ pub async fn handle(mut stream: TcpStream, db_pool: &sqlx::PgPool, peer_ip: IpAd
             // Check global bucket
             if !global_bucket.lock().await.try_to_consume_one_token() {
                 dbg!("Server bucket empty");
-            let _ = stream.write_all(&ok_html("Hello".to_string())).await;
+            let _ = stream.write_all(&standalone_response(StatusCode::ServiceUnavailabe503, format!("503 Service Unavailable 🫨"))).await;
             return Ok(());
             }
             // ip bucket
@@ -68,7 +68,8 @@ pub async fn handle(mut stream: TcpStream, db_pool: &sqlx::PgPool, peer_ip: IpAd
             
             if !ip_bucket.try_to_consume_one_token() {
                 dbg!(&format!("Bucket for IP {peer_ip} is empty"));
-                let _ = stream.write_all(&ok_html("Hello".to_string())).await;
+                let error_response = standalone_response(StatusCode::TooManyRequests429,format!("429 Too Many Requests 😈"));
+                let _ = stream.write_all(&error_response).await;
                 let _ = stream.shutdown().await;
                 return Ok(());
             }
@@ -80,7 +81,8 @@ pub async fn handle(mut stream: TcpStream, db_pool: &sqlx::PgPool, peer_ip: IpAd
                     match e {
                         _ => {
                             eprintln!("main error, could not parse request {:?}", e);
-                            let _ = stream.write_all(&ok_html(format!("Hmm"))).await;
+                            let err_response = standalone_response(StatusCode::BadRequest400, format!("400 Bad Request 🙀"));
+                            let _ = stream.write_all(&err_response).await;
                         }
                     };
                     let _ = stream.shutdown().await;

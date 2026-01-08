@@ -1,7 +1,7 @@
-use http_stuff::http_response::{HttpResponse, internal_server_error_500, redirect_to};
+use http_stuff::http_response::{ ResponseData, internal_server_error_500, redirect_to};
 use session::{Session, edit_session};
 
-pub async fn get(db_pool: &sqlx::PgPool, mut session: Session) -> HttpResponse {
+pub async fn get(db_pool: &sqlx::PgPool, mut session: Session) -> ResponseData {
     session.logged_in = false;
     session.user_id = "".to_string();
     match edit_session(db_pool, session.clone().id, session.clone()).await {

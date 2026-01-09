@@ -7,6 +7,7 @@ name = "abac"
 version = "0.1.0"
 dependencies = [
  "db_manager",
+ "session_structs_and_stuff",
  "sqlx",
 ]
 
@@ -1228,8 +1229,13 @@ version = "0.1.0"
 dependencies = [
  "db_manager",
  "id_generator",
+ "session_structs_and_stuff",
  "sqlx",
 ]
+
+[[package]]
+name = "session_structs_and_stuff"
+version = "0.1.0"
 
 [[package]]
 name = "sha1"

@@ -1,9 +1,20 @@
 use db_manager::{DbError, DbSuccess};
-use error_structs::PublicError;
+use error_structs::{ExpectedToGetButFailedError, PublicError};
 
 use crate::user_structs_and_so_on::User;
 
-pub async fn get_user_by_user_id(
+
+pub async fn get_user_by_id(db_pool: &sqlx::PgPool, user_id: String) -> Result<Result<User, error_structs::ExpectedToGetButFailedError>, DbError> {
+    match find_user_by_user_id(user_id, db_pool).await? {
+        Some(u) => {
+            return Ok(Ok(u));
+        },
+        None => {
+            return Ok(Err(ExpectedToGetButFailedError::new("Expected user to exist")));
+        },
+    }
+}
+pub async fn find_user_by_user_id(
     user_id: String,
     db_pool: &sqlx::PgPool,
 ) -> Result<Option<User>, DbError> {

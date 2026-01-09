@@ -1,21 +1,22 @@
+use error_structs::InternalAppError;
 use forum::{Forum, ForumThread, get_forum_by_id};
 use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::{
     http_request_parsing::Query,
-    http_response::{self, ResponseData, internal_server_error_500, redirect_to},
+    http_response::{self, ResponseData, redirect_to},
 };
 use into_vec::into_vec;
 use session::{
     Session, SessionNotification, add_session_notification, read_and_delete_session_notifications,
 };
-use user::get_user_by_user_id;
+use user::find_user_by_user_id;
 
-pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> ResponseData {
+pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Result<ResponseData, error_structs::InternalAppError> {
     let forum_id = query.clone().iter().find(|(k, _)| k.as_str() == "id").map(|(_, v)| v.clone()).unwrap_or_else(|| "0".to_string());
 
-    let forum = match get_forum_by_id(db_pool, forum_id.clone()).await {
-        Ok(Some(f)) => f,
-        Ok(None) => {
+    let forum = match get_forum_by_id(db_pool, forum_id.clone()).await.map_err(InternalAppError::new)? {
+        Some(f) => f,
+        None => {
             add_session_notification(
                 db_pool,
                 SessionNotification {
@@ -24,46 +25,28 @@ pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Resp
                     notification_type: session::SessionNotificationType::Error,
                 },
             ).await;
-            return redirect_to("/forum".to_string());
+            return Ok(redirect_to("/forum".to_string()));
         }
-        Err(_) => return internal_server_error_500(),
     };
 
-    let user = match get_user_by_user_id(session.user_id.clone(), db_pool).await {
-        Ok(opt_u) => opt_u,
-        _ => return internal_server_error_500(),
-    };
+    let user_opt = find_user_by_user_id(session.user_id.clone(), db_pool).await.map_err(InternalAppError::new)?;
 
-    let forum_threads = match forum::get_forum_threads(db_pool, forum.id.clone()).await {
-        Ok(ft) => ft,
-        Err(_) => return internal_server_error_500(),
-    };
-    let subforums = match forum::get_subforums(db_pool, forum.id.clone()).await {
-        Ok(ss) => ss,
-        Err(_) => return internal_server_error_500(),
-    };
+    let forum_threads = forum::get_forum_threads(db_pool, forum.id.clone()).await.map_err(InternalAppError::new)?;
+    let subforums =  forum::get_subforums(db_pool, forum.id.clone()).await.map_err(InternalAppError::new)?;
 
     let title = forum.name.clone();
-    let notifications = match read_and_delete_session_notifications(db_pool, session.id.clone()).await {
-        Ok(notifs) => notifs,
-        _ => return internal_server_error_500(),
-    };
+    let notifications = read_and_delete_session_notifications(db_pool, session.id.clone()).await.map_err(InternalAppError::new)?;
     let mut user_can_create_forum = false;
     let mut user_can_create_thread = false;
-    if user.is_some() {
+    if user_opt.is_some() {
         user_can_create_thread = true;
-        user_can_create_forum = match abac::user_can_create_forum(db_pool, user.unwrap().id.clone()).await {
-            Ok(b) => b,
-            Err(_) => {
-                return internal_server_error_500();
-            }
-        };
+        user_can_create_forum = abac::can_create_forum(db_pool, session.clone()).await.map_err(InternalAppError::new)?;
     }
 
     let html = get_html(
         GetHtmlArgs { title, user_can_create_forum, user_can_create_thread, forum, forum_threads, subforums, notifications }
     );
-    http_response::ok_html(html)
+    Ok(http_response::ok_html(html))
 }
 
 

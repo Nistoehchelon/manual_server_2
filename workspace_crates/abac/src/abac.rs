@@ -1,14 +1,7 @@
-use db_manager::DbError;
+use db_manager::{DbError, sql_queries};
+use session_structs_and_stuff::Session;
 
-pub async fn user_can_create_forum(db_pool: &sqlx::PgPool, user_id: String) -> Result<bool, DbError> {
-    let answer = match sqlx::query!("SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
-"user", user_id, "create_forum").fetch_optional(db_pool).await {
-    Ok(opt) => opt, 
-    Err(e) => {
-        return Err(DbError::new(e));
-    }
-};
-
-return Ok(answer.is_some());
-    
+pub async fn can_create_forum(db_pool: &sqlx::PgPool, session: Session) -> Result<bool, DbError> {
+    let user_id = session.user_id;
+   sql_queries::user_has_create_forum_permission(db_pool, user_id).await 
 }

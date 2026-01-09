@@ -42,3 +42,12 @@ pub async fn validate_token(executor: &DbPool, session_id: String, token_id: Str
         }
     }
 }
+
+
+pub async fn user_has_create_forum_permission(pool: &DbPool, user_id: String,) -> Result<bool, DbError> {
+   match sqlx::query!("SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
+"user", user_id, "create_forum").fetch_optional(pool).await.map_err(DbError::new)? {
+    Some(_) => Ok(true),
+    None => Ok(false),
+}
+}

@@ -4,7 +4,7 @@ use http_stuff::{
     http_response::{ResponseData, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to, response, standalone_response},
 };
 use session::{self, Session, SessionNotification, add_session_notification};
-use user::{self, get_user_by_user_id};
+use user::{self, find_user_by_user_id};
 
 use crate::routes;
 
@@ -40,7 +40,7 @@ pub async fn route(
         }
         if session.logged_in {
             let user_associated_with_session_actually_exists =
-                match get_user_by_user_id(session.user_id.clone(), db_pool).await {
+                match find_user_by_user_id(session.user_id.clone(), db_pool).await {
                     Ok(Some(_)) => true,
                     Ok(None) => false,
                     Err(_) => return internal_server_error_500(),
@@ -60,17 +60,17 @@ pub async fn route(
         }
         dbg!(format!("Entering routing for {method} {path}"));
         match (method.as_str(), path.as_str()) {
-            ("GET", "/signup") => routes::signup::get(session.clone(), db_pool).await,
-            ("POST", "/signup") => routes::signup::post(session.clone(), body_bytes, db_pool).await,
-            ("GET", "/dashboard") => routes::dashboard::get(session.clone(), db_pool).await,
-            ("GET", "/logout") => routes::logout::get(db_pool, session.clone()).await,
-            ("GET", "/login") => routes::login::get(db_pool, session.clone()).await,
-            ("POST", "/login") => routes::login::post(session.clone(), body_bytes, db_pool).await,
-            ("GET", "/forum") => routes::forum::get(session.clone(), query, db_pool).await,
-            ("GET", "/create_thread") => routes::create_thread::get(session.clone(), query, db_pool).await,
-            ("POST", "/create_thread") => routes::create_thread::post(session.clone(), body_bytes, db_pool),
-
-            _ => routes::index::get(session.clone(), db_pool).await,
+            ("GET", "/signup") => routes::signup::get(session.clone(), db_pool).await.unwrap_or(internal_server_error_500()),
+            ("POST", "/signup") => routes::signup::post(session.clone(), body_bytes, db_pool).await.unwrap_or(internal_server_error_500()),
+            ("GET", "/dashboard") => routes::dashboard::get(session.clone(), db_pool).await.unwrap_or(internal_server_error_500()),
+            ("GET", "/logout") => routes::logout::get(db_pool, session.clone()).await.unwrap_or(internal_server_error_500()),
+            ("GET", "/login") => routes::login::get(db_pool, session.clone()).await.unwrap_or(internal_server_error_500()),
+            ("POST", "/login") => routes::login::post(session.clone(), body_bytes, db_pool).await.unwrap_or(internal_server_error_500()),
+            ("GET", "/forum") => routes::forum::get(session.clone(), query, db_pool).await.unwrap_or(internal_server_error_500()),
+            ("GET", "/create_thread") => routes::create_thread::get(session.clone(), query, db_pool).await.unwrap_or(internal_server_error_500()),
+            ("POST", "/create_thread") => routes::create_thread::post(session.clone(), body_bytes, db_pool).await.unwrap_or(internal_server_error_500()),
+            
+            _ => routes::index::get(session.clone(), db_pool).await.unwrap_or(internal_server_error_500()),
         }
     };
 
@@ -176,8 +176,8 @@ pub fn generate_static_response(request_data: HttpRequestData) -> ResponseData {
     dbg!(format!("Entering static routing for {method} {path}"));
     let response = match (method.as_str(), path.as_str()) {
         // static resources
-        ("GET", "/stylesheet.css") => routes::stylesheet::get(),
-        ("GET", "/favicon.ico") => routes::favicon::get(),
+        ("GET", "/stylesheet.css") => routes::stylesheet::get().unwrap_or(internal_server_error_500()),
+        ("GET", "/favicon.ico") => routes::favicon::get().unwrap_or(internal_server_error_500()),
         _ => unreachable!("Should not happen"),
     };
 

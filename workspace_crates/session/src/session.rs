@@ -1,58 +1,11 @@
 use std::collections::HashMap;
-use std::{
-    fmt::{self, Display},
-    str::FromStr,
-};
+use db_manager::{DbError, DbSuccess};
+use id_generator::generate_id;
+use session_structs_and_stuff::*;
 
-pub const NAME_OF_COOKIE_CONTAINING_SESSION_ID: &str = "session_id";
 
 pub fn get_name_of_cookie_containing_session_id() -> String {
     NAME_OF_COOKIE_CONTAINING_SESSION_ID.to_string()
-}
-use db_manager::{DbError, DbSuccess};
-use id_generator::generate_id;
-
-#[derive(Debug, Clone)]
-pub struct Session {
-    pub id: String,
-    pub user_id: String,
-    pub logged_in: bool,
-}
-
-#[derive(Clone, Debug)]
-pub enum SessionNotificationType {
-    Information,
-    Error,
-    Success,
-}
-impl Display for SessionNotificationType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            SessionNotificationType::Information => "information",
-            SessionNotificationType::Error => "error",
-            SessionNotificationType::Success => "success",
-        };
-        write!(f, "{}", s)
-    }
-}
-impl FromStr for SessionNotificationType {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "error" => Ok(Self::Error),
-            "information" => Ok(Self::Information),
-            "success" => Ok(Self::Success),
-            val => Err(format!("Invalid type {val}")),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct SessionNotification {
-    pub session_id: String,
-    pub message: String,
-    pub notification_type: SessionNotificationType,
 }
 
 pub async fn edit_session(db_pool: &sqlx::PgPool, session_id: String, modified_session: Session) -> Result<DbSuccess, DbError> {

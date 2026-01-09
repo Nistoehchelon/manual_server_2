@@ -16,6 +16,7 @@ password_hashing = { path = "workspace_crates/password_hashing" }
 read_on_dev_embed_on_release = { path = "workspace_crates/read_on_dev_embed_on_release" }
 server = { path = "workspace_crates/server" }
 session = { path = "workspace_crates/session" }
+session_structs_and_stuff = { path = "workspace_crates/session_structs_and_stuff" }
 user = { path = "workspace_crates/user" }
 into_vec = { path = "workspace_crates/into_vec" }
 routing = { path = "workspace_crates/routing" }

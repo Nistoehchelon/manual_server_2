@@ -1,16 +1,11 @@
-use http_stuff::http_response::{ ResponseData, internal_server_error_500, redirect_to};
+use error_structs::InternalAppError;
+use http_stuff::http_response::{ ResponseData, redirect_to};
 use session::{Session, edit_session};
 
-pub async fn get(db_pool: &sqlx::PgPool, mut session: Session) -> ResponseData {
+pub async fn get(db_pool: &sqlx::PgPool, mut session: Session) -> Result<ResponseData, error_structs::InternalAppError> {
     session.logged_in = false;
     session.user_id = "".to_string();
-    match edit_session(db_pool, session.clone().id, session.clone()).await {
-        Ok(_) => {},
-        Err(e) => {
-            dbg!(e);
-            return internal_server_error_500();
-        }
-    };
+    edit_session(db_pool, session.clone().id, session.clone()).await.map_err(InternalAppError::new)?;
 
-    redirect_to("/".to_string())
+    Ok(redirect_to("/".to_string()))
 }

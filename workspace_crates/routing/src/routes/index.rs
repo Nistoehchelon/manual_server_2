@@ -5,14 +5,14 @@ use html_templating::html_template_structs::{
 
 use into_vec::into_vec;
 use session::{Session, SessionNotification, read_and_delete_session_notifications};
-use user::{User, get_user_by_id};
+use user::{User, get_user_by_user_id};
 
 use http_stuff::http_response::{ ResponseData};
 
 pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> Result<ResponseData, error_structs::InternalAppError> {
     let notifs = read_and_delete_session_notifications(db_pool, session.id.clone()).await.map_err(InternalAppError::new)?;
     if session.logged_in {
-        let user = get_user_by_id(db_pool, session.user_id.clone()).await.map_err(InternalAppError::new)?.map_err(InternalAppError::new)?;
+        let user = get_user_by_user_id(db_pool, session.user_id.clone()).await.map_err(InternalAppError::new)?.map_err(InternalAppError::new)?;
 
         return Ok(http_stuff::http_response::ok_html(get_html(session.clone(), notifs, user)));
     }

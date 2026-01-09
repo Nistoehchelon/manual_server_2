@@ -22,7 +22,7 @@ pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> Result<ResponseDat
                 ),
                 notification_type: session::SessionNotificationType::Error,
             },
-        ).await;
+        ).await.map_err(InternalAppError::new)?;
         return Ok(redirect_to("/".to_string()));
     }
     let csrf_token = csrf_stuff::get_or_create_token(db_pool, session.id.clone(), csrf_stuff::DesignatedPurpose::Normal).await.map_err(InternalAppError::new)?;
@@ -57,7 +57,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Re
                     session_id: session.id.clone(),
                     notification_type: session::SessionNotificationType::Error,
                 },
-            ).await;
+            ).await.map_err(InternalAppError::new)?;
             return Ok(redirect_to("/".to_string()));
         }
     };
@@ -76,7 +76,7 @@ let (username, password, csrf_token) = match (username, password, csrf_token) {
                     session_id: session.id.clone(),
                     notification_type: session::SessionNotificationType::Error,
                 },
-            ).await;
+            ).await.map_err(InternalAppError::new)?;
             return Ok(redirect_to("/signup".to_string()));  
     }
 };
@@ -90,7 +90,7 @@ if !csrf_token_valid {
                     session_id: session.id.clone(),
                     notification_type: session::SessionNotificationType::Error,
                 },
-            ).await;
+            ).await.map_err(InternalAppError::new)?;
             return Ok(redirect_to("/signup".to_string()));  
 }
 
@@ -110,7 +110,7 @@ if !csrf_token_valid {
                     message: e.message,
                     notification_type: session::SessionNotificationType::Error,
                 },
-            ).await;
+            ).await.map_err(InternalAppError::new)?;
             return Ok(redirect_to("/signup".to_string()));
         }
     }

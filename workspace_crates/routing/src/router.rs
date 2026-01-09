@@ -1,10 +1,11 @@
 
+use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{ResponseData, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to, response, standalone_response},
 };
 use session::{self, Session, SessionNotification, add_session_notification};
-use user::{self, find_user_by_user_id};
+use user::{self, get_user_by_user_id};
 
 use crate::routes;
 
@@ -13,7 +14,7 @@ pub async fn route(
     session: Session,
     created_new_session: bool,
     request_data: HttpRequestData,
-) -> ResponseData {
+) -> Result<ResponseData, InternalAppError> {
     let HttpRequestData {
         path_and_query: _path_and_query,
         path,
@@ -35,26 +36,17 @@ pub async fn route(
                         "Page {path} is inaccessible at this particular nanosecond *sigh*"
                     ),
                 },
-            ).await;
+            ).await.map_err(InternalAppError::new)?;
             break 'response_block redirect_to("/".to_string());
         }
         if session.logged_in {
             let user_associated_with_session_actually_exists =
-                match find_user_by_user_id(session.user_id.clone(), db_pool).await {
-                    Ok(Some(_)) => true,
-                    Ok(None) => false,
-                    Err(_) => return internal_server_error_500(),
-                };
+                 get_user_by_user_id(db_pool, session.user_id.clone(), ).await.map_err(InternalAppError::new)?.is_ok();
             if !user_associated_with_session_actually_exists {
                 let mut modified_session = session.clone();
                 modified_session.logged_in = false;
                 modified_session.user_id = "".to_string();
-                match session::edit_session(db_pool, modified_session.id.clone(), modified_session).await {
-                    Err(_) => {
-                        return internal_server_error_500();
-                    }, 
-                    _ => {},
-                };
+                session::edit_session(db_pool, modified_session.id.clone(), modified_session).await.map_err(InternalAppError::new)?;
                 break 'response_block redirect_to("/".to_string());
             } 
         }
@@ -89,7 +81,7 @@ pub async fn route(
         }
      }
      
-    return response_data;
+    return Ok(response_data);
 }
 
 fn check_if_user_can_access_path(session: Session, path: String) -> bool {
@@ -154,7 +146,7 @@ pub async fn generate_response(request_data: HttpRequestData, db_pool: &sqlx::Pg
             Err(_) => return standalone_response(StatusCode::InternalServerError500, format!("internal_server_error_500")),
         };
     // Route handling
-    let response_data = route(db_pool, session, created_new_session, request_data).await;
+    let response_data = route(db_pool, session, created_new_session, request_data).await.unwrap_or(internal_server_error_500());
 let response_bytes = match response(response_data) {
         Ok(rb) => rb,
         Err(e) => {

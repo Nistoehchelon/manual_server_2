@@ -10,7 +10,7 @@ use session::{
     Session, SessionNotification, add_session_notification, edit_session,
     read_and_delete_session_notifications,
 };
-use user::get_by_username_and_password;
+use user::find_by_username_and_password;
 
 pub async fn get(db_pool: &sqlx::PgPool, session: Session) -> Result<ResponseData, error_structs::InternalAppError> {
     if session.logged_in {
@@ -31,7 +31,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Re
                 notification_type: session::SessionNotificationType::Information,
             },
         )
-        .await;
+        .await.map_err(InternalAppError::new)?;
         return Ok(redirect_to(String::from("/")));
     }
 
@@ -46,7 +46,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Re
                         notification_type: session::SessionNotificationType::Error,
                     },
                 )
-                .await;
+                .await.map_err(InternalAppError::new)?;
                 return Ok(redirect_to("/login".to_string()));
             }
             Ok(params) => {
@@ -66,7 +66,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Re
                                 notification_type: session::SessionNotificationType::Error,
                             },
                         )
-                        .await;
+                        .await.map_err(InternalAppError::new)?;
                         return Ok(redirect_to("/login".to_string()));
                     }
                 }
@@ -75,10 +75,10 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Re
 
     let csrf_token_valid = validate_token(db_pool, session.id.clone(), csrf_token).await.map_err(InternalAppError::new)?;
     if !csrf_token_valid {
-        add_session_notification(db_pool, SessionNotification { session_id: session.id.clone(), message: format!("Could not verify CSRF token"), notification_type: session::SessionNotificationType::Error }).await;
+        add_session_notification(db_pool, SessionNotification { session_id: session.id.clone(), message: format!("Could not verify CSRF token"), notification_type: session::SessionNotificationType::Error }).await.map_err(InternalAppError::new)?;
         return Ok(redirect_to(format!("/login")));
     }
-    let user_result =  get_by_username_and_password(username, password, db_pool).await.map_err(InternalAppError::new)?;
+    let user_result =  find_by_username_and_password(username, password, db_pool).await.map_err(InternalAppError::new)?;
 
     if user_result.is_none() {
         add_session_notification(
@@ -89,7 +89,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Re
                 notification_type: session::SessionNotificationType::Error,
             },
         )
-        .await;
+        .await.map_err(InternalAppError::new)?;
         return Ok(redirect_to("/login".to_string()));
     }
     let user = user_result.unwrap();
@@ -106,7 +106,7 @@ pub async fn post(session: Session, body: Vec<u8>, db_pool: &sqlx::PgPool) -> Re
             notification_type: session::SessionNotificationType::Success,
         },
     )
-    .await;
+    .await.map_err(InternalAppError::new)?;
     Ok(redirect_to("/".to_string()))
 }
 

@@ -24,7 +24,7 @@ pub async fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Resu
                     message: format!("Forum with id {} could not be found", forum_id),
                     notification_type: session::SessionNotificationType::Error,
                 },
-            ).await;
+            ).await.map_err(InternalAppError::new)?;
             return Ok(redirect_to("/forum".to_string()));
         }
     };

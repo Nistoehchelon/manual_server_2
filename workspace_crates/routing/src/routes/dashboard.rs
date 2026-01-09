@@ -8,7 +8,7 @@ pub async fn get(session: Session, db_pool: &sqlx::PgPool) -> Result<ResponseDat
     if !session.logged_in {
         return Ok(redirect_to("/".to_string()));
     }
-    let user = user::get_user_by_id(db_pool, session.user_id.clone()).await.map_err(InternalAppError::new)?.map_err(InternalAppError::new)?;
+    let user = user::get_user_by_user_id(db_pool, session.user_id.clone()).await.map_err(InternalAppError::new)?.map_err(InternalAppError::new)?;
     let notifications =
         session::read_and_delete_session_notifications(db_pool, session.id.clone()).await.map_err(InternalAppError::new)?;
 

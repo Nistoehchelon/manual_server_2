@@ -13,7 +13,7 @@ pub async  fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Res
     if !session.logged_in {
         return Ok(redirect_to("/".to_string()))
     }
-    let _user = user::get_user_by_id(db_pool, session.user_id.clone()).await.map_err(InternalAppError::new)?.map_err(InternalAppError::new)?;
+    let _user = user::get_user_by_user_id(db_pool, session.user_id.clone()).await.map_err(InternalAppError::new)?.map_err(InternalAppError::new)?;
     let forum_id = query
         .get("forum_id")
         .cloned()
@@ -29,7 +29,7 @@ pub async  fn get(session: Session, query: Query, db_pool: &sqlx::PgPool) -> Res
                 message: format!("Forum not found"),
                 notification_type: session::SessionNotificationType::Error,
             },
-        ).await;
+        ).await.map_err(InternalAppError::new)?;
         return Ok(redirect_to("/forum".to_string()));
     }
     let forum = forum.unwrap();

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use db_manager::{DbError, DbSuccess};
 use id_generator::generate_id;
-use session_structs_and_stuff::*;
+use session_structs_and_so_on::*;
 
 
 pub fn get_name_of_cookie_containing_session_id() -> String {

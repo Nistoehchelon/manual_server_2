@@ -1,5 +1,5 @@
 use db_manager::{DbError, sql_queries};
-use session_structs_and_stuff::Session;
+use session_structs_and_so_on::Session;
 
 pub async fn can_create_forum(db_pool: &sqlx::PgPool, session: Session) -> Result<bool, DbError> {
     let user_id = session.user_id;

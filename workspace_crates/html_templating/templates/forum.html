@@ -22,6 +22,9 @@
 
     {% else %} 
     
+    {% for thread in forum_threads %}
+      <a href = "/forum_thread?id={{ thread.id }}">[Thread] {{ thread.name }}</a>
+    {% endfor %}
  {% endif %}
 
 {% endblock %}

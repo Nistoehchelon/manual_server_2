@@ -59,6 +59,27 @@ pub async fn get_subforums(db_pool: &sqlx::PgPool,  forum_id: String) -> Result<
     return Ok(subforums);
 }
 
+
+pub async fn create_thread(db_pool: &sqlx::PgPool, name: String, content: String, user_id: String, forum_id: String) -> Result<String, DbError> {
+    return storage_specific_create_thread(db_pool, name, content, user_id, forum_id,).await;
+    todo!();
+}
+
+async fn storage_specific_create_thread(db_pool: &sqlx::PgPool, name: String, content: String, user_id: String, forum_id: String) ->Result<String, DbError> {
+    let mut tx = db_pool.begin().await.map_err(DbError::new)?;
+
+    let thread_id_result = sqlx::query!("INSERT INTO forum_threads (id, name, forum_id) VALUES (gen_random_uuid(), $1, $2) RETURNING id", name, forum_id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
+
+    let message_id_result = sqlx::query!("INSERT INTO forum_thread_messages (id, thread_id, user_id) VALUES (gen_random_uuid(), $1, $2) RETURNING ID", thread_id_result.id.clone(), user_id.clone()).fetch_one(&mut *tx).await.map_err(DbError::new)?;
+
+
+    let message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), content, message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
+
+    tx.commit().await.map_err(DbError::new)?;
+    return Ok(thread_id_result.id.clone());    
+}
+
+
 async fn storage_specific_get_forum_by_id(
     db_pool: &sqlx::PgPool,
     id: String,

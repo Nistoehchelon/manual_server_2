@@ -97,4 +97,5 @@ pub struct ForumTemplate {
 pub struct CreateThreadTemplate {
     pub main_info: MainInfo,
     pub forum: Forum,
+    pub csrf_token: String,
 }

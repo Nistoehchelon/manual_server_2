@@ -38,19 +38,29 @@ pub async fn session_with_specified_id_exists(
     session_id: String,
     db_pool: &sqlx::PgPool,
 ) -> Result<bool, DbError> {
-    let result = get_session_by_session_id(session_id.clone(), db_pool).await?;
+    let result = find_session_by_session_id(session_id.clone(), db_pool).await?;
     if result.is_some() {
         return Ok(true);
     }
     return Ok(false);
 }
 
-pub async fn get_session_by_session_id(
+pub async fn find_session_by_session_id(
     session_id: String,
     db_pool: &sqlx::PgPool,
 ) -> Result<Option<Session>, DbError> {
     let sess = storage_specific_get_session_by_session_id(db_pool, session_id).await?;
     return Ok(sess);
+}
+pub async fn get_session_by_session_id(
+    session_id: String,
+    db_pool: &sqlx::PgPool,
+) -> Result<Result<Session, error_structs::ExpectedToGetButFailed>, DbError> {
+    let sess_opt = find_session_by_session_id(session_id, db_pool).await?;
+    if let Some(sess) = sess_opt {
+        return Ok(Ok(sess));
+    }
+    return Ok(Err(error_structs::ExpectedToGetButFailed::new("")));
 }
 
 pub fn generate_session_id() -> String {
@@ -114,7 +124,7 @@ pub async fn get_existing_or_make_new_session(
             }
         };
         if session_exists {
-            match get_session_by_session_id(session_id.clone(), db_pool).await {
+            match find_session_by_session_id(session_id.clone(), db_pool).await {
                 Ok(Some(sess)) => sess,
                 _ => {
                     return Err(format!(

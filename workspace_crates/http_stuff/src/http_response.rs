@@ -203,6 +203,17 @@ pub fn internal_server_error_500() -> ResponseData {
     };
     return resp;
 }
+pub fn bad_request_400() -> ResponseData {
+    let resp = ResponseData {
+        status_code: StatusCode::BadRequest400,
+        content_type: ContentType::TextHtml,
+        charset: Some(Charset::Utf8),
+        body: None,
+        set_cookie_headers: None,
+        location: None,
+    };
+    return resp;
+}
 
 
 /// I mainly use this at main.rs when if an error occurs where is nothing else to be done and the 

@@ -7,5 +7,7 @@
     Thread content:<br> <textarea name="content"></textarea><br>
     <button type="submit">Submit</button><br>
     <input type="hidden" name="forum_id" value="{{ forum.id }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
 </form>
 {% endblock %}

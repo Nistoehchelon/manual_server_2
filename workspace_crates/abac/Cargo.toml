@@ -7,3 +7,6 @@ edition = "2024"
 sqlx = { workspace = true }
 db_manager = { workspace = true }
 session_structs_and_so_on = { workspace = true }
+error_structs = { workspace = true }
+session = { workspace = true }
+user = { workspace = true }

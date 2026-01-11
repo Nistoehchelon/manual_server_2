@@ -11,19 +11,21 @@
  <a href="/create_thread?forum_id={{ forum.id }}">Create a thread</a><br>
  {% endif %}
 
+<span class = "center">Forums</span><br>  
  {% if subforums.len() == 0 %}
     This forum has no subforums.
     {% else %} 
     
  {% endif %}
  <br>
+ <span class = "center">Threads</span><br>  
  {% if forum_threads.len() == 0 %}
     This forum has no threads{% if subforums.len() == 0 %}, either{% endif %}.
 
     {% else %} 
-    
+          
     {% for thread in forum_threads %}
-      <a href = "/forum_thread?id={{ thread.id }}">[Thread] {{ thread.name }}</a>
+      <a href = "/forum_thread?id={{ thread.id }}">[Thread] {{ thread.name }}</a><br>
     {% endfor %}
  {% endif %}
 

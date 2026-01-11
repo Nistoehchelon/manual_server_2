@@ -1,0 +1,17 @@
+{% extends "template_base.html" %}
+
+{% block content %}
+{% include "includes/notifications.html" %}
+
+{% if thread_messages.len() == 0 %}
+  This thread has no messages
+{% else %}
+  {% for message in thread_messages %}
+    <a href = "/user?id={{ message.user.id }}">{{ message.user.username }}</a>
+  [ <a href = "/forum_thread_message_versions?message_id={{ message.id }}">version history</a> ]{% if message.versions_len > 1 %}
+    ({{ message.versions_len }})
+  {% endif %}
+ <br>  
+    {{ message.content }}
+  {% endfor %}
+{% endif %}

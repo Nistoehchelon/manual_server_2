@@ -2,6 +2,7 @@ pub mod create_thread;
 pub mod dashboard;
 pub mod favicon;
 pub mod forum;
+pub mod forum_thread;
 pub mod index;
 pub mod login;
 pub mod logout;

@@ -94,9 +94,9 @@ pub async fn post(session: Session, body_bytes: Vec<u8> , db_pool: &sqlx::PgPool
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),
-                message: format!("Creation of thread with id {thread_id} successful"),
+                message: format!("Creation of thread with id {thread_id} successful."),
                 notification_type: session::SessionNotificationType::Success,
             },
         ).await.map_err(InternalAppError::new)?;
-        return Ok(redirect_to(format!("/forum?id={}",forum_id.clone())));
+        return Ok(redirect_to(format!("/forum_thread?id={}",thread_id.clone())));
 }

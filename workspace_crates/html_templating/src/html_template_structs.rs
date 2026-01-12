@@ -50,6 +50,8 @@ pub struct ForumThread {
     pub csrf_token: String,
     pub thread_id: String,
     pub thread_name: String,
+    pub thread_page: u64,
+    pub forum_id: String,
 
 }
 

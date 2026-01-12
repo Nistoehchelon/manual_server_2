@@ -98,10 +98,9 @@ pub async fn get_modifications_count(db_pool: &sqlx::PgPool, msg_id: String) -> 
 }
 pub async fn get_thread_message_ids(db_pool: &sqlx::PgPool, thread_id: String, thread_page: u64, limit: u64) -> Result<Vec<String>, SomeSortOfError> {
 
-    
     let limit = i64::try_from(limit).map_err(SomeSortOfError::new)?;
     let thread_page = i64::try_from(thread_page).map_err(SomeSortOfError::new)?;
-    let offset = thread_page * limit;
+    let offset = (thread_page - 1) * limit;
     let result = sqlx::query!("SELECT id FROM forum_thread_messages WHERE thread_id = $1 LIMIT $2 OFFSET $3", thread_id, limit,offset).fetch_all(db_pool).await.map_err(SomeSortOfError::new)?;
     let mut vec_string: Vec<String> = vec![];
     for r in result {

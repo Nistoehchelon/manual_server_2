@@ -94,7 +94,7 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
 
     let mut allowed: Vec<&str> = vec![];
 
-    let guest_allowed = vec!["/signup", "/login", "/", "/stylesheet.css", "/favicon.ico", "/forum", "/thread"];
+    let guest_allowed = vec!["/signup", "/login", "/", "/stylesheet.css", "/favicon.ico", "/forum", "/forum_thread"];
 
     let user_allowed = vec![
         "/logout",
@@ -104,6 +104,7 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
         "/stylesheet.css",
         "/favicon.ico",
         "/create_thread",
+        "/forum_thread",
     ];
     let mut admin_allowed: Vec<&str> = user_allowed.clone();
     admin_allowed.extend(vec!["/create_forum"]);

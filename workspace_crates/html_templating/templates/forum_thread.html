@@ -3,13 +3,15 @@
 
 
 {% block title %}
-Thread {{ thread_name }}
+Forum Thread "{{ thread_name }}""
 {% endblock %}
 
 {% block content %}
 {% include "includes/notifications.html" %}
 
-Thread {{ thread_name }}<br>
+<a href="/forum?id={{ forum_id }}">Back to forum</a><br>
+<span class = "center bold">Thread "{{ thread_name }}"</span><br>
+Viewing page {{ thread_page }}<br>
 
 {% if thread_messages.len() == 0 %}
   This thread has no messages
@@ -21,6 +23,7 @@ Thread {{ thread_name }}<br>
   {% endif %}
  <br>  
     {{ message.content }}
+    <br>
   {% endfor %}
 {% endif %}
 

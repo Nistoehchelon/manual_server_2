@@ -6,6 +6,7 @@ use user::find_user_by_user_id;
 use html_templating;
 use html_templating::html_template_structs;
 use http_stuff::http_response::bad_request_400;
+use http_stuff::http_response::ok_html;
 
 
 pub async fn get(session: Session, query: Query, db_pool: &db_manager::DbPool, ) -> Result<ResponseData, error_structs::InternalAppError>
@@ -22,7 +23,13 @@ pub async fn get(session: Session, query: Query, db_pool: &db_manager::DbPool, )
 	};
 	let thread_page = query.get("page");
 	let thread_page = match thread_page {
-		Some(p) => p.parse::<u64>().map_err(InternalAppError::new)?,
+		Some(p) =>  { 
+			let mut temp = p.parse::<u64>().map_err(InternalAppError::new)?;
+			if temp == 0 {
+				temp = 1
+			}
+			temp
+		},
 		None => 1,
 	};
 
@@ -83,18 +90,21 @@ pub async fn get(session: Session, query: Query, db_pool: &db_manager::DbPool, )
 
     let csrf_token =  csrf_stuff::get_or_create_token(&db_pool, session.id.clone(), csrf_stuff::DesignatedPurpose::Normal).await.map_err(InternalAppError::new)?;
 
-	html_templating::render(html_template_structs::ForumThread {
+	let html = html_templating::render(html_template_structs::ForumThread {
         main_info: html_template_structs::MainInfo {
             title: format!(""),
             notifications: vec![],
         },
 		thread_messages,
         thread_name: thread.name,
-		thread_id,
+		thread_id: thread.id,
+		thread_page,
+		forum_id: thread.forum_id,
         csrf_token,
+
     });
 
-	todo!();
+	    Ok(ok_html(html))
 }
 
 pub async fn post(session: Session, body_bytes: Vec<u8> , db_pool: &sqlx::PgPool) -> Result<ResponseData, error_structs::InternalAppError> {
@@ -122,6 +132,8 @@ let body_params = http_request_parsing::parse_body_into_string_form_input_params
         return Ok(bad_request_400());
     }
 
-	forum::add_message(&db_pool, thread_id, session.user_id, message).await.map_err(InternalAppError::new)?;
-	Ok(redirect_to("/forum_thread".to_string()))
+	forum::add_message(&db_pool, message, session.user_id, thread_id.clone(), ).await.map_err(InternalAppError::new)?;
+	Ok(redirect_to(
+		format!("/forum_thread?id={}", thread_id)
+))
 }

@@ -28,7 +28,7 @@ csrf_stuff = { path = "workspace_crates/csrf_stuff" }
 
 
 # third-party external crates
-sqlx = { version = "0.8.6", features = ["postgres", "macros", "runtime-tokio"] }
+sqlx = { version = "0.8.6", features = ["postgres", "macros", "runtime-tokio", "time"] }
 
 tokio = { version = "1.49.0", features = ["full"] }
 

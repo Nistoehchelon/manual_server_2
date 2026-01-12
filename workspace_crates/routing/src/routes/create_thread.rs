@@ -1,12 +1,11 @@
 
 use abac::CanCreateThreadInput;
-use csrf_stuff::validate_token;
 use error_structs::InternalAppError;
 use forum::{Forum, get_forum_by_id};
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::{self, Query},
-    http_response::{Charset, ResponseData, bad_request_400, internal_server_error_500, ok_html, redirect_to},
+    http_response::{ResponseData, bad_request_400, ok_html, redirect_to},
 };
 use forum;
 use session::{Session, SessionNotification, add_session_notification};
@@ -73,9 +72,7 @@ pub async fn post(session: Session, body_bytes: Vec<u8> , db_pool: &sqlx::PgPool
     }
     let params = http_request_parsing::parse_body_into_string_form_input_params(body_bytes).map_err(InternalAppError::new)?;
     dbg!(params.clone());
-    let mut resp_body = format!(r##"
-        
-    "##); 
+
     let name = params.get("name").cloned();
     let content = params.get("content").cloned();
     let forum_id = params.get("forum_id").cloned();
@@ -85,7 +82,7 @@ pub async fn post(session: Session, body_bytes: Vec<u8> , db_pool: &sqlx::PgPool
         (Some(n), Some(c), Some(fi), Some(ct)) => (n, c, fi, ct),
         _ => return Ok(bad_request_400()),
     };
-    let is_csrf_token_valid = validate_token(db_pool, session.id.clone(), csrf_token.clone()).await.map_err(InternalAppError::new)?;
+    let is_csrf_token_valid = csrf_stuff::validate_token(db_pool, session.id.clone(), csrf_token.clone()).await.map_err(InternalAppError::new)?;
     if !is_csrf_token_valid {
         return Ok(bad_request_400());
     }
@@ -102,20 +99,4 @@ pub async fn post(session: Session, body_bytes: Vec<u8> , db_pool: &sqlx::PgPool
             },
         ).await.map_err(InternalAppError::new)?;
         return Ok(redirect_to(format!("/forum?id={}",forum_id.clone())));
-
-    for param in params.iter() {
-        let k = param.0;
-        let v = param.1;
-        resp_body = format!("{resp_body} ||| {k} .... {v}");
-    }
-
-    
-    return Ok(ResponseData { 
-        status_code: http_stuff::http_response::StatusCode::Ok200, 
-        content_type: http_stuff::http_response::ContentType::TextHtml, 
-        body: Some(format!("{resp_body}").into_bytes()),
-        charset: Some(Charset::Utf8), 
-        set_cookie_headers: None,
-        location: None, 
-    });
 }

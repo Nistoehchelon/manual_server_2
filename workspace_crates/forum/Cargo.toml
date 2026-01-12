@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 db_manager = { workspace = true }
 sqlx = { workspace = true }
+error_structs = { workspace = true }

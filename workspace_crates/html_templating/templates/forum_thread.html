@@ -1,17 +1,34 @@
 {% extends "template_base.html" %}
 
+
+
+{% block title %}
+Thread {{ thread_name }}
+{% endblock %}
+
 {% block content %}
 {% include "includes/notifications.html" %}
+
+Thread {{ thread_name }}<br>
 
 {% if thread_messages.len() == 0 %}
   This thread has no messages
 {% else %}
   {% for message in thread_messages %}
-    <a href = "/user?id={{ message.user.id }}">{{ message.user.username }}</a>
-  [ <a href = "/forum_thread_message_versions?message_id={{ message.id }}">version history</a> ]{% if message.versions_len > 1 %}
-    ({{ message.versions_len }})
+    <a href = "/user?id={{ message.user_id }}">{{ message.user_username }}</a>
+  [ <a href = "/forum_thread_message_versions?message_id={{ message.id }}">version history</a> ]{% if message.modifications_count > 1 %}
+    ({{ message.modifications_count }})
   {% endif %}
  <br>  
     {{ message.content }}
   {% endfor %}
 {% endif %}
+
+<form method="post" action="/forum_thread">
+<textarea name="message"></textarea><br>
+<button>Send</button>
+<input type="hidden" name ="thread_id" value="{{ thread_id }}">
+<input type="hidden" name ="csrf_token" value="{{ csrf_token }}">
+</form>
+
+{% endblock %}

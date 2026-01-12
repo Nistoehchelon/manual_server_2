@@ -1,6 +1,127 @@
-use error_structs;
-use http_stuff::http_response::ResponseData;
+use http_stuff::http_request_parsing;
+use error_structs::{self, InternalAppError};
+use http_stuff::{http_request_parsing::Query, http_response::{ResponseData, redirect_to}};
+use session::{Session, add_session_notification};
+use user::find_user_by_user_id;
+use html_templating;
+use html_templating::html_template_structs;
+use http_stuff::http_response::bad_request_400;
 
-pub async fn get() -> Result<ResponseData, error_structs::InternalAppError> {
+
+pub async fn get(session: Session, query: Query, db_pool: &db_manager::DbPool, ) -> Result<ResponseData, error_structs::InternalAppError>
+ {
+	let thread_id = query.get(
+		"id"
+	).cloned();
+	let thread_id = match thread_id {
+		Some(id) => id,
+		None => {
+			add_session_notification(&db_pool, session::SessionNotification { session_id: session.id.clone(), message: format!("Could not find id in query string"), notification_type: session::SessionNotificationType::Error }).await.map_err(InternalAppError::new)?;
+			return Ok(redirect_to(format!("/forum")));
+		},
+	};
+	let thread_page = query.get("page");
+	let thread_page = match thread_page {
+		Some(p) => p.parse::<u64>().map_err(InternalAppError::new)?,
+		None => 1,
+	};
+
+	let thread = match forum::find_thread(&db_pool, thread_id.clone()).await.map_err(InternalAppError::new)? {
+		Some(t) => t,
+		None => {
+			add_session_notification(&db_pool, session::SessionNotification { session_id: session.id.clone(), message: format!("Could not find thread with specified id"), notification_type: session::SessionNotificationType::Error }).await.map_err(InternalAppError::new)?;
+			return Ok(redirect_to(format!("/forum")));
+		}
+	};
+
+	let _user_opt = find_user_by_user_id(session.user_id.clone(), &db_pool).await.map_err(InternalAppError::new)?;
+
+	let limit_per_page = 15;
+	let thread_message_ids = forum::get_thread_message_ids(&db_pool, thread_id.clone(), thread_page.clone(), limit_per_page.clone()).await.map_err(InternalAppError::new)?;
+
+
+	let mut  thread_messages: Vec<html_templating::html_template_structs::ForumThreadMessageCombinedData> = Vec::with_capacity(usize::try_from(limit_per_page).map_err(InternalAppError::new)?);
+	for msg_id in thread_message_ids {
+
+		let latest_message_version = forum::get_latest_message_version(&db_pool, msg_id.clone()).await.map_err(InternalAppError::new)?;
+		let content = latest_message_version.content;
+		
+		let initial_message_version = forum::get_initial_message_version(&db_pool, msg_id.clone()).await.map_err(InternalAppError::new)?;
+		let user_id = initial_message_version.user_id;
+		let username = user::get_user_by_user_id(&db_pool, user_id.clone()).await.map_err(InternalAppError::new)?.map_err(InternalAppError::new)?.username;
+
+		 // TODO: convert to string 
+		let created_at = String::from("todo created_at");
+
+		let modifications_count = forum::get_modifications_count(&db_pool, msg_id.clone()).await.map_err(InternalAppError::new)?;
+
+
+
+
+		let tm = html_templating::html_template_structs::ForumThreadMessageCombinedData {
+    id: msg_id,
+    content,
+    created_at,
+    user_id,
+    user_username: username,
+	modifications_count,
+};
+	thread_messages.push(tm);
+	}
+
+
+
+	//  let html = html_templating::render(html_template_structs::ForumThread {
+    //     main_info: html_template_structs::MainInfo {
+    //         title: format!("View"),
+    //         notifications: into_vec::into_vec(notifications),
+    //     },
+    //     forum: forum.into(),
+    //     csrf_token,
+    // });
+
+
+    let csrf_token =  csrf_stuff::get_or_create_token(&db_pool, session.id.clone(), csrf_stuff::DesignatedPurpose::Normal).await.map_err(InternalAppError::new)?;
+
+	html_templating::render(html_template_structs::ForumThread {
+        main_info: html_template_structs::MainInfo {
+            title: format!(""),
+            notifications: vec![],
+        },
+		thread_messages,
+        thread_name: thread.name,
+		thread_id,
+        csrf_token,
+    });
+
 	todo!();
+}
+
+pub async fn post(session: Session, body_bytes: Vec<u8> , db_pool: &sqlx::PgPool) -> Result<ResponseData, error_structs::InternalAppError> {
+let body_params = http_request_parsing::parse_body_into_string_form_input_params(body_bytes).map_err(InternalAppError::new)?;
+
+   let message = body_params.get("message").cloned();
+    let thread_id = body_params.get("thread_id").cloned();
+    let csrf_token = body_params.get("csrf_token").cloned();
+
+    let (message, thread_id, csrf_token) = match (message, thread_id, csrf_token) {
+        (Some(m), Some(ti), Some(ct)) => (m, ti, ct),
+        _ => return Ok(bad_request_400()),
+    };
+
+	 match forum::find_thread(&db_pool, thread_id.clone()).await.map_err(InternalAppError::new)? {
+		Some(_) => {},
+		None => {
+			add_session_notification(&db_pool, session::SessionNotification { session_id: session.id.clone(), message: format!("Could not find thread with specified id"), notification_type: session::SessionNotificationType::Error }).await.map_err(InternalAppError::new)?;
+			return Ok(redirect_to(format!("/forum")));
+		}
+	}
+
+	let is_csrf_token_valid = csrf_stuff::validate_token(db_pool, session.id.clone(), csrf_token.clone()).await.map_err(InternalAppError::new)?;
+    if !is_csrf_token_valid {
+        return Ok(bad_request_400());
+    }
+
+	forum::add_message(&db_pool, thread_id, session.user_id, message).await.map_err(InternalAppError::new)?;
+	Ok(redirect_to("/forum_thread".to_string()))
 }

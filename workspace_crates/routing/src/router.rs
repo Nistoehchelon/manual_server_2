@@ -61,6 +61,8 @@ pub async fn route(
             ("GET", "/forum") => routes::forum::get(session.clone(), query, db_pool).await.unwrap_or(internal_server_error_500()),
             ("GET", "/create_thread") => routes::create_thread::get(session.clone(), query, db_pool).await.unwrap_or(internal_server_error_500()),
             ("POST", "/create_thread") => routes::create_thread::post(session.clone(), body_bytes, db_pool).await.unwrap_or(internal_server_error_500()),
+            ("GET", "/forum_thread") => routes::forum_thread::get(session.clone(), query, db_pool).await.unwrap_or(internal_server_error_500()),
+            ("POST", "/forum_thread") => routes::forum_thread::post(session.clone(), body_bytes, db_pool).await.unwrap_or(internal_server_error_500()),
             
             _ => routes::index::get(session.clone(), db_pool).await.unwrap_or(internal_server_error_500()),
         }

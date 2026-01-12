@@ -17,11 +17,11 @@ impl From<forum::Forum> for Forum {
     }
 }
 
-pub struct ForumThread {
+pub struct ForumThreadIdAndName {
     pub id: String,
     pub name: String,
 }
-impl From<forum::ForumThread> for ForumThread {
+impl From<forum::ForumThread> for ForumThreadIdAndName {
     fn from(src: forum::ForumThread) -> Self {
         Self {
             id: src.id,
@@ -29,6 +29,30 @@ impl From<forum::ForumThread> for ForumThread {
         }
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct  ForumThreadMessageCombinedData {
+		pub id: String, 
+		pub content: String,
+		pub created_at: String,
+		pub user_id: String,
+		pub user_username: String,
+        pub modifications_count: i64, 
+
+	}
+
+#[derive(Template)]
+#[template(path = "forum_thread.html")]
+
+pub struct ForumThread {
+    pub main_info: MainInfo,
+    pub thread_messages: Vec<ForumThreadMessageCombinedData>,
+    pub csrf_token: String,
+    pub thread_id: String,
+    pub thread_name: String,
+
+}
+
 pub struct MainInfo {
     pub title: String,
     pub notifications: Vec<SessionNotification>,
@@ -88,7 +112,7 @@ pub struct ForumTemplate {
     pub user_can_create_forum: bool,
     pub user_can_create_thread: bool,
     pub forum: Forum,
-    pub forum_threads: Vec<ForumThread>,
+    pub forum_threads: Vec<ForumThreadIdAndName>,
     pub subforums: Vec<Forum>,
 }
 

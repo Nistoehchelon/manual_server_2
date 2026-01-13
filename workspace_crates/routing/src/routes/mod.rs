@@ -3,6 +3,7 @@ pub mod dashboard;
 pub mod favicon;
 pub mod forum;
 pub mod forum_thread;
+pub mod forum_thread_message_versions;
 pub mod index;
 pub mod login;
 pub mod logout;

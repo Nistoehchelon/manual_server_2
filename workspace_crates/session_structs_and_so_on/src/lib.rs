@@ -2,9 +2,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::str::FromStr;
 
-
 pub const NAME_OF_COOKIE_CONTAINING_SESSION_ID: &str = "session_id";
-
 
 #[derive(Debug, Clone)]
 pub struct Session {

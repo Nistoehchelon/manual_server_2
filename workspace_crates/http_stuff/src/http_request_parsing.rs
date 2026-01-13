@@ -2,8 +2,8 @@ use std::{
     collections::HashMap,
     fmt::{self, Display},
 };
-use tokio::io::{BufReader};
 use tokio::io::AsyncReadExt;
+use tokio::io::BufReader;
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
@@ -46,7 +46,9 @@ pub struct ParsedHeaderStream {
     pub leftover: Vec<u8>,
 }
 
-pub fn parse_body_into_string_form_input_params(body: Vec<u8>) -> Result<HashMap<String, String>, String> {
+pub fn parse_body_into_string_form_input_params(
+    body: Vec<u8>,
+) -> Result<HashMap<String, String>, String> {
     let body = match String::from_utf8(body) {
         Ok(b) => b,
         Err(e) => return Err(format!("Could not parse body into valid utf8, {e:#?}")),
@@ -87,15 +89,14 @@ pub fn parse_body_into_string_form_input_params(body: Vec<u8>) -> Result<HashMap
 fn decode_post_string(s: String) -> Result<String, String> {
     let s = s.replace("+", " ");
     let s = match urlencoding::decode(&s) {
-            Err(e) => {
-                return Err(format!("Could not decode string into string, {e:#?}"));
-            }
-            Ok(s) => s,
-        };
-        let s = s.to_string();
-        Ok(s)
+        Err(e) => {
+            return Err(format!("Could not decode string into string, {e:#?}"));
+        }
+        Ok(s) => s,
+    };
+    let s = s.to_string();
+    Ok(s)
 }
-
 
 async fn parse_headers_stream(
     stream: &mut tokio::net::TcpStream,
@@ -111,14 +112,18 @@ async fn parse_headers_stream(
         count_calls_to_stream_read += 1;
         let bytes_read = match stream.read(&mut byte_buf).await {
             Ok(0) => {
-                dbg!(format!("Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} bytes, having called stream.read {count_calls_to_stream_read} times) "));
+                dbg!(format!(
+                    "Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} bytes, having called stream.read {count_calls_to_stream_read} times) "
+                ));
                 return Err(HttpRequestParsingError::BadRequest);
             }
 
             Ok(n) => n,
             Err(e) => {
                 dbg!("Stream read error", e);
-                dbg!(format!("(in total read {read_total_bytes} having called stream.read {count_calls_to_stream_read} times) "));
+                dbg!(format!(
+                    "(in total read {read_total_bytes} having called stream.read {count_calls_to_stream_read} times) "
+                ));
                 return Err(HttpRequestParsingError::SomeSortOfStreamError);
             }
         };

@@ -1,7 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use uuid::Uuid;
 use rand::{Rng, distr::Alphanumeric, rng};
+use uuid::Uuid;
 
 pub fn generate_id() -> String {
     // Simple ID generator using timestamp

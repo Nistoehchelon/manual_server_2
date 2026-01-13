@@ -23,6 +23,7 @@ routing = { path = "workspace_crates/routing" }
 http_stuff = { path = "workspace_crates/http_stuff" }
 abac = { path = "workspace_crates/abac" }
 csrf_stuff = { path = "workspace_crates/csrf_stuff" }
+pagination = { path = "workspace_crates/pagination" }
 
 
 

@@ -31,15 +31,14 @@ impl From<forum::ForumThread> for ForumThreadIdAndName {
 }
 
 #[derive(Clone, Debug)]
-pub struct  ForumThreadMessageCombinedData {
-		pub id: String, 
-		pub content: String,
-		pub created_at: String,
-		pub user_id: String,
-		pub user_username: String,
-        pub modifications_count: i64, 
-
-	}
+pub struct ForumThreadMessageCombinedData {
+    pub id: String,
+    pub content: String,
+    pub created_at: String,
+    pub user_id: String,
+    pub user_username: String,
+    pub modifications_count: i64,
+}
 
 #[derive(Template)]
 #[template(path = "forum_thread.html")]
@@ -52,7 +51,6 @@ pub struct ForumThread {
     pub thread_name: String,
     pub thread_page: u64,
     pub forum_id: String,
-
 }
 
 pub struct MainInfo {
@@ -106,16 +104,17 @@ pub struct DashboardTemplate {
     pub main_info: MainInfo,
     pub username: String,
 }
- 
-#[derive(Template)]
+
+#[derive(Template)] 
 #[template(path = "forum.html")]
 pub struct ForumTemplate {
-    pub main_info: MainInfo,
+    pub main_info: MainInfo, 
     pub user_can_create_forum: bool,
     pub user_can_create_thread: bool,
     pub forum: Forum,
     pub forum_threads: Vec<ForumThreadIdAndName>,
     pub subforums: Vec<Forum>,
+    pub forum_threads_pagination: Vec<pagination::Page>,
 }
 
 #[derive(Template)]

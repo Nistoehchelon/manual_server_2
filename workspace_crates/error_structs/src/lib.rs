@@ -1,7 +1,5 @@
 use std::fmt::Debug;
 
-
-
 #[derive(Debug)]
 pub struct PublicError {
     pub message: String,
@@ -32,7 +30,10 @@ pub struct ExpectedToGetButFailed {
 impl ExpectedToGetButFailed {
     pub fn new<E: Debug>(s: E) -> Self {
         let message = format!("{s:?}");
-        println!("Expected the thingie to exist but apparently it does not: {}", message.clone());
+        println!(
+            "Expected the thingie to exist but apparently it does not: {}",
+            message.clone()
+        );
         Self { message }
     }
 }
@@ -44,7 +45,10 @@ pub struct SomeSortOfError {
 impl SomeSortOfError {
     pub fn new<E: Debug>(s: E) -> Self {
         let message = format!("{s:?}");
-        println!("Expected the thingie to exist but apparently it does not: {}", message.clone());
+        println!(
+            "Expected the thingie to exist but apparently it does not: {}",
+            message.clone()
+        );
         Self { message }
     }
 }

@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 
-
 pub type DbPool = sqlx::pool::Pool<sqlx::Postgres>;
 
 #[derive(Debug)]
@@ -26,4 +25,3 @@ impl DbSuccess {
         }
     }
 }
-

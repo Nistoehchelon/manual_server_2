@@ -105,7 +105,6 @@ pub fn encode_string(s: String) -> String {
     s
 }
 
-
 async fn parse_headers_stream(
     stream: &mut tokio::net::TcpStream,
 ) -> Result<ParsedHeaderStream, HttpRequestParsingError> {

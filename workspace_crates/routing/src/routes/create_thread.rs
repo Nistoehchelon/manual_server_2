@@ -20,7 +20,7 @@ pub async fn get(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();
 
@@ -56,9 +56,10 @@ pub async fn get(
         return Ok(redirect_to("/forum".to_string()));
     }
     let forum = forum.unwrap();
-    let notifs = session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-        .await
-        .map_err(InternalAppError::new)?;
+    let notifs =
+        session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
+            .await
+            .map_err(InternalAppError::new)?;
 
     let csrf_token = csrf_stuff::get_or_create_token(
         db_pool.clone(),
@@ -99,7 +100,7 @@ pub async fn post(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     let body_bytes = request_data.body_bytes.clone();
     let can_create_thread = abac::can_create_thread(CanCreateThreadInput {

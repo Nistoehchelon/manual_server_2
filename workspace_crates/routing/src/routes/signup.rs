@@ -1,7 +1,7 @@
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::{
-    http_request_parsing::{self},
+    http_request_parsing::{self, Query},
     http_response::{ResponseData, ok_html, redirect_to},
 };
 use into_vec::into_vec;
@@ -18,7 +18,7 @@ pub async fn get(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     if session.logged_in {
         add_session_notification(
@@ -65,28 +65,29 @@ pub async fn post(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     if session.logged_in {
         return Ok(redirect_to("/".to_string()));
     }
     let body_bytes = request_data.body_bytes.clone();
-    let body_params = match http_request_parsing::parse_body_into_string_form_input_params(body_bytes) {
-        Ok(bp) => bp,
-        Err(_) => {
-            add_session_notification(
-                db_pool.clone(),
-                SessionNotification {
-                    message: format!("Invalid body"),
-                    session_id: session.id.clone(),
-                    notification_type: session::SessionNotificationType::Error,
-                },
-            )
-            .await
-            .map_err(InternalAppError::new)?;
-            return Ok(redirect_to("/".to_string()));
-        }
-    };
+    let body_params =
+        match http_request_parsing::parse_body_into_string_form_input_params(body_bytes) {
+            Ok(bp) => bp,
+            Err(_) => {
+                add_session_notification(
+                    db_pool.clone(),
+                    SessionNotification {
+                        message: format!("Invalid body"),
+                        session_id: session.id.clone(),
+                        notification_type: session::SessionNotificationType::Error,
+                    },
+                )
+                .await
+                .map_err(InternalAppError::new)?;
+                return Ok(redirect_to("/".to_string()));
+            }
+        };
     let username = body_params.get("username").cloned();
     let password = body_params.get("password").cloned();
     let csrf_token = body_params.get("csrf_token").cloned();

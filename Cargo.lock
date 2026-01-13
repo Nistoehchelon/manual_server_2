@@ -895,6 +895,9 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 [[package]]
 name = "pagination"
 version = "0.1.0"
+dependencies = [
+ "url 0.1.0",
+]
 
 [[package]]
 name = "parking"
@@ -1129,9 +1132,11 @@ dependencies = [
  "html_templating",
  "http_stuff",
  "into_vec",
+ "pagination",
  "read_on_dev_embed_on_release",
  "session",
  "sqlx",
+ "url 0.1.0",
  "user",
 ]
 
@@ -1405,7 +1410,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
- "url",
+ "url 2.5.8",
 ]
 
 [[package]]
@@ -1443,7 +1448,7 @@ dependencies = [
  "sqlx-sqlite",
  "syn",
  "tokio",
- "url",
+ "url 2.5.8",
 ]
 
 [[package]]
@@ -1549,7 +1554,7 @@ dependencies = [
  "thiserror",
  "time",
  "tracing",
- "url",
+ "url 2.5.8",
 ]
 
 [[package]]
@@ -1789,6 +1794,14 @@ name = "unicode-properties"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7df058c713841ad818f1dc5d3fd88063241cc61f49f5fbea4b951e8cf5a8d71d"
+
+[[package]]
+name = "url"
+version = "0.1.0"
+dependencies = [
+ "http_stuff",
+ "percent-encoding",
+]
 
 [[package]]
 name = "url"

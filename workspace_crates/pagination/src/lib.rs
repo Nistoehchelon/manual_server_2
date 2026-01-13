@@ -1,2 +1,2 @@
 pub mod pagination;
-pub use pagination::Page;
+pub use pagination::PaginationElement;

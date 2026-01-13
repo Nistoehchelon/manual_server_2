@@ -59,9 +59,13 @@ pub async fn route(
                 let mut modified_session = session.clone();
                 modified_session.logged_in = false;
                 modified_session.user_id = "".to_string();
-                session::edit_session(db_pool.clone(), modified_session.id.clone(), modified_session)
-                    .await
-                    .map_err(InternalAppError::new)?;
+                session::edit_session(
+                    db_pool.clone(),
+                    modified_session.id.clone(),
+                    modified_session,
+                )
+                .await
+                .map_err(InternalAppError::new)?;
                 break 'response_block redirect_to("/".to_string());
             }
         }
@@ -93,24 +97,18 @@ pub async fn route(
             ("GET", "/forum") => routes::forum::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("GET", "/create_thread") => {
-                routes::create_thread::get(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
-            }
-            ("POST", "/create_thread") => {
-                routes::create_thread::post(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
-            }
+            ("GET", "/create_thread") => routes::create_thread::get(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
+            ("POST", "/create_thread") => routes::create_thread::post(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
             ("GET", "/forum_thread") => routes::forum_thread::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("POST", "/forum_thread") => {
-                routes::forum_thread::post(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
-            }
+            ("POST", "/forum_thread") => routes::forum_thread::post(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
 
             _ => routes::index::get(router_data.clone())
                 .await

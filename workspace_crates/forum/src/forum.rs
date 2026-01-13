@@ -13,6 +13,23 @@ pub async fn get_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Option
     storage_specific_get_forum_by_id(db_pool, id.clone()).await
 }
 
+pub async fn get_count_thread_messages(
+    db_pool: sqlx::PgPool,
+    thread_id: String,
+) -> Result<u64, SomeSortOfError> {
+    let count = sqlx::query_scalar!(
+        "SELECT COUNT(primary_key) as count FROM forum_thread_messages WHERE thread_id = $1",
+        thread_id
+    )
+    .fetch_one(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?;
+    if let Some(c) = count {
+        let as_u64 = u64::try_from(c).map_err(SomeSortOfError::new)?;
+        return Ok(as_u64);
+    }
+    return Err(SomeSortOfError::new("Error getting thread messages count"));
+}
 pub async fn get_forum_threads(
     db_pool: sqlx::PgPool,
     forum_id: String,
@@ -49,10 +66,7 @@ pub async fn get_forum_threads(
     return Ok(threads);
 }
 
-pub async fn get_subforums(
-    db_pool: sqlx::PgPool,
-    forum_id: String,
-) -> Result<Vec<Forum>, DbError> {
+pub async fn get_subforums(db_pool: sqlx::PgPool, forum_id: String) -> Result<Vec<Forum>, DbError> {
     let mut subforums: Vec<Forum> = vec![];
     match get_forum_by_id(db_pool.clone(), forum_id.clone()).await? {
         Some(f) => f,

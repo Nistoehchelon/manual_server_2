@@ -18,7 +18,7 @@ pub async fn get(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();
     let forum_id = query

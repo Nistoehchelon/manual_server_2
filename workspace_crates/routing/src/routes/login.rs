@@ -19,7 +19,7 @@ pub async fn get(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     if session.logged_in {
         return Ok(redirect_to("/".to_string()));
@@ -40,13 +40,12 @@ pub async fn get(
 }
 
 pub async fn post(
-        RouterData {
+    RouterData {
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
-
     if session.logged_in {
         add_session_notification(
             db_pool,

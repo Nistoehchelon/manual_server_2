@@ -9,7 +9,7 @@ pub async fn get(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     let mut clone_sess = session.clone();
     clone_sess.logged_in = false;

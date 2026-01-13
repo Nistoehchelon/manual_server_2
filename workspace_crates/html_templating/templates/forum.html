@@ -19,15 +19,7 @@
  {% endif %}
  <br>
  <span class = "center">Threads</span><br>  
- {% for page in forum_threads_pagination %}
-   {% if page.linked %}
-      <a href = "{{ page.link_url }}">
-   {% endif %}
-         {{ page.name }}
-   {% if page.linked %}
-      </a>
-   {% endif %}
- {% endfor %}
+
  {% if forum_threads.len() == 0 %}
     This forum has no threads{% if subforums.len() == 0 %}, either{% endif %}.
 

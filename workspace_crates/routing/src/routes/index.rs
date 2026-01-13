@@ -16,7 +16,7 @@ pub async fn get(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     let notifs = read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
         .await

@@ -121,8 +121,11 @@ pub async fn get_existing_or_make_new_session(
             }
         };
 
-        let session_exists = match session_with_specified_id_exists(session_id.clone(), db_pool.clone())
-            .await
+        let session_exists = match session_with_specified_id_exists(
+            session_id.clone(),
+            db_pool.clone(),
+        )
+        .await
         {
             Ok(b) => b,
             Err(_) => {

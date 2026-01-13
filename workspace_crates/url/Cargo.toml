@@ -1,0 +1,8 @@
+[package]
+name = "url"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+percent-encoding = { workspace = true }
+http_stuff = { workspace = true }

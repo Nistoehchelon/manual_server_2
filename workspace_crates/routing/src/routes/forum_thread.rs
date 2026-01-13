@@ -1,6 +1,7 @@
 use error_structs::{self, InternalAppError};
 use html_templating;
 use html_templating::html_template_structs;
+use html_templating::html_template_structs::Paginator;
 use http_stuff::http_request_parsing;
 use http_stuff::http_response::bad_request_400;
 use http_stuff::http_response::ok_html;
@@ -8,7 +9,9 @@ use http_stuff::{
     http_request_parsing::Query,
     http_response::{ResponseData, redirect_to},
 };
+use pagination::pagination::Pagination;
 use session::{Session, add_session_notification};
+use url::Url;
 use user::find_user_by_user_id;
 
 use crate::RouterData;
@@ -18,7 +21,7 @@ pub async fn get(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();
     let thread_id = query.get("id").cloned();
@@ -83,19 +86,33 @@ pub async fn get(
     )
     .await
     .map_err(InternalAppError::new)?;
+    let thread_messages_count =
+        forum::get_count_thread_messages(db_pool.clone(), thread_id.clone())
+            .await
+            .map_err(InternalAppError::new)?;
+    let pagi = Pagination {
+        records_count: thread_messages_count.clone(),
+        records_per_page: limit_per_page.clone(),
+        current_page: thread_page.clone(),
+        current_url: Url::new(request_data.path.clone(), request_data.query.clone()),
+        page_param: "thread_page".to_string(),
+    };
+    let thread_pagination_elements = pagi.get_pagination_elements();
 
     let mut thread_messages: Vec<
         html_templating::html_template_structs::ForumThreadMessageCombinedData,
     > = Vec::with_capacity(usize::try_from(limit_per_page).map_err(InternalAppError::new)?);
     for msg_id in thread_message_ids {
-        let latest_message_version = forum::get_latest_message_version(db_pool.clone(), msg_id.clone())
-            .await
-            .map_err(InternalAppError::new)?;
+        let latest_message_version =
+            forum::get_latest_message_version(db_pool.clone(), msg_id.clone())
+                .await
+                .map_err(InternalAppError::new)?;
         let content = latest_message_version.content;
 
-        let initial_message_version = forum::get_initial_message_version(db_pool.clone(), msg_id.clone())
-            .await
-            .map_err(InternalAppError::new)?;
+        let initial_message_version =
+            forum::get_initial_message_version(db_pool.clone(), msg_id.clone())
+                .await
+                .map_err(InternalAppError::new)?;
         let user_id = initial_message_version.user_id;
         let username = user::get_user_by_user_id(db_pool.clone(), user_id.clone())
             .await
@@ -149,6 +166,10 @@ pub async fn get(
         thread_page,
         forum_id: thread.forum_id,
         csrf_token,
+        paginator: Paginator {
+            name: format!("thread_paginator"),
+            elements: thread_pagination_elements,
+        },
     });
 
     Ok(ok_html(html))
@@ -159,7 +180,7 @@ pub async fn post(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     let body_bytes = request_data.body_bytes.clone();
     let body_params = http_request_parsing::parse_body_into_string_form_input_params(body_bytes)

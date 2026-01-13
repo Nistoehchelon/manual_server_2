@@ -1,4 +1,5 @@
 use askama::Template;
+use pagination::PaginationElement;
 
 pub struct User {
     pub username: String,
@@ -40,6 +41,11 @@ pub struct ForumThreadMessageCombinedData {
     pub modifications_count: i64,
 }
 
+pub struct Paginator {
+    pub name: String,
+    pub elements: Vec<PaginationElement>,
+}
+
 #[derive(Template)]
 #[template(path = "forum_thread.html")]
 
@@ -51,6 +57,7 @@ pub struct ForumThread {
     pub thread_name: String,
     pub thread_page: u64,
     pub forum_id: String,
+    pub paginator: Paginator,
 }
 
 pub struct MainInfo {
@@ -105,16 +112,16 @@ pub struct DashboardTemplate {
     pub username: String,
 }
 
-#[derive(Template)] 
+#[derive(Template)]
 #[template(path = "forum.html")]
 pub struct ForumTemplate {
-    pub main_info: MainInfo, 
+    pub main_info: MainInfo,
     pub user_can_create_forum: bool,
     pub user_can_create_thread: bool,
     pub forum: Forum,
     pub forum_threads: Vec<ForumThreadIdAndName>,
     pub subforums: Vec<Forum>,
-    pub forum_threads_pagination: Vec<pagination::Page>,
+    pub forum_threads_pagination: Vec<pagination::PaginationElement>,
 }
 
 #[derive(Template)]

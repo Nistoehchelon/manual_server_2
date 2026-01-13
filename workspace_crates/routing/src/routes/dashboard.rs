@@ -11,7 +11,7 @@ pub async fn get(
         db_pool,
         session,
         request_data,
-    }: RouterData
+    }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     if !session.logged_in {
         return Ok(redirect_to("/".to_string()));
@@ -20,9 +20,10 @@ pub async fn get(
         .await
         .map_err(InternalAppError::new)?
         .map_err(InternalAppError::new)?;
-    let notifications = session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-        .await
-        .map_err(InternalAppError::new)?;
+    let notifications =
+        session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
+            .await
+            .map_err(InternalAppError::new)?;
 
     let html = html_templating::render(html_template_structs::DashboardTemplate {
         main_info: MainInfo {

@@ -16,3 +16,5 @@ sqlx = { workspace = true }
 abac = { workspace = true }
 csrf_stuff = { workspace = true }
 error_structs = { workspace = true }
+url = { workspace = true }
+pagination = { workspace = true }

@@ -1,6 +1,6 @@
 use error_structs::InternalAppError;
 use http_stuff::{
-    http_request_parsing::{HttpRequestData, Query},
+    http_request_parsing::{HttpRequestData},
     http_response::{
         ResponseData, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to,
         response, standalone_response,

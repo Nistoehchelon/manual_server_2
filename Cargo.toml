@@ -30,6 +30,7 @@ url = { path = "workspace_crates/url" }
 
 
 # third-party external crates
+indexmap = "2.13.0"
 sqlx = { version = "0.8.6", features = ["postgres", "macros", "runtime-tokio", "time"] }
 
 tokio = { version = "1.49.0", features = ["full"] }
@@ -37,6 +38,7 @@ tokio = { version = "1.49.0", features = ["full"] }
 askama = { version = "0.15", features = ["std", "derive"] }
 
 blake3 = "1.8.2"
+
 
 rand = "0.9.2"
 hex = "0.4.3"

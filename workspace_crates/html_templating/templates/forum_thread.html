@@ -12,7 +12,8 @@ Forum Thread "{{ thread_name }}""
 <a href="/forum?id={{ forum_id }}">Back to forum</a><br>
 <span class = "center bold">Thread "{{ thread_name }}"</span><br>
 Viewing page {{ thread_page }}<br>
-
+{% set paginator = thread_paginator %}
+{% include "includes/paginator.html" %}<br>
 {% if thread_messages.len() == 0 %}
   This thread has no messages
 {% else %}
@@ -27,10 +28,9 @@ Viewing page {{ thread_page }}<br>
   {% endfor %}
 {% endif %}
 
-<form method="post" action="/forum_thread">
+<form method="post" action="{{ current_url }}">
 <textarea name="message"></textarea><br>
 <button>Send</button>
-<input type="hidden" name ="thread_id" value="{{ thread_id }}">
 <input type="hidden" name ="csrf_token" value="{{ csrf_token }}">
 </form>
 

@@ -1,13 +1,10 @@
 use error_structs::InternalAppError;
 use forum::{Forum, ForumThread, get_forum_by_id};
 use html_templating::html_template_structs::{self, MainInfo};
-use http_stuff::{
-    http_request_parsing::Query,
-    http_response::{self, ResponseData, redirect_to},
-};
+use http_stuff::http_response::{self, ResponseData, redirect_to};
 use into_vec::into_vec;
 use session::{
-    Session, SessionNotification, add_session_notification, read_and_delete_session_notifications,
+    SessionNotification, add_session_notification, read_and_delete_session_notifications,
 };
 use user::find_user_by_user_id;
 

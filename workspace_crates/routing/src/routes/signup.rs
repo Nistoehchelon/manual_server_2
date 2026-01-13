@@ -1,12 +1,12 @@
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::{
-    http_request_parsing::{self, Query},
+    http_request_parsing::{self},
     http_response::{ResponseData, ok_html, redirect_to},
 };
 use into_vec::into_vec;
 use session::{
-    Session, SessionNotification, add_session_notification, edit_session,
+    SessionNotification, add_session_notification, edit_session,
     read_and_delete_session_notifications,
 };
 use user::try_to_create_new_user;
@@ -17,7 +17,7 @@ pub async fn get(
     RouterData {
         db_pool,
         session,
-        request_data,
+        request_data: _,
     }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     if session.logged_in {

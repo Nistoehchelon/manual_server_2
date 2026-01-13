@@ -3,12 +3,11 @@ use error_structs::InternalAppError;
 use forum;
 use forum::{Forum, get_forum_by_id};
 use html_templating::html_template_structs;
-use http_stuff::http_request_parsing::HttpRequestData;
 use http_stuff::{
-    http_request_parsing::{self, Query},
+    http_request_parsing::{self},
     http_response::{ResponseData, bad_request_400, ok_html, redirect_to},
 };
-use session::{Session, SessionNotification, add_session_notification};
+use session::{SessionNotification, add_session_notification};
 
 use crate::RouterData;
 

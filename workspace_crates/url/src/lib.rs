@@ -1,5 +1,4 @@
-use http_stuff::http_request_parsing::Query;
-use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
+use http_stuff::http_request_parsing::{Query, encode_string};
 
 #[derive(Clone, Debug)]
 pub struct Url {
@@ -28,8 +27,8 @@ impl ToString for Url {
                 }
                 first = false;
 
-                let encoded_key = utf8_percent_encode(k, NON_ALPHANUMERIC).to_string();
-                let encoded_value = utf8_percent_encode(v, NON_ALPHANUMERIC).to_string();
+                let encoded_key = encode_string(k.to_string());
+                let encoded_value = encode_string(v.to_string());
 
                 result.push_str(&encoded_key);
                 result.push('=');

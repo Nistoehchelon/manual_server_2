@@ -1,4 +1,4 @@
-{% if  paginator.elements.len > 0 %}
+{% if  paginator.elements.len() > 0 %}
 <div class = "paginator" id = "{{ paginator.name }}">
     {% for element in paginator.elements %}
    {% if element.linked %}

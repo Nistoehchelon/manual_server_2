@@ -18,7 +18,7 @@ pub async fn get(
     RouterData {
         db_pool,
         session,
-        request_data,
+        request_data: _,
     }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     if session.logged_in {

@@ -1,7 +1,6 @@
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, MainInfo};
 use http_stuff::http_response::{ResponseData, redirect_to};
-use session::Session;
 use user;
 
 use crate::RouterData;
@@ -10,7 +9,7 @@ pub async fn get(
     RouterData {
         db_pool,
         session,
-        request_data,
+        request_data: _,
     }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     if !session.logged_in {

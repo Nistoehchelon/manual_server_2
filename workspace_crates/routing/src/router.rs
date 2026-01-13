@@ -28,8 +28,8 @@ pub async fn route(
         path_and_query: _path_and_query,
         path,
         method,
-        query,
-        body_bytes,
+        query: _,
+        body_bytes: _,
         ..
     } = request_data.clone();
 

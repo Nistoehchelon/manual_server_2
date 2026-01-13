@@ -53,11 +53,11 @@ pub struct ForumThread {
     pub main_info: MainInfo,
     pub thread_messages: Vec<ForumThreadMessageCombinedData>,
     pub csrf_token: String,
-    pub thread_id: String,
+    pub current_url: String,
     pub thread_name: String,
     pub thread_page: u64,
     pub forum_id: String,
-    pub paginator: Paginator,
+    pub thread_paginator: Paginator,
 }
 
 pub struct MainInfo {

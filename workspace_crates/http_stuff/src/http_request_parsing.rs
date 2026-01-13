@@ -67,14 +67,14 @@ pub fn parse_body_into_string_form_input_params(
             }
         };
 
-        let key = match decode_post_string(key.to_string()) {
+        let key = match decode_string(key.to_string()) {
             Err(e) => {
                 return Err(format!("Could not decode key into string, {e:#?}"));
             }
             Ok(s) => s,
         };
 
-        let value = match decode_post_string(value.to_string()) {
+        let value = match decode_string(value.to_string()) {
             Err(e) => {
                 return Err(format!("Could not decode key into string, {e:#?}"));
             }
@@ -86,7 +86,7 @@ pub fn parse_body_into_string_form_input_params(
     return Ok(params);
 }
 
-fn decode_post_string(s: String) -> Result<String, String> {
+pub fn decode_string(s: String) -> Result<String, String> {
     let s = s.replace("+", " ");
     let s = match urlencoding::decode(&s) {
         Err(e) => {
@@ -97,6 +97,14 @@ fn decode_post_string(s: String) -> Result<String, String> {
     let s = s.to_string();
     Ok(s)
 }
+
+pub fn encode_string(s: String) -> String {
+    let s = s.replace(" ", "+");
+    let s = urlencoding::encode(&s);
+    let s = s.to_string();
+    s
+}
+
 
 async fn parse_headers_stream(
     stream: &mut tokio::net::TcpStream,

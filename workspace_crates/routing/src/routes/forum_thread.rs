@@ -5,12 +5,9 @@ use html_templating::html_template_structs::Paginator;
 use http_stuff::http_request_parsing;
 use http_stuff::http_response::bad_request_400;
 use http_stuff::http_response::ok_html;
-use http_stuff::{
-    http_request_parsing::Query,
-    http_response::{ResponseData, redirect_to},
-};
+use http_stuff::http_response::{ResponseData, redirect_to};
 use pagination::pagination::Pagination;
-use session::{Session, add_session_notification};
+use session::add_session_notification;
 use url::Url;
 use user::find_user_by_user_id;
 
@@ -41,7 +38,7 @@ pub async fn get(
             return Ok(redirect_to(format!("/forum")));
         }
     };
-    let thread_page = query.get("page");
+    let thread_page = query.get("thread_page");
     let thread_page = match thread_page {
         Some(p) => {
             let mut temp = p.parse::<u64>().map_err(InternalAppError::new)?;
@@ -90,11 +87,12 @@ pub async fn get(
         forum::get_count_thread_messages(db_pool.clone(), thread_id.clone())
             .await
             .map_err(InternalAppError::new)?;
+    let current_url = Url::new(request_data.path.clone(), request_data.query.clone());
     let pagi = Pagination {
         records_count: thread_messages_count.clone(),
         records_per_page: limit_per_page.clone(),
         current_page: thread_page.clone(),
-        current_url: Url::new(request_data.path.clone(), request_data.query.clone()),
+        current_url: current_url.clone(),
         page_param: "thread_page".to_string(),
     };
     let thread_pagination_elements = pagi.get_pagination_elements();
@@ -162,11 +160,11 @@ pub async fn get(
         },
         thread_messages,
         thread_name: thread.name,
-        thread_id: thread.id,
+        current_url: current_url.clone().to_string(),
         thread_page,
         forum_id: thread.forum_id,
         csrf_token,
-        paginator: Paginator {
+        thread_paginator: Paginator {
             name: format!("thread_paginator"),
             elements: thread_pagination_elements,
         },
@@ -182,12 +180,13 @@ pub async fn post(
         request_data,
     }: RouterData,
 ) -> Result<ResponseData, error_structs::InternalAppError> {
+    let query = request_data.query.clone();
     let body_bytes = request_data.body_bytes.clone();
     let body_params = http_request_parsing::parse_body_into_string_form_input_params(body_bytes)
         .map_err(InternalAppError::new)?;
 
     let message = body_params.get("message").cloned();
-    let thread_id = body_params.get("thread_id").cloned();
+    let thread_id = query.get("thread_id").cloned();
     let csrf_token = body_params.get("csrf_token").cloned();
 
     let (message, thread_id, csrf_token) = match (message, thread_id, csrf_token) {

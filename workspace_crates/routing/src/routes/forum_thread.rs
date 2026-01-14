@@ -186,12 +186,16 @@ pub async fn post(
         .map_err(InternalAppError::new)?;
 
     let message = body_params.get("message").cloned();
-    let thread_id = query.get("thread_id").cloned();
+    let thread_id = query.get("id").cloned();
     let csrf_token = body_params.get("csrf_token").cloned();
 
     let (message, thread_id, csrf_token) = match (message, thread_id, csrf_token) {
         (Some(m), Some(ti), Some(ct)) => (m, ti, ct),
-        _ => return Ok(bad_request_400()),
+        _ => {
+        dbg!("Did not receive needed get and post params", query, body_params);
+        return Ok(bad_request_400())
+          
+        },
     };
 
     match forum::find_thread(db_pool.clone(), thread_id.clone())

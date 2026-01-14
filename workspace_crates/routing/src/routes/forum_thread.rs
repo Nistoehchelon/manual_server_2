@@ -13,6 +13,8 @@ use user::find_user_by_user_id;
 
 use crate::RouterData;
 
+pub const MESSAGES_PER_PAGE: u64 = 15;
+
 pub async fn get(
     RouterData {
         db_pool,
@@ -74,7 +76,7 @@ pub async fn get(
         .await
         .map_err(InternalAppError::new)?;
 
-    let limit_per_page = 15;
+    let limit_per_page = MESSAGES_PER_PAGE;
     let thread_message_ids = forum::get_thread_message_ids(
         db_pool.clone(),
         thread_id.clone(),
@@ -182,6 +184,7 @@ pub async fn post(
 ) -> Result<ResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();
     let body_bytes = request_data.body_bytes.clone();
+    let current_url = Url::new(request_data.path.clone(), query.clone());
     let body_params = http_request_parsing::parse_body_into_string_form_input_params(body_bytes)
         .map_err(InternalAppError::new)?;
 
@@ -192,10 +195,13 @@ pub async fn post(
     let (message, thread_id, csrf_token) = match (message, thread_id, csrf_token) {
         (Some(m), Some(ti), Some(ct)) => (m, ti, ct),
         _ => {
-        dbg!("Did not receive needed get and post params", query, body_params);
-        return Ok(bad_request_400())
-          
-        },
+            dbg!(
+                "Did not receive needed get and post params",
+                query,
+                body_params
+            );
+            return Ok(bad_request_400());
+        }
     };
 
     match forum::find_thread(db_pool.clone(), thread_id.clone())
@@ -229,5 +235,15 @@ pub async fn post(
     forum::add_message(db_pool.clone(), message, session.user_id, thread_id.clone())
         .await
         .map_err(InternalAppError::new)?;
-    Ok(redirect_to(format!("/forum_thread?id={}", thread_id)))
+    let total_pages =
+        forum::get_count_thread_pages(db_pool.clone(), thread_id.clone(), MESSAGES_PER_PAGE)
+            .await
+            .map_err(InternalAppError::new)?;
+    let mut redir_url = current_url.clone();
+    redir_url
+        .query
+        .insert("thread_page".to_string(), total_pages.to_string());
+    let redir_url = redir_url.to_string();
+
+    Ok(redirect_to(redir_url))
 }

@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use std::{
     collections::HashMap,
     fmt::{self, Display},
@@ -9,7 +10,7 @@ pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 pub const STREAM_READ_TIMEOUT_SECS: u64 = 8;
 
-pub type Query = HashMap<String, String>;
+pub type Query = IndexMap<String, String>;
 
 /// Holds all the parsed information from an HTTP request.
 #[derive(Clone, Debug)]
@@ -262,10 +263,10 @@ pub async fn parse_http_request(
     })
 }
 
-fn parse_path_and_query(path_with_query: String) -> (String, HashMap<String, String>) {
+fn parse_path_and_query(path_with_query: String) -> (String, Query) {
     let parts: Vec<&str> = path_with_query.split('?').collect();
     let path = parts[0].to_string();
-    let mut query = HashMap::new();
+    let mut query = IndexMap::new();
 
     if parts.len() > 1 {
         for pair in parts[1].split('&') {

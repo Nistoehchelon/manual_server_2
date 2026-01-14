@@ -13,6 +13,16 @@ pub async fn get_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Option
     storage_specific_get_forum_by_id(db_pool, id.clone()).await
 }
 
+pub async fn get_count_thread_pages(
+    db_pool: sqlx::PgPool,
+    thread_id: String,
+    messages_per_page: u64,
+) -> Result<u64, SomeSortOfError> {
+    let msgs_count = get_count_thread_messages(db_pool.clone(), thread_id.clone()).await?;
+    let pages_count = (msgs_count + messages_per_page - 1) / messages_per_page;
+    Ok(pages_count)
+}
+
 pub async fn get_count_thread_messages(
     db_pool: sqlx::PgPool,
     thread_id: String,

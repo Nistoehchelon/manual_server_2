@@ -55,6 +55,23 @@ impl Pagination {
             });
         }
 
+        if current_page < pages_count {
+            pages.push(PaginationElement {
+                linked: false,
+                link_url: format!(""),
+                name: format!(".."),
+            });
+            let mut last_page_url = current_url.clone();
+            last_page_url
+                .query
+                .insert(page_param.clone(), format!("{}", pages_count));
+            pages.push(PaginationElement {
+                linked: true,
+                link_url: format!("{}", last_page_url.to_string()),
+                name: format!("{}", pages_count),
+            });
+        }
+
         pages
     }
 }

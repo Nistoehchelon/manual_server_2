@@ -1,3 +1,5 @@
+use urlencoding;
+
 pub fn decode_request_string(s: String) -> Result<String, String> {
     let s = s.replace("+", " ");
     let s = match urlencoding::decode(&s) {

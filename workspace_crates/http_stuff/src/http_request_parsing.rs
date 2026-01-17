@@ -1,12 +1,11 @@
-use indexmap::IndexMap;
 use std::{
     collections::HashMap,
     fmt::{self, Display},
 };
 use tokio::io::AsyncReadExt;
 use tokio::io::BufReader;
+use url::Query;
 
-pub type Query = IndexMap<String, String>;
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 pub const STREAM_READ_TIMEOUT_SECS: u64 = 8;

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies] 
-urlencoding = { workspace = true }
+
 tokio = { workspace = true }
-indexmap = { workspace = true }
+encoding = { workspace = true }
+url = { workspace = true }

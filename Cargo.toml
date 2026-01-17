@@ -25,6 +25,7 @@ abac = { path = "workspace_crates/abac" }
 csrf_stuff = { path = "workspace_crates/csrf_stuff" }
 pagination = { path = "workspace_crates/pagination" }
 url = { path = "workspace_crates/url" }
+encoding = { path = "workspace_crates/url" }
 
 
 

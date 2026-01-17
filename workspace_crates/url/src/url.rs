@@ -1,4 +1,7 @@
-use http_stuff::http_request_parsing::{Query, encode_string};
+use encoding::{encode_request_string};
+use indexmap::IndexMap;
+
+pub type Query = IndexMap<String, String>;
 
 #[derive(Clone, Debug)]
 pub struct Url {
@@ -29,8 +32,8 @@ impl ToString for Url {
             }
             first = false;
 
-            let encoded_key = encode_string(k.to_string());
-            let encoded_value = encode_string(v.to_string());
+            let encoded_key = encode_request_string(k.to_string());
+            let encoded_value = encode_request_string(v.to_string());
 
             result.push_str(&encoded_key);
             result.push('=');

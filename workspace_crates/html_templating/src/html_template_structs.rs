@@ -58,6 +58,7 @@ pub struct ForumThread {
     pub thread_page: u64,
     pub forum_id: String,
     pub thread_paginator: Paginator,
+    pub user_can_add_message: bool,
 }
 
 pub struct MainInfo {

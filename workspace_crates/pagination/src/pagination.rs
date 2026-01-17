@@ -25,7 +25,7 @@ impl Pagination {
         let pages_count = (records_count + records_per_page - 1) / records_per_page;
         let mut pages: Vec<PaginationElement> = vec![];
 
-        if current_page - 1 > 1 {
+        if current_page - 1 >= 1 {
             let mut prev_page_url = current_url.clone();
             prev_page_url
                 .query

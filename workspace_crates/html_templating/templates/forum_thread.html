@@ -29,10 +29,12 @@ Viewing page {{ thread_page }}<br>
   {% endfor %}
 {% endif %}
 
+{% if user_can_add_message %}
 <form method="post" action="{{ current_url }}">
 <textarea name="message"></textarea><br>
 <button>Send</button>
 <input type="hidden" name ="csrf_token" value="{{ csrf_token }}">
 </form>
+{% endif %}
 
 {% endblock %}

@@ -5,6 +5,8 @@ use std::{
 use tokio::io::AsyncReadExt;
 use tokio::io::BufReader;
 use url::Query;
+use encoding::decode_request_string;
+use indexmap::IndexMap;
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
@@ -68,14 +70,14 @@ pub fn parse_body_into_string_form_input_params(
             }
         };
 
-        let key = match decode_string(key.to_string()) {
+        let key = match decode_request_string(key.to_string()) {
             Err(e) => {
                 return Err(format!("Could not decode key into string, {e:#?}"));
             }
             Ok(s) => s,
         };
 
-        let value = match decode_string(value.to_string()) {
+        let value = match decode_request_string(value.to_string()) {
             Err(e) => {
                 return Err(format!("Could not decode key into string, {e:#?}"));
             }

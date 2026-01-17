@@ -1,12 +1,19 @@
 use error_structs::SomeSortOfError;
 use session::get_session_by_session_id;
+use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;
+
+pub async fn can_add_forum_thread_message(session: Session) -> Result<bool, SomeSortOfError> {
+  return Ok(session.logged_in);
+}
+
 
 #[derive(Debug)]
 pub struct CanCreateForumInput {
     pub db_pool: sqlx::PgPool,
     pub session_id: String,
 }
+
 
 pub async fn can_create_forum(
     CanCreateForumInput {

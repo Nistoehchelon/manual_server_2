@@ -8,3 +8,4 @@ edition = "2024"
 tokio = { workspace = true }
 encoding = { workspace = true }
 url = { workspace = true }
+indexmap = { workspace = true }

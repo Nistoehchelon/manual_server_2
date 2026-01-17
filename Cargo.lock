@@ -334,6 +334,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "encoding"
+version = "0.1.0"
+dependencies = [
+ "urlencoding",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -600,9 +607,10 @@ dependencies = [
 name = "http_stuff"
 version = "0.1.0"
 dependencies = [
+ "encoding",
  "indexmap",
  "tokio",
- "urlencoding",
+ "url 0.1.0",
 ]
 
 [[package]]
@@ -1800,8 +1808,8 @@ checksum = "7df058c713841ad818f1dc5d3fd88063241cc61f49f5fbea4b951e8cf5a8d71d"
 name = "url"
 version = "0.1.0"
 dependencies = [
- "http_stuff",
- "percent-encoding",
+ "encoding",
+ "indexmap",
 ]
 
 [[package]]

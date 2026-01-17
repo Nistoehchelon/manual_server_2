@@ -10,6 +10,8 @@ use pagination::pagination::Pagination;
 use session::add_session_notification;
 use url::Url;
 use user::find_user_by_user_id;
+use into_vec::into_vec;
+use session::read_and_delete_session_notifications;
 
 use crate::RouterData;
 
@@ -138,14 +140,7 @@ pub async fn get(
         thread_messages.push(tm);
     }
 
-    //  let html = html_templating::render(html_template_structs::ForumThread {
-    //     main_info: html_template_structs::MainInfo {
-    //         title: format!("View"),
-    //         notifications: into_vec::into_vec(notifications),
-    //     },
-    //     forum: forum.into(),
-    //     csrf_token,
-    // });
+
 
     let csrf_token = csrf_stuff::get_or_create_token(
         db_pool.clone(),
@@ -158,7 +153,9 @@ pub async fn get(
     let html = html_templating::render(html_template_structs::ForumThread {
         main_info: html_template_structs::MainInfo {
             title: format!(""),
-            notifications: vec![],
+            notifications:  into_vec( read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
+        .await
+        .map_err(InternalAppError::new)?),
         },
         thread_messages,
         thread_name: thread.name,
@@ -170,6 +167,7 @@ pub async fn get(
             name: format!("thread_paginator"),
             elements: thread_pagination_elements,
         },
+        user_can_add_message: abac::can_add_forum_thread_message(session.clone()).await.map_err(InternalAppError::new)?
     });
 
     Ok(ok_html(html))
@@ -185,6 +183,7 @@ pub async fn post(
     let query = request_data.query.clone();
     let body_bytes = request_data.body_bytes.clone();
     let current_url = Url::new(request_data.path.clone(), query.clone());
+
     let body_params = http_request_parsing::parse_body_into_string_form_input_params(body_bytes)
         .map_err(InternalAppError::new)?;
 
@@ -203,6 +202,21 @@ pub async fn post(
             return Ok(bad_request_400());
         }
     };
+    
+    if !abac::can_add_forum_thread_message(session.clone()).await.map_err(InternalAppError::new)? {
+                add_session_notification(
+                db_pool,
+                session::SessionNotification {
+                    session_id: session.id.clone(),
+                    message: format!("Insufficient permissions to send forum thread message"),
+                    notification_type: session::SessionNotificationType::Error,
+                },
+            )
+            .await
+            .map_err(InternalAppError::new)?;
+
+      return Ok(redirect_to(current_url.clone().to_string()));
+    }
 
     match forum::find_thread(db_pool.clone(), thread_id.clone())
         .await

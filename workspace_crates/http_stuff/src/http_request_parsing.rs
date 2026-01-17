@@ -6,11 +6,12 @@ use std::{
 use tokio::io::AsyncReadExt;
 use tokio::io::BufReader;
 
+pub type Query = IndexMap<String, String>;
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 pub const STREAM_READ_TIMEOUT_SECS: u64 = 8;
 
-pub type Query = IndexMap<String, String>;
+
 
 /// Holds all the parsed information from an HTTP request.
 #[derive(Clone, Debug)]
@@ -87,24 +88,8 @@ pub fn parse_body_into_string_form_input_params(
     return Ok(params);
 }
 
-pub fn decode_string(s: String) -> Result<String, String> {
-    let s = s.replace("+", " ");
-    let s = match urlencoding::decode(&s) {
-        Err(e) => {
-            return Err(format!("Could not decode string into string, {e:#?}"));
-        }
-        Ok(s) => s,
-    };
-    let s = s.to_string();
-    Ok(s)
-}
 
-pub fn encode_string(s: String) -> String {
-    let s = s.replace(" ", "+");
-    let s = urlencoding::encode(&s);
-    let s = s.to_string();
-    s
-}
+
 
 async fn parse_headers_stream(
     stream: &mut tokio::net::TcpStream,
@@ -291,45 +276,6 @@ fn parse_cookies(headers: HashMap<String, String>) -> HashMap<String, String> {
         }
     }
     cookies
-}
-
-pub fn parse_username_and_password_from_body(body: Vec<u8>) -> Result<(String, String), String> {
-    let body = String::from_utf8_lossy(&body);
-    let body = match urlencoding::decode(&body) {
-        Err(_) => {
-            return Err(format!("Could not decode body into string"));
-        }
-        Ok(s) => s,
-    };
-    let body = body.replace("+", " ");
-
-    // Parse username from form data
-    let mut valid_body = true;
-    let mut username = String::new();
-    let mut password = String::new();
-    let binding = body.clone();
-    let split = binding.split('&');
-    let binding = body.clone();
-    let split_len: Vec<&str> = binding.split('&').collect();
-    if split_len.len() != 2 {
-        valid_body = false;
-    }
-    for pair in split {
-        let kv: Vec<&str> = pair.split('=').collect();
-        if kv.len() != 2 {
-            valid_body = false;
-        }
-        if kv[0] == "username" {
-            username = kv[1].to_string();
-        } else if kv[0] == "password" {
-            password = kv[1].to_string();
-        }
-    }
-    if valid_body {
-        Ok((username, password))
-    } else {
-        Err(String::from("Invalid body"))
-    }
 }
 
 pub trait StripPrefixASCIICaseInsensitive {

@@ -29,7 +29,7 @@ pub async fn get_thread_message_versions(db_pool: sqlx::PgPool, message_id: Stri
     let limit = i64::try_from(records_per_page).map_err(SomeSortOfError::new)?;
     let page = i64::try_from(page).map_err(SomeSortOfError::new)?;
     let offset = (page - 1) * limit;
-    let msg_vers = sqlx::query_as!(ForumThreadMessageVersion, "SELECT primary_key, id, user_id, message_id, content, created_at FROM forum_thread_message_versions WHERE message_id = $1 LIMIT $2 OFFSET $3", message_id, limit, offset).fetch_all(&db_pool).await.map_err(SomeSortOfError::new)?;
+    let msg_vers = sqlx::query_as!(ForumThreadMessageVersion, "SELECT primary_key, id, user_id, message_id, content, created_at FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY primary_key DESC LIMIT $2 OFFSET $3", message_id, limit, offset).fetch_all(&db_pool).await.map_err(SomeSortOfError::new)?;
 
 
     return Ok(msg_vers);

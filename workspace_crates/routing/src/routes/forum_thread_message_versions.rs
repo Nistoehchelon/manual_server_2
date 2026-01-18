@@ -80,7 +80,7 @@ pub async fn get(RouterData {
             .map_err(InternalAppError::new)?;
             return Ok(redirect_to(format!("/forum")));
         }
-    };
+    }; 
 
     let thread = forum::get_thread(db_pool.clone(), msg.thread_id.clone()).await.map_err(InternalAppError::new)?;
 

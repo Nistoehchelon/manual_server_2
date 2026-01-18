@@ -42,7 +42,7 @@ pub async fn get(
             return Ok(redirect_to(format!("/forum")));
         }
     };
-    let thread_page = query.get("thread_page");
+    let thread_page = query.get("page");
     let thread_page = match thread_page {
         Some(p) => {
             let mut temp = p.parse::<u64>().map_err(InternalAppError::new)?;
@@ -98,7 +98,7 @@ pub async fn get(
         records_per_page: limit_per_page.clone(),
         current_page: thread_page.clone(),
         current_url: current_url.clone(),
-        page_param: "thread_page".to_string(),
+        page_param: "page".to_string(),
     };
     let thread_pagination_elements = pagi.get_pagination_elements();
 

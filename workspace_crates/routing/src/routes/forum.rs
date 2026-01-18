@@ -63,7 +63,12 @@ pub async fn get(
     let mut user_can_create_forum = false;
     let mut user_can_create_thread = false;
     if user_opt.is_some() {
-        user_can_create_thread = true;
+        user_can_create_thread = abac::can_create_thread(abac::CanCreateThreadInput {
+            db_pool: db_pool.clone(),
+            session_id: session.id.clone(),
+        })
+        .await
+        .map_err(InternalAppError::new)?;
         user_can_create_forum = abac::can_create_forum(abac::CanCreateForumInput {
             db_pool: db_pool.clone(),
             session_id: session.id.clone(),

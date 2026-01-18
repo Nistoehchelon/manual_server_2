@@ -6,13 +6,13 @@ use crate::user_structs_and_so_on::User;
 pub async fn get_user_by_user_id(
     db_pool: sqlx::PgPool,
     user_id: String,
-) -> Result<Result<User, error_structs::ExpectedToGetButFailed>, DbError> {
-    match find_user_by_user_id(user_id, db_pool).await? {
+) -> Result<User, error_structs::ExpectedToGetButFailed> {
+    match find_user_by_user_id(user_id, db_pool).await.map_err(ExpectedToGetButFailed::new)? {
         Some(u) => {
-            return Ok(Ok(u));
+            return Ok(u);
         }
         None => {
-            return Ok(Err(ExpectedToGetButFailed::new("Expected user to exist")));
+            return Err(ExpectedToGetButFailed::new(""));
         }
     }
 }

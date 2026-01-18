@@ -30,7 +30,7 @@ pub async fn can_create_forum(
     };
     let user = match get_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
-        .map_err(SomeSortOfError::new)?
+        .map_err(SomeSortOfError::new)
     {
         Ok(u) => u,
         Err(_) => {
@@ -93,7 +93,7 @@ pub async fn can_create_thread(
     };
     let user = match get_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
-        .map_err(SomeSortOfError::new)?
+        .map_err(SomeSortOfError::new)
     {
         Ok(u) => u,
         Err(_) => {

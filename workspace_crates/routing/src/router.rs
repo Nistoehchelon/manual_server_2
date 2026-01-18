@@ -53,7 +53,7 @@ pub async fn route(
             let user_associated_with_session_actually_exists =
                 get_user_by_user_id(db_pool.clone(), session.user_id.clone())
                     .await
-                    .map_err(InternalAppError::new)?
+                    .map_err(InternalAppError::new)
                     .is_ok();
             if !user_associated_with_session_actually_exists {
                 let mut modified_session = session.clone();

@@ -87,6 +87,7 @@ pub async fn get(
     )
     .await
     .map_err(InternalAppError::new)?;
+
     let thread_messages_count =
         forum::get_count_thread_messages(db_pool.clone(), thread_id.clone())
             .await
@@ -118,7 +119,6 @@ pub async fn get(
         let user_id = initial_message_version.user_id;
         let username = user::get_user_by_user_id(db_pool.clone(), user_id.clone())
             .await
-            .map_err(InternalAppError::new)?
             .map_err(InternalAppError::new)?
             .username;
 

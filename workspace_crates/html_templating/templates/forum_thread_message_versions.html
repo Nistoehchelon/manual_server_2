@@ -1,0 +1,25 @@
+{% extends "template_base.html" %}
+
+
+
+{% block title %}
+Message versions
+{% endblock %}
+
+{% block content %}
+{% include "includes/notifications.html" %}
+
+<a href="/forum_thread?id={{ thread_id }}&page={{ thread_page }}#{{ message_id }}">Back to thread</a><br>
+{% set paginator = versions_paginator %}
+{% include "includes/paginator.html" %}<br>
+{% if message_versions.len() == 0 %}
+  No versions
+{% else %}
+  {% for version in message_versions %}
+    {{ version.content }}<br>
+    By: <a href = "/user?id={{ version.user_id }}">{{ version.user_username }}</a><br>
+    
+  {% endfor %}
+{% endif %}
+
+{% endblock %}

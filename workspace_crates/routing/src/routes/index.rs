@@ -24,7 +24,6 @@ pub async fn get(
     if session.logged_in {
         let user = get_user_by_user_id(db_pool.clone(), session.user_id.clone())
             .await
-            .map_err(InternalAppError::new)?
             .map_err(InternalAppError::new)?;
 
         return Ok(http_stuff::http_response::ok_html(get_html(

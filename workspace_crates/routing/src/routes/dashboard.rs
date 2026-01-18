@@ -17,7 +17,6 @@ pub async fn get(
     }
     let user = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
-        .map_err(InternalAppError::new)?
         .map_err(InternalAppError::new)?;
     let notifications =
         session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())

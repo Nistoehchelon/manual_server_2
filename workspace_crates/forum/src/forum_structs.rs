@@ -4,16 +4,18 @@ use sqlx::types::time::OffsetDateTime;
 pub struct ForumThreadMessage {
     pub primary_key: i64,
     pub id: String,
+    pub thread_id: String,
 }
 
 #[derive(Clone, Debug)]
 pub struct ForumThreadMessageVersion {
     pub primary_key: i64,
     pub id: String,
+    pub message_id: String,
     pub user_id: String,
     pub content: String,
     pub created_at: OffsetDateTime,
-    pub message_id: String,
+
 }
 
 #[derive(Clone, Debug, Default)]

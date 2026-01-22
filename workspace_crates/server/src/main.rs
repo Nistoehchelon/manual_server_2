@@ -39,21 +39,20 @@ async fn main() -> std::io::Result<()> {
     let ip_buckets: IpBuckets = Arc::new(Mutex::new(HashMap::new()));
 
     loop {
-        let (stream, peer_ip) = match listener.accept().await {
+        let (mut stream, peer_ip) = match listener.accept().await {
             Ok((s, a)) => (s, a),
             Err(e) => {
                 dbg!("Could not unwrap stream? :( ", e);
                 continue;
             }
         };
-
         let global_bucket = global_bucket.clone();
         let ip_buckets = ip_buckets.clone();
 
         let db_pool = db_pool.clone();
         tokio::spawn(async move {
             let _ = handle(
-                stream,
+                &mut stream,
                 db_pool,
                 peer_ip.ip(),
                 global_bucket,
@@ -62,12 +61,14 @@ async fn main() -> std::io::Result<()> {
                 per_ip_token_bucket_refill_rate_per_millis,
             )
             .await;
+            let _ = stream.flush().await;
+            let _ = stream.shutdown().await;
         });
     }
 }
 
 pub async fn handle(
-    mut stream: TcpStream,
+    stream: &mut TcpStream,
     db_pool: sqlx::PgPool,
     peer_ip: IpAddr,
     global_bucket: GlobalBucket,
@@ -104,12 +105,11 @@ pub async fn handle(
                 format!("429 Too Many Requests 😈"),
             );
             let _ = stream.write_all(&error_response).await;
-            let _ = stream.shutdown().await;
             return Ok(());
         }
     }
 
-    let request_data = match parse_http_request(&mut stream).await {
+    let request_data = match parse_http_request(stream).await {
         Ok(data) => data,
         Err(e) => {
             match e {
@@ -122,16 +122,14 @@ pub async fn handle(
                     let _ = stream.write_all(&err_response).await;
                 }
             };
-            let _ = stream.shutdown().await;
-            drop(stream);
+        
             return Ok(());
         }
     };
 
     let response = routing::generate_response(request_data, db_pool).await;
     let _ = stream.write_all(&response).await;
-    let _ = stream.shutdown().await;
-    drop(stream);
+
 
     Ok(())
 }

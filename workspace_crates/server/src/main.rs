@@ -77,36 +77,19 @@ pub async fn handle(
     per_ip_token_bucket_refill_rate_per_millis: f64,
 ) -> std::io::Result<()> {
     dbg!("Peer with IP ", peer_ip, "just issued a request");
-    // Check global bucket
-    if !global_bucket.lock().await.try_to_consume_one_token() {
-        dbg!("Server bucket empty");
-        let _ = stream
-            .write_all(&standalone_response(
-                StatusCode::ServiceUnavailable503,
-                format!("503 Service Unavailable 🫨"),
-            ))
-            .await;
-        return Ok(());
-    }
-    // ip bucket
-    {
-        let mut ip_buckets = ip_buckets.lock().await;
-        let ip_bucket = ip_buckets.entry(peer_ip.clone()).or_insert_with(|| {
-            TokenBucket::new(
-                per_ip_token_bucket_capacity,
-                per_ip_token_bucket_refill_rate_per_millis,
-            )
-        });
 
-        if !ip_bucket.try_to_consume_one_token() {
-            dbg!(&format!("Bucket for IP {peer_ip} is empty"));
-            let error_response = standalone_response(
-                StatusCode::TooManyRequests429,
-                format!("429 Too Many Requests 😈"),
-            );
-            let _ = stream.write_all(&error_response).await;
-            return Ok(());
-        }
+
+    if let Err(error_response) = check_and_consume_buckets(
+        &peer_ip,
+        &global_bucket,
+        &ip_buckets,
+        per_ip_token_bucket_capacity,
+        per_ip_token_bucket_refill_rate_per_millis,
+    )
+    .await
+    {
+        let _ = stream.write_all(&error_response).await;
+        return Ok(());
     }
 
     let request_data = match parse_http_request(stream).await {
@@ -130,6 +113,43 @@ pub async fn handle(
     let response = routing::generate_response(request_data, db_pool).await;
     let _ = stream.write_all(&response).await;
 
+
+    Ok(())
+}
+
+
+async fn check_and_consume_buckets(
+    peer_ip: &IpAddr,
+    global_bucket: &GlobalBucket,
+    ip_buckets: &IpBuckets,
+    per_ip_token_bucket_capacity: f64,
+    per_ip_token_bucket_refill_rate_per_millis: f64,
+) -> Result<(), Vec<u8>> {
+    // Check global bucket
+    if !global_bucket.lock().await.try_to_consume_one_token() {
+        let response = standalone_response(
+            StatusCode::ServiceUnavailable503,
+            "503 Service Unavailable 🫨".to_string(),
+        );
+        return Err(response);
+    }
+
+    // Check per-IP bucket
+    let mut ip_buckets_guard = ip_buckets.lock().await;
+    let ip_bucket = ip_buckets_guard.entry(*peer_ip).or_insert_with(|| {
+        TokenBucket::new(
+            per_ip_token_bucket_capacity,
+            per_ip_token_bucket_refill_rate_per_millis,
+        )
+    });
+
+    if !ip_bucket.try_to_consume_one_token() {
+        let response = standalone_response(
+            StatusCode::TooManyRequests429,
+            "429 Too Many Requests 😈".to_string(),
+        );
+        return Err(response);
+    }
 
     Ok(())
 }

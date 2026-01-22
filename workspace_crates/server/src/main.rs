@@ -82,7 +82,7 @@ pub async fn handle(
         dbg!("Server bucket empty");
         let _ = stream
             .write_all(&standalone_response(
-                StatusCode::ServiceUnavailabe503,
+                StatusCode::ServiceUnavailable503,
                 format!("503 Service Unavailable 🫨"),
             ))
             .await;

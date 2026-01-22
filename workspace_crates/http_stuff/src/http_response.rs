@@ -20,7 +20,7 @@ pub enum StatusCode {
     Ok200,
     Found302,
     InternalServerError500,
-    ServiceUnavailabe503,
+    ServiceUnavailable503,
     BadRequest400,
     TooManyRequests429,
     ContentTooLarge413,
@@ -30,7 +30,7 @@ impl Display for StatusCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let c = match self {
             Self::InternalServerError500 => "500 Internal Server Error",
-            Self::ServiceUnavailabe503 => "503 Service Unavailable",
+            Self::ServiceUnavailable503 => "503 Service Unavailable",
             Self::Ok200 => "200 OK",
             Self::Found302 => "302 Found",
             Self::ContentTooLarge413 => "413 Content Too Large",

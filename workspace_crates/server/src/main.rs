@@ -1,5 +1,5 @@
 use http_stuff::{
-    http_request_parsing::parse_http_request,
+    http_request_parsing::{HttpRequestParsingError, parse_http_request},
     http_response::{StatusCode, standalone_response},
 };
 use server::token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket};
@@ -96,6 +96,27 @@ pub async fn handle(
         Ok(data) => data,
         Err(e) => {
             match e {
+                HttpRequestParsingError::UriTooLong => {
+                    let err_response = standalone_response(
+                        StatusCode::UriTooLong414,
+                        format!("414 Uri Too Long ☺️"),
+                    );
+                    let _ = stream.write_all(&err_response).await;
+                },
+                HttpRequestParsingError::HttpVersionNotSupported => {
+                    let err_response = standalone_response(
+                        StatusCode::HttpVersionNotSupported505,
+                        format!("505 HTTP Version Not Supported"),
+                    );
+                    let _ = stream.write_all(&err_response).await;
+                },
+                HttpRequestParsingError::TooManyHeaders | HttpRequestParsingError::TooManyCookies => {
+                    let err_response = standalone_response(
+                        StatusCode::RequestHeaderFieldsTooLarge431,
+                        format!("431 Header fields too large, and/or too many of them 😴"),
+                    );
+                    let _ = stream.write_all(&err_response).await;
+                },
                 _ => {
                     eprintln!("main error, could not parse request {:?}", e);
                     let err_response = standalone_response(

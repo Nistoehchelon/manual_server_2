@@ -9,8 +9,17 @@ use encoding::decode_request_string;
 use indexmap::IndexMap;
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
+pub const MAX_HEADERS_COUNT: usize = 50; // 8 KB
+
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
-pub const STREAM_READ_TIMEOUT_SECS: u64 = 8;
+
+pub const STREAM_READ_TIMEOUT_SECS: u64 = 3; // TO USE
+pub const STREAM_WRITE_TIMEOUT_SECS: u64 = 3; // TO USE
+
+pub const MAX_REQUEST_TARGET_LENGTH: usize = 150;
+
+pub const MAX_COOKIES_PER_REQUEST: usize = 50;
+
 
 
 
@@ -28,10 +37,14 @@ pub struct HttpRequestData {
 
 #[derive(Clone, Debug)]
 pub enum HttpRequestParsingError {
+    TooManyCookies,
+    HttpVersionNotSupported,
+    UriTooLong,    
     SomeSortOfStreamError,
     ContentTooLarge,
     BadRequest,
     UnexpectedEof,
+    TooManyHeaders,
 }
 impl Display for HttpRequestParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -40,6 +53,10 @@ impl Display for HttpRequestParsingError {
             Self::ContentTooLarge => "Content Too Large",
             Self::SomeSortOfStreamError => "Some Sort Of Stream Error",
             Self::UnexpectedEof => "Unexpected End Of File",
+            Self::UriTooLong => "Uri Too Long",
+            Self::HttpVersionNotSupported => "HTTP Version Not Supported",
+            Self::TooManyHeaders => "Too Many Headers",
+            Self::TooManyCookies => "Too Many Cookies",
         };
         write!(f, "{}", s)
     }
@@ -159,6 +176,10 @@ async fn parse_headers_stream(
     }
 }
 
+pub fn count_occurences_of_crlf(s: &str) -> usize {
+    s.match_indices("\r\n").count()
+}
+
 pub async fn parse_http_request(
     stream: &mut tokio::net::TcpStream,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
@@ -166,18 +187,24 @@ pub async fn parse_http_request(
         headers,
         leftover: leftover_from_headers_parsing,
     } = parse_headers_stream(stream).await?;
+    let headers_string = String::from_utf8_lossy(&headers).to_string();
+    let headers_count = count_occurences_of_crlf(&headers_string);
+
+    if headers_count > MAX_HEADERS_COUNT {
+        return Err(HttpRequestParsingError::TooManyHeaders);
+    }
 
     let mut headers_hash_map: HashMap<String, String> = HashMap::new();
-    for line in (String::from_utf8_lossy(&headers)).lines() {
+    for line in headers_string.lines() {
         if let Some((key, value)) = line.split_once(':') {
             headers_hash_map.insert(key.trim().to_lowercase(), value.trim().to_string());
         }
     }
-    let binding = ((String::from_utf8_lossy(&headers))
+    let first_line = headers_string
         .lines()
-        .collect::<Vec<&str>>()[0])
+        .collect::<Vec<&str>>()[0]
         .to_string();
-    let first_line_split = binding.split(" ").collect::<Vec<&str>>();
+    let first_line_split = first_line.split(" ").collect::<Vec<&str>>();
     if first_line_split.len() != 3 {
         dbg!(format!(
             "I expected something other than {first_line_split:#?} for first header line"
@@ -188,12 +215,18 @@ pub async fn parse_http_request(
     let path_and_query = first_line_split[1].to_string();
     let http_version = first_line_split[2].to_string();
 
-    dbg!(http_version);
+    if http_version != "HTTP/1.1" {
+        return Err(HttpRequestParsingError::HttpVersionNotSupported);
+    }
+
+    if path_and_query.len() > MAX_REQUEST_TARGET_LENGTH {
+        return Err(HttpRequestParsingError::UriTooLong);
+    }
 
     let (path, query) = parse_path_and_query(path_and_query.clone());
 
     // --- Parse cookies ---
-    let cookies = parse_cookies(headers_hash_map.clone());
+    let cookies = parse_cookies(headers_hash_map.clone())?;
 
     let mut body: Vec<u8> = vec![];
 
@@ -266,17 +299,24 @@ fn parse_path_and_query(path_with_query: String) -> (String, Query) {
     (path, query)
 }
 
-fn parse_cookies(headers: HashMap<String, String>) -> HashMap<String, String> {
-    let mut cookies = HashMap::new();
+fn parse_cookies(headers: HashMap<String, String>) -> Result<HashMap<String, String>, HttpRequestParsingError> {
     if let Some(cookie_header) = headers.get("cookie") {
+
+        let cookies_count = cookie_header.matches(";").count();
+        if cookies_count > MAX_COOKIES_PER_REQUEST {
+            return Err(HttpRequestParsingError::TooManyCookies);
+        } 
+
+        let mut  cookies = HashMap::new();
         for cookie in cookie_header.split(';') {
             let parts: Vec<&str> = cookie.trim().split('=').collect();
             if parts.len() == 2 {
                 cookies.insert(parts[0].to_string(), parts[1].to_string());
             }
         }
+        return Ok(cookies);
     }
-    cookies
+    Ok(HashMap::new())
 }
 
 pub trait StripPrefixASCIICaseInsensitive {

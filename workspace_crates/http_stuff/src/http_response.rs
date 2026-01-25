@@ -24,6 +24,9 @@ pub enum StatusCode {
     BadRequest400,
     TooManyRequests429,
     ContentTooLarge413,
+    UriTooLong414,
+    HttpVersionNotSupported505,
+    RequestHeaderFieldsTooLarge431,
 }
 
 impl Display for StatusCode {
@@ -36,6 +39,9 @@ impl Display for StatusCode {
             Self::ContentTooLarge413 => "413 Content Too Large",
             Self::BadRequest400 => "400 Bad Request",
             Self::TooManyRequests429 => "429 Too Many Requests",
+            Self::UriTooLong414 => "414 Uri Too Long",
+            Self::HttpVersionNotSupported505 => "505 HTTP Version Not Supported",
+            Self::RequestHeaderFieldsTooLarge431 => "431 Request Header Fields Too Large",
         };
         write!(f, "{}", c)
     }

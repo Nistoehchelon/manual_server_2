@@ -53,7 +53,7 @@ pub struct ForumThread {
     pub main_info: MainInfo,
     pub thread_messages: Vec<ForumThreadMessageCombinedData>,
     pub csrf_token: String,
-    pub current_url: String, 
+    pub current_url: String,
     pub thread_name: String,
     pub thread_page: u64,
     pub forum_id: String,
@@ -79,15 +79,11 @@ impl From<session::SessionNotification> for SessionNotification {
     }
 }
 
-
-
-
 pub struct ForumThreadMessageVersion {
     pub user_id: String,
     pub user_username: String,
     pub content: String,
     pub created_at: String,
-
 }
 
 #[derive(Template)]
@@ -100,8 +96,6 @@ pub struct ForumThreadMessageVersionsTemplate {
     pub message_versions: Vec<ForumThreadMessageVersion>,
     pub versions_paginator: Paginator,
 }
-
-
 
 #[derive(Template)]
 #[template(path = "index_logged_in.html")]
@@ -156,5 +150,3 @@ pub struct CreateThreadTemplate {
     pub forum: Forum,
     pub csrf_token: String,
 }
-
-

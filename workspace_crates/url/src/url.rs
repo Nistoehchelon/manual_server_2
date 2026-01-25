@@ -1,4 +1,4 @@
-use encoding::{encode_request_string};
+use encoding::encode_request_string;
 use indexmap::IndexMap;
 
 pub type Query = IndexMap<String, String>;

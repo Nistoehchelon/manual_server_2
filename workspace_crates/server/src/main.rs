@@ -78,7 +78,6 @@ pub async fn handle(
 ) -> std::io::Result<()> {
     dbg!("Peer with IP ", peer_ip, "just issued a request");
 
-
     if let Err(error_response) = check_and_consume_buckets(
         &peer_ip,
         &global_bucket,
@@ -102,21 +101,22 @@ pub async fn handle(
                         format!("414 Uri Too Long ☺️"),
                     );
                     let _ = stream.write_all(&err_response).await;
-                },
+                }
                 HttpRequestParsingError::HttpVersionNotSupported => {
                     let err_response = standalone_response(
                         StatusCode::HttpVersionNotSupported505,
                         format!("505 HTTP Version Not Supported"),
                     );
                     let _ = stream.write_all(&err_response).await;
-                },
-                HttpRequestParsingError::TooManyHeaders | HttpRequestParsingError::TooManyCookies => {
+                }
+                HttpRequestParsingError::TooManyHeaders
+                | HttpRequestParsingError::TooManyCookies => {
                     let err_response = standalone_response(
                         StatusCode::RequestHeaderFieldsTooLarge431,
                         format!("431 Header fields too large, and/or too many of them 😴"),
                     );
                     let _ = stream.write_all(&err_response).await;
-                },
+                }
                 _ => {
                     eprintln!("main error, could not parse request {:?}", e);
                     let err_response = standalone_response(
@@ -126,7 +126,7 @@ pub async fn handle(
                     let _ = stream.write_all(&err_response).await;
                 }
             };
-        
+
             return Ok(());
         }
     };
@@ -134,10 +134,8 @@ pub async fn handle(
     let response = routing::generate_response(request_data, db_pool).await;
     let _ = stream.write_all(&response).await;
 
-
     Ok(())
 }
-
 
 async fn check_and_consume_buckets(
     peer_ip: &IpAddr,

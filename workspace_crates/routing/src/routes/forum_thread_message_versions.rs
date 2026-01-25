@@ -1,24 +1,32 @@
 use error_structs::InternalAppError;
-use html_templating::{html_template_structs::{self}, render};
+use html_templating::{
+    html_template_structs::{self},
+    render,
+};
 use http_stuff::http_response::{ResponseData, ok_html, redirect_to};
 use into_vec::into_vec;
-use session::{SessionNotification, SessionNotificationType, add_session_notification, read_and_delete_session_notifications};
-use url::Url;
 use pagination::Pagination;
+use session::{
+    SessionNotification, SessionNotificationType, add_session_notification,
+    read_and_delete_session_notifications,
+};
+use url::Url;
 use user::get_user_by_user_id;
 
 use crate::RouterData;
 
-pub async fn get(RouterData {
+pub async fn get(
+    RouterData {
         db_pool,
         session,
         request_data,
-    }: RouterData,) -> Result<ResponseData, InternalAppError> {
+    }: RouterData,
+) -> Result<ResponseData, InternalAppError> {
     let query = request_data.query.clone();
     let message_id = match query.get("message_id").cloned() {
         Some(tid) => tid,
         None => {
-                add_session_notification(
+            add_session_notification(
                 db_pool.clone(),
                 SessionNotification {
                     session_id: session.id.clone(),
@@ -28,8 +36,8 @@ pub async fn get(RouterData {
             )
             .await
             .map_err(InternalAppError::new)?;
-        return Ok(redirect_to("/forum".to_string()));
-        },
+            return Ok(redirect_to("/forum".to_string()));
+        }
     };
     let page = match query.get("page").cloned() {
         None => 1,
@@ -80,15 +88,24 @@ pub async fn get(RouterData {
             .map_err(InternalAppError::new)?;
             return Ok(redirect_to(format!("/forum")));
         }
-    }; 
+    };
 
-    let thread = forum::get_thread(db_pool.clone(), msg.thread_id.clone()).await.map_err(InternalAppError::new)?;
+    let thread = forum::get_thread(db_pool.clone(), msg.thread_id.clone())
+        .await
+        .map_err(InternalAppError::new)?;
 
     const VERSIONS_PER_PAGE: u64 = 15;
 
-    let message_versions = forum::get_thread_message_versions(db_pool.clone(), message_id.clone(), page.clone(), VERSIONS_PER_PAGE).await.map_err(InternalAppError::new)?;
+    let message_versions = forum::get_thread_message_versions(
+        db_pool.clone(),
+        message_id.clone(),
+        page.clone(),
+        VERSIONS_PER_PAGE,
+    )
+    .await
+    .map_err(InternalAppError::new)?;
 
-        let versions_count =
+    let versions_count =
         forum::get_count_thread_message_versions(db_pool.clone(), message_id.clone())
             .await
             .map_err(InternalAppError::new)?;
@@ -103,12 +120,13 @@ pub async fn get(RouterData {
     };
     let versions_pagination_elements = pagi.get_pagination_elements();
 
-    let mut message_versions_to_render: Vec<
-        html_template_structs::ForumThreadMessageVersion
-    > = Vec::with_capacity(usize::try_from(VERSIONS_PER_PAGE).map_err(InternalAppError::new)?);
+    let mut message_versions_to_render: Vec<html_template_structs::ForumThreadMessageVersion> =
+        Vec::with_capacity(usize::try_from(VERSIONS_PER_PAGE).map_err(InternalAppError::new)?);
 
     for msg in message_versions {
-        let user = get_user_by_user_id(db_pool.clone(), msg.user_id).await.map_err(InternalAppError::new)?;
+        let user = get_user_by_user_id(db_pool.clone(), msg.user_id)
+            .await
+            .map_err(InternalAppError::new)?;
         message_versions_to_render.push(html_template_structs::ForumThreadMessageVersion {
             user_id: user.id.clone(),
             user_username: user.username,
@@ -117,18 +135,24 @@ pub async fn get(RouterData {
         });
     }
 
-    return Ok(ok_html(render(html_template_structs::ForumThreadMessageVersionsTemplate {
-        main_info: html_template_structs::MainInfo {
-            title: "Message versions".to_string(),
-            notifications: into_vec(read_and_delete_session_notifications(db_pool.clone(), session.id.clone()).await.map_err(InternalAppError::new)?),
+    return Ok(ok_html(render(
+        html_template_structs::ForumThreadMessageVersionsTemplate {
+            main_info: html_template_structs::MainInfo {
+                title: "Message versions".to_string(),
+                notifications: into_vec(
+                    read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
+                        .await
+                        .map_err(InternalAppError::new)?,
+                ),
+            },
+            message_id,
+            thread_id: thread.id,
+            thread_page: thread_page.to_string(),
+            message_versions: message_versions_to_render,
+            versions_paginator: html_template_structs::Paginator {
+                name: "Message versions paginator".to_string(),
+                elements: versions_pagination_elements,
+            },
         },
-        message_id,
-        thread_id: thread.id,
-        thread_page: thread_page.to_string(),
-        message_versions: message_versions_to_render,
-        versions_paginator: html_template_structs::Paginator {
-            name: "Message versions paginator".to_string(),
-            elements: versions_pagination_elements,
-        },
-    })));
+    )));
 }

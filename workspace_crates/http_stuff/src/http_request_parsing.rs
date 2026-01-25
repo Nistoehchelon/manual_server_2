@@ -1,3 +1,5 @@
+use encoding::decode_request_string;
+use indexmap::IndexMap;
 use std::{
     collections::HashMap,
     fmt::{self, Display},
@@ -5,11 +7,12 @@ use std::{
 use tokio::io::AsyncReadExt;
 use tokio::io::BufReader;
 use url::Query;
-use encoding::decode_request_string;
-use indexmap::IndexMap;
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_HEADERS_COUNT: usize = 50; // 8 KB
+
+pub const MAX_HEADER_NAME_LEN: usize = 100;
+pub const MAX_HEADER_VALUE_LEN: usize = 2048;
 
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 
@@ -20,13 +23,10 @@ pub const MAX_REQUEST_TARGET_LENGTH: usize = 150;
 
 pub const MAX_COOKIES_PER_REQUEST: usize = 50;
 
-
-
-
 /// Holds all the parsed information from an HTTP request.
 #[derive(Clone, Debug)]
 pub struct HttpRequestData {
-    pub headers: HashMap<String, String>,
+    pub headers: Headers,
     pub method: String,
     pub path: String,
     pub query: Query,
@@ -39,12 +39,14 @@ pub struct HttpRequestData {
 pub enum HttpRequestParsingError {
     TooManyCookies,
     HttpVersionNotSupported,
-    UriTooLong,    
+    UriTooLong,
     SomeSortOfStreamError,
     ContentTooLarge,
     BadRequest,
     UnexpectedEof,
     TooManyHeaders,
+    HeaderNameTooLong,
+    HeaderValueTooLong,
 }
 impl Display for HttpRequestParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -57,6 +59,8 @@ impl Display for HttpRequestParsingError {
             Self::HttpVersionNotSupported => "HTTP Version Not Supported",
             Self::TooManyHeaders => "Too Many Headers",
             Self::TooManyCookies => "Too Many Cookies",
+            Self::HeaderNameTooLong => "Header Name Too Long",
+            Self::HeaderValueTooLong => "Header Value Too Long",
         };
         write!(f, "{}", s)
     }
@@ -105,9 +109,6 @@ pub fn parse_body_into_string_form_input_params(
     }
     return Ok(params);
 }
-
-
-
 
 async fn parse_headers_stream(
     stream: &mut tokio::net::TcpStream,
@@ -180,6 +181,19 @@ pub fn count_occurences_of_crlf(s: &str) -> usize {
     s.match_indices("\r\n").count()
 }
 
+pub fn all_characters_in_header_name_are_valid(name: &str) -> bool {
+    !name.is_empty()
+        && name.bytes().all(|b| {
+            matches!(b,
+                b'A'..=b'Z' |
+                b'a'..=b'z' |
+                b'0'..=b'9' |
+                b'!' | b'#' | b'$' | b'%' | b'&' | b'\'' | b'*' |
+                b'+' | b'-' | b'.' | b'^' | b'_' | b'`' | b'|' | b'~'
+            )
+        })
+}
+
 pub async fn parse_http_request(
     stream: &mut tokio::net::TcpStream,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
@@ -194,16 +208,32 @@ pub async fn parse_http_request(
         return Err(HttpRequestParsingError::TooManyHeaders);
     }
 
-    let mut headers_hash_map: HashMap<String, String> = HashMap::new();
+    let mut headers: Headers = Headers::default();
     for line in headers_string.lines() {
-        if let Some((key, value)) = line.split_once(':') {
-            headers_hash_map.insert(key.trim().to_lowercase(), value.trim().to_string());
+        if line.split_once(':').is_none() {
+            return Err(HttpRequestParsingError::BadRequest);
         }
+        let (key, value) = match line.split_once(':') {
+            Some(parts) => parts,
+            None => return Err(HttpRequestParsingError::BadRequest),
+        };
+        if key.len() > MAX_HEADER_NAME_LEN {
+            return Err(HttpRequestParsingError::HeaderNameTooLong);
+        }
+        if value.len() > MAX_HEADER_VALUE_LEN {
+            return Err(HttpRequestParsingError::HeaderValueTooLong);
+        }
+        if !all_characters_in_header_name_are_valid(key) {
+            return Err(HttpRequestParsingError::BadRequest);
+        }
+        headers
+            .insert(key.to_lowercase().as_str(), value.trim().to_string())
+            .map_err(|e| {
+                dbg!(e);
+                HttpRequestParsingError::BadRequest
+            })?;
     }
-    let first_line = headers_string
-        .lines()
-        .collect::<Vec<&str>>()[0]
-        .to_string();
+    let first_line = headers_string.lines().collect::<Vec<&str>>()[0].to_string();
     let first_line_split = first_line.split(" ").collect::<Vec<&str>>();
     if first_line_split.len() != 3 {
         dbg!(format!(
@@ -226,11 +256,11 @@ pub async fn parse_http_request(
     let (path, query) = parse_path_and_query(path_and_query.clone());
 
     // --- Parse cookies ---
-    let cookies = parse_cookies(headers_hash_map.clone())?;
+    let cookies = parse_cookies(headers.clone())?;
 
     let mut body: Vec<u8> = vec![];
 
-    let mut content_length = match headers_hash_map
+    let mut content_length = match headers
         .get("content-length")
         .unwrap_or(&"0".to_string())
         .parse::<usize>()
@@ -278,7 +308,7 @@ pub async fn parse_http_request(
         query,
         body_bytes: body,
         cookies,
-        headers: headers_hash_map,
+        headers,
     })
 }
 
@@ -299,15 +329,14 @@ fn parse_path_and_query(path_with_query: String) -> (String, Query) {
     (path, query)
 }
 
-fn parse_cookies(headers: HashMap<String, String>) -> Result<HashMap<String, String>, HttpRequestParsingError> {
+fn parse_cookies(headers: Headers) -> Result<HashMap<String, String>, HttpRequestParsingError> {
     if let Some(cookie_header) = headers.get("cookie") {
-
         let cookies_count = cookie_header.matches(";").count();
         if cookies_count > MAX_COOKIES_PER_REQUEST {
             return Err(HttpRequestParsingError::TooManyCookies);
-        } 
+        }
 
-        let mut  cookies = HashMap::new();
+        let mut cookies = HashMap::new();
         for cookie in cookie_header.split(';') {
             let parts: Vec<&str> = cookie.trim().split('=').collect();
             if parts.len() == 2 {
@@ -329,5 +358,55 @@ impl StripPrefixASCIICaseInsensitive for str {
         } else {
             None
         }
+    }
+}
+
+/// Wrapper for HTTP headers
+#[derive(Debug, Default, Clone)]
+pub struct Headers {
+    inner: HashMap<String, Vec<String>>,
+}
+
+impl Headers {
+    pub fn insert(&mut self, name: &str, value: String) -> Result<(), &'static str> {
+        let name_lc = name.to_ascii_lowercase();
+
+        let allowed_multi = matches!(
+            name_lc.as_str(),
+            "accept"
+                | "accept-encoding"
+                | "accept-language"
+                | "cookie"
+                | "cache-control"
+                | "warning"
+        );
+
+        let entry = self.inner.entry(name_lc).or_default();
+
+        if !allowed_multi && !entry.is_empty() {
+            return Err("Duplicate header not in allowed_multi list");
+        }
+
+        entry.push(value);
+        Ok(())
+    }
+
+    /// Get the first value of a header
+    pub fn get(&self, name: &str) -> Option<&str> {
+        self.inner
+            .get(&name.to_ascii_lowercase())
+            .map(|v| v[0].as_str())
+    }
+
+    /// Get all values of a header
+    pub fn get_all(&self, name: &str) -> Option<&[String]> {
+        self.inner
+            .get(&name.to_ascii_lowercase())
+            .map(|v| v.as_slice())
+    }
+
+    /// Check if a header exists
+    pub fn contains(&self, name: &str) -> bool {
+        self.inner.contains_key(&name.to_ascii_lowercase())
     }
 }

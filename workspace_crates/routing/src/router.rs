@@ -109,9 +109,11 @@ pub async fn route(
             ("POST", "/forum_thread") => routes::forum_thread::post(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("GET", "/forum_thread_message_versions") => routes::forum_thread_message_versions::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
+            ("GET", "/forum_thread_message_versions") => {
+                routes::forum_thread_message_versions::get(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
 
             _ => routes::index::get(router_data.clone())
                 .await
@@ -171,7 +173,6 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
         "/create_thread",
         "/forum_thread",
         "/forum_thread_message_versions",
-
     ];
     let mut admin_allowed: Vec<&str> = user_allowed.clone();
     admin_allowed.extend(vec!["/create_forum"]);

@@ -7,7 +7,10 @@ pub async fn get_user_by_user_id(
     db_pool: sqlx::PgPool,
     user_id: String,
 ) -> Result<User, error_structs::ExpectedToGetButFailed> {
-    match find_user_by_user_id(user_id, db_pool).await.map_err(ExpectedToGetButFailed::new)? {
+    match find_user_by_user_id(user_id, db_pool)
+        .await
+        .map_err(ExpectedToGetButFailed::new)?
+    {
         Some(u) => {
             return Ok(u);
         }

@@ -15,7 +15,6 @@ pub struct ForumThreadMessageVersion {
     pub user_id: String,
     pub content: String,
     pub created_at: OffsetDateTime,
-
 }
 
 #[derive(Clone, Debug, Default)]

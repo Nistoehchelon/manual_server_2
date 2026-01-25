@@ -1,4 +1,7 @@
-use crate::{ForumThreadMessage, forum_structs::{Forum, ForumThread, ForumThreadMessageVersion}};
+use crate::{
+    ForumThreadMessage,
+    forum_structs::{Forum, ForumThread, ForumThreadMessageVersion},
+};
 use db_manager::DbError;
 use error_structs::{ExpectedToGetButFailed, SomeSortOfError};
 
@@ -23,20 +26,27 @@ pub async fn get_count_thread_pages(
     Ok(pages_count)
 }
 
-    // let message_versions = forum::get_thread_message_versions(db_pool.clone, message_id.clone(), page.clone(), VERSIONS_PER_PAGE).await.map_err(InternalAppError::new)?;
+// let message_versions = forum::get_thread_message_versions(db_pool.clone, message_id.clone(), page.clone(), VERSIONS_PER_PAGE).await.map_err(InternalAppError::new)?;
 
-pub async fn get_thread_message_versions(db_pool: sqlx::PgPool, message_id: String, page: u64, records_per_page: u64) -> Result<Vec<ForumThreadMessageVersion>, SomeSortOfError> {
+pub async fn get_thread_message_versions(
+    db_pool: sqlx::PgPool,
+    message_id: String,
+    page: u64,
+    records_per_page: u64,
+) -> Result<Vec<ForumThreadMessageVersion>, SomeSortOfError> {
     let limit = i64::try_from(records_per_page).map_err(SomeSortOfError::new)?;
     let page = i64::try_from(page).map_err(SomeSortOfError::new)?;
     let offset = (page - 1) * limit;
     let msg_vers = sqlx::query_as!(ForumThreadMessageVersion, "SELECT primary_key, id, user_id, message_id, content, created_at FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY primary_key DESC LIMIT $2 OFFSET $3", message_id, limit, offset).fetch_all(&db_pool).await.map_err(SomeSortOfError::new)?;
 
-
     return Ok(msg_vers);
-}  
+}
 
-pub async fn get_count_thread_message_versions(db_pool: sqlx::PgPool, message_id: String) -> Result<u64, SomeSortOfError> {
-        let count = sqlx::query_scalar!(
+pub async fn get_count_thread_message_versions(
+    db_pool: sqlx::PgPool,
+    message_id: String,
+) -> Result<u64, SomeSortOfError> {
+    let count = sqlx::query_scalar!(
         "SELECT COUNT(primary_key) as count FROM forum_thread_message_versions WHERE message_id = $1",
         message_id
     )
@@ -50,8 +60,18 @@ pub async fn get_count_thread_message_versions(db_pool: sqlx::PgPool, message_id
     return Err(SomeSortOfError::new("Error getting message versions count"));
 }
 
-pub async fn find_thread_message(db_pool: sqlx::PgPool, message_id: String) -> Result<Option<ForumThreadMessage>, SomeSortOfError> {
-    let result = sqlx::query_as!(ForumThreadMessage, "SELECT primary_key, id, thread_id FROM forum_thread_messages WHERE id = $1", message_id).fetch_optional(&db_pool).await.map_err(SomeSortOfError::new)?;
+pub async fn find_thread_message(
+    db_pool: sqlx::PgPool,
+    message_id: String,
+) -> Result<Option<ForumThreadMessage>, SomeSortOfError> {
+    let result = sqlx::query_as!(
+        ForumThreadMessage,
+        "SELECT primary_key, id, thread_id FROM forum_thread_messages WHERE id = $1",
+        message_id
+    )
+    .fetch_optional(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?;
     return Ok(result);
 }
 
@@ -156,16 +176,21 @@ pub async fn find_thread(
     return Ok(result);
 }
 
-pub async fn get_thread(db_pool: sqlx::PgPool,
-    id: String,) -> Result<ForumThread, ExpectedToGetButFailed> {
-        let thread = match find_thread(db_pool.clone(), id).await.map_err(ExpectedToGetButFailed::new)? {
-            Some(t) => t,
-            None => {
-                return Err(ExpectedToGetButFailed::new("..."));
-            },
-        };
-        return Ok(thread);
-    }
+pub async fn get_thread(
+    db_pool: sqlx::PgPool,
+    id: String,
+) -> Result<ForumThread, ExpectedToGetButFailed> {
+    let thread = match find_thread(db_pool.clone(), id)
+        .await
+        .map_err(ExpectedToGetButFailed::new)?
+    {
+        Some(t) => t,
+        None => {
+            return Err(ExpectedToGetButFailed::new("..."));
+        }
+    };
+    return Ok(thread);
+}
 
 pub async fn get_latest_message_version(
     db_pool: sqlx::PgPool,

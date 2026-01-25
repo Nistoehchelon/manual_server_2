@@ -193,6 +193,33 @@ pub fn all_characters_in_header_name_are_valid(name: &str) -> bool {
             )
         })
 }
+pub fn request_target_characters_are_valid(path: &str) -> bool {
+    path.chars().all(|c| {
+        c.is_ascii_alphanumeric()
+            || matches!(
+                c,
+                '-' | '.'
+                    | '_'
+                    | '~'
+                    | '!'
+                    | '$'
+                    | '&'
+                    | '\''
+                    | '('
+                    | ')'
+                    | '*'
+                    | '+'
+                    | ','
+                    | ';'
+                    | '='
+                    | ':'
+                    | '@'
+                    | '/'
+                    | '?'
+                    | '%'
+            )
+    })
+}
 
 pub async fn parse_http_request(
     stream: &mut tokio::net::TcpStream,
@@ -209,13 +236,24 @@ pub async fn parse_http_request(
     }
 
     let mut headers: Headers = Headers::default();
-    for line in headers_string.lines() {
-        if line.split_once(':').is_none() {
+    let mut header_string_lines = headers_string.split("\r\n");
+    let first_line = header_string_lines
+        .next()
+        .ok_or(HttpRequestParsingError::BadRequest)?;
+    for line in header_string_lines {
+        if line.is_empty() {
+            break;
+        }
+
+        if line.contains('\n') || line.contains('\r') {
             return Err(HttpRequestParsingError::BadRequest);
         }
         let (key, value) = match line.split_once(':') {
             Some(parts) => parts,
-            None => return Err(HttpRequestParsingError::BadRequest),
+            None => {
+                dbg!("Header has no semicolon, invalid");
+                return Err(HttpRequestParsingError::BadRequest);
+            }
         };
         if key.len() > MAX_HEADER_NAME_LEN {
             return Err(HttpRequestParsingError::HeaderNameTooLong);
@@ -224,6 +262,7 @@ pub async fn parse_http_request(
             return Err(HttpRequestParsingError::HeaderValueTooLong);
         }
         if !all_characters_in_header_name_are_valid(key) {
+            dbg!("Header name ", key, "contains invalid chars");
             return Err(HttpRequestParsingError::BadRequest);
         }
         headers
@@ -233,7 +272,10 @@ pub async fn parse_http_request(
                 HttpRequestParsingError::BadRequest
             })?;
     }
-    let first_line = headers_string.lines().collect::<Vec<&str>>()[0].to_string();
+    if !(headers.contains("host")) {
+        return Err(HttpRequestParsingError::BadRequest);
+    }
+
     let first_line_split = first_line.split(" ").collect::<Vec<&str>>();
     if first_line_split.len() != 3 {
         dbg!(format!(
@@ -251,6 +293,9 @@ pub async fn parse_http_request(
 
     if path_and_query.len() > MAX_REQUEST_TARGET_LENGTH {
         return Err(HttpRequestParsingError::UriTooLong);
+    }
+    if !request_target_characters_are_valid(&path_and_query) {
+        return Err(HttpRequestParsingError::BadRequest);
     }
 
     let (path, query) = parse_path_and_query(path_and_query.clone());

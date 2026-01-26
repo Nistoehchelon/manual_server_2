@@ -39,13 +39,7 @@ async fn main() -> std::io::Result<()> {
     let ip_buckets: IpBuckets = Arc::new(Mutex::new(HashMap::new()));
 
     loop {
-        // let (mut stream, peer_ip) = match listener.accept().await {
-        //     Ok((s, a)) => (s, a),
-        //     Err(e) => {
-        //         dbg!("Could not unwrap stream? :( ", e);
-        //         continue;
-        //     }
-        // };
+
         let (mut stream, peer_ip) = match timeout(Duration::from_secs(1), listener.accept()).await {
             Ok(Ok((s, a))) => (s, a),
             Ok(Err(e)) => {

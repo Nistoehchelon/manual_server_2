@@ -16,9 +16,6 @@ pub const MAX_HEADER_VALUE_LEN: usize = 2048;
 
 pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 
-pub const STREAM_READ_TIMEOUT_SECS: u64 = 3; // TO USE
-pub const STREAM_WRITE_TIMEOUT_SECS: u64 = 3; // TO USE
-
 pub const MAX_REQUEST_TARGET_LENGTH: usize = 150;
 
 pub const MAX_COOKIES_PER_REQUEST: usize = 50;

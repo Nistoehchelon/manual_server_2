@@ -53,7 +53,6 @@ async fn main() -> std::io::Result<()> {
                 continue;
             },
             Err(_e) => {
-                dbg!("Timeout on accept", _e);
                 continue;
             }
         };

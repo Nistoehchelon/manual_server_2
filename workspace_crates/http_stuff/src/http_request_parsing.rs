@@ -177,7 +177,7 @@ async fn parse_headers_stream(
     }
 }
 
-pub fn count_occurences_of_crlf(s: &str) -> usize {
+pub fn count_occurences_of_rn(s: &str) -> usize {
     s.match_indices("\r\n").count()
 }
 
@@ -229,7 +229,7 @@ pub async fn parse_http_request(
         leftover: leftover_from_headers_parsing,
     } = parse_headers_stream(stream).await?;
     let headers_string = String::from_utf8_lossy(&headers).to_string();
-    let headers_count = count_occurences_of_crlf(&headers_string);
+    let headers_count = count_occurences_of_rn(&headers_string);
 
     if headers_count > MAX_HEADERS_COUNT {
         return Err(HttpRequestParsingError::TooManyHeaders);
@@ -266,7 +266,7 @@ pub async fn parse_http_request(
             return Err(HttpRequestParsingError::BadRequest);
         }
         headers
-            .insert(key.to_lowercase().as_str(), value.trim().to_string())
+            .insert(key.to_lowercase().as_str(), value.trim())
             .map_err(|e| {
                 dbg!(e);
                 HttpRequestParsingError::BadRequest
@@ -409,30 +409,85 @@ impl StripPrefixASCIICaseInsensitive for str {
 /// Wrapper for HTTP headers
 #[derive(Debug, Default, Clone)]
 pub struct Headers {
-    inner: HashMap<String, Vec<String>>,
+    inner: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone)]
+enum HeaderKind {
+    Singleton,
+    CommaList,
+    Cookie,
+}
+
+fn classify(name: &str) -> HeaderKind {
+    match name {
+        // list headers (RFC 9110 list semantics)
+        "accept" | "accept-encoding" | "accept-language" | "cache-control" | "warning" => {
+            HeaderKind::CommaList
+        }
+
+        "cookie" => HeaderKind::Cookie,
+
+        _ => HeaderKind::Singleton,
+    }
+}
+
+fn validate_cookie_duplicates(cookie_header: &str) -> Result<(), &'static str> {
+    use std::collections::HashSet;
+
+    let mut seen = HashSet::new();
+
+    for pair in cookie_header.split(';') {
+        let pair = pair.trim();
+        if let Some((name, _)) = pair.split_once('=') {
+            let name = name.trim();
+            if !seen.insert(name) {
+                return Err("Duplicate cookie name");
+            }
+        }
+    }
+    Ok(())
 }
 
 impl Headers {
-    pub fn insert(&mut self, name: &str, value: String) -> Result<(), &'static str> {
-        let name_lc = name.to_ascii_lowercase();
+    pub fn insert(&mut self, name: &str, value: &str) -> Result<(), &'static str> {
+        let name = name.to_ascii_lowercase();
+        let kind = classify(&name);
 
-        let allowed_multi = matches!(
-            name_lc.as_str(),
-            "accept"
-                | "accept-encoding"
-                | "accept-language"
-                | "cookie"
-                | "cache-control"
-                | "warning"
-        );
+        match kind {
+            HeaderKind::Singleton => {
+                if self.inner.contains_key(&name) {
+                    return Err("Duplicate singleton header");
+                }
+                self.inner.insert(name, value.trim().to_string());
+            }
 
-        let entry = self.inner.entry(name_lc).or_default();
+            HeaderKind::CommaList => {
+                self.inner
+                    .entry(name)
+                    .and_modify(|v| {
+                        v.push_str(", ");
+                        v.push_str(value.trim());
+                    })
+                    .or_insert_with(|| value.trim().to_string());
+            }
 
-        if !allowed_multi && !entry.is_empty() {
-            return Err("Duplicate header not in allowed_multi list");
+            HeaderKind::Cookie => {
+                self.inner
+                    .entry(name)
+                    .and_modify(|existing| {
+                        existing.push_str("; ");
+                        existing.push_str(value.trim());
+                    })
+                    .or_insert_with(|| value.trim().to_string());
+
+                // After merge, validate cookie keys
+                if let Some(cookies) = self.inner.get("cookie") {
+                    validate_cookie_duplicates(cookies)?;
+                }
+            }
         }
 
-        entry.push(value);
         Ok(())
     }
 
@@ -440,14 +495,7 @@ impl Headers {
     pub fn get(&self, name: &str) -> Option<&str> {
         self.inner
             .get(&name.to_ascii_lowercase())
-            .map(|v| v[0].as_str())
-    }
-
-    /// Get all values of a header
-    pub fn get_all(&self, name: &str) -> Option<&[String]> {
-        self.inner
-            .get(&name.to_ascii_lowercase())
-            .map(|v| v.as_slice())
+            .map(|s| s.as_str())
     }
 
     /// Check if a header exists

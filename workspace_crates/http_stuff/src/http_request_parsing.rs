@@ -37,7 +37,7 @@ pub struct HttpRequestData {
 
 #[derive(Clone, Debug)]
 pub enum HttpRequestParsingError {
-    StreamReadTimeout,
+    HeadersStreamReadTimeout,
     TooManyCookies,
     HttpVersionNotSupported,
     UriTooLong,
@@ -52,7 +52,7 @@ pub enum HttpRequestParsingError {
 impl Display for HttpRequestParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::StreamReadTimeout => "Stream Read Timeout",
+            Self::HeadersStreamReadTimeout => "Headers Stream Read Timeout",
             Self::BadRequest => "Bad Request",
             Self::ContentTooLarge => "Content Too Large",
             Self::SomeSortOfStreamError => "Some Sort Of Stream Error",
@@ -124,7 +124,7 @@ async fn parse_headers_stream(
 
     loop {
         count_calls_to_stream_read += 1;
-        let bytes_read = match timeout(Duration::from_millis(500), stream.read(&mut byte_buf)).await {
+        let bytes_read = match timeout(Duration::from_millis(200), stream.read(&mut byte_buf)).await {
             Ok(Ok(0)) => {
                 dbg!(format!(
                     "Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} bytes, having called stream.read {count_calls_to_stream_read} times) "
@@ -142,7 +142,7 @@ async fn parse_headers_stream(
             },
             Err(_e) => {
                 dbg!("headers read timeout");
-                return Err(HttpRequestParsingError::StreamReadTimeout);
+                return Err(HttpRequestParsingError::HeadersStreamReadTimeout);
             }
         };
 

@@ -122,9 +122,10 @@ async fn parse_headers_stream(
     let mut read_total_bytes = 0;
     let mut count_calls_to_stream_read = 0;
 
+    const HEADERS_STREAM_READ_TIMEOUT_MS: u64 = 200;
     loop {
         count_calls_to_stream_read += 1;
-        let bytes_read = match timeout(Duration::from_millis(200), stream.read(&mut byte_buf)).await {
+        let bytes_read = match timeout(Duration::from_millis(HEADERS_STREAM_READ_TIMEOUT_MS), stream.read(&mut byte_buf)).await {
             Ok(Ok(0)) => {
                 dbg!(format!(
                     "Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} bytes, having called stream.read {count_calls_to_stream_read} times) "

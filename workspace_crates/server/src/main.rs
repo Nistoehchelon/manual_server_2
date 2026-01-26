@@ -12,6 +12,9 @@ use tokio::{
     sync::Mutex, time::timeout,
 };
 
+const LISTENER_ACCEPT_TIMEOUT_SECS: u64 = 1;
+const COMMON_STREAM_TIMEOUT_SECS: u64 = 1;
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
     let env = config_reader::read_config(PathBuf::from("config"));
@@ -40,7 +43,7 @@ async fn main() -> std::io::Result<()> {
 
     loop {
 
-        let (mut stream, peer_ip) = match timeout(Duration::from_secs(1), listener.accept()).await {
+        let (mut stream, peer_ip) = match timeout(Duration::from_secs(LISTENER_ACCEPT_TIMEOUT_SECS), listener.accept()).await {
             Ok(Ok((s, a))) => (s, a),
             Ok(Err(e)) => {
                 dbg!("Could not unwrap stream? :( ", e);
@@ -64,13 +67,13 @@ async fn main() -> std::io::Result<()> {
                 per_ip_token_bucket_refill_rate_per_millis,
             )
             .await;
-            let f = timeout(Duration::from_secs(1), stream.flush()).await;
+            let f = timeout(Duration::from_secs(COMMON_STREAM_TIMEOUT_SECS), stream.flush()).await;
             if f.is_err() {
                 dbg!("main.rs flush timeout, dropping stream immediately");
                 drop(stream);
                 return;
             }
-            let s = stream.shutdown().await;
+            let s = timeout(Duration::from_secs(COMMON_STREAM_TIMEOUT_SECS), stream.shutdown()).await;
             if s.is_err() {
                 dbg!("main.rs stream shutdown timed out, dropping it I guess?");
                 drop(stream);
@@ -101,7 +104,7 @@ pub async fn handle(
     )
     .await
     {
-        match timeout(Duration::from_secs(1), stream.write_all(&error_response)).await {
+        match timeout(Duration::from_secs(COMMON_STREAM_TIMEOUT_SECS), stream.write_all(&error_response)).await {
             Err(_e) => {
                 dbg!("stream.write_all after bucket check time out");
             },
@@ -110,7 +113,7 @@ pub async fn handle(
         return Ok(());
     }
 
-    let request_data = match timeout(Duration::from_secs(1), parse_http_request(stream)).await {
+    let request_data = match timeout(Duration::from_secs(COMMON_STREAM_TIMEOUT_SECS), parse_http_request(stream)).await {
         Ok(Ok(data)) => data,
         Ok(Err(e)) => {
             match e {
@@ -119,14 +122,14 @@ pub async fn handle(
                         StatusCode::UriTooLong414,
                         format!("414 Uri Too Long ☺️"),
                     );
-                    let _ = timeout(Duration::from_secs(1), stream.write_all(&err_response)).await;
+                    let _ = timeout(Duration::from_secs(COMMON_STREAM_TIMEOUT_SECS), stream.write_all(&err_response)).await;
                 }
                 HttpRequestParsingError::HttpVersionNotSupported => {
                     let err_response = standalone_response(
                         StatusCode::HttpVersionNotSupported505,
                         format!("505 HTTP Version Not Supported"),
                     );
-                    let _ = timeout(Duration::from_secs(1), stream.write_all(&err_response)).await;
+                    let _ = timeout(Duration::from_secs(COMMON_STREAM_TIMEOUT_SECS), stream.write_all(&err_response)).await;
                 }
                 HttpRequestParsingError::TooManyHeaders
                 | HttpRequestParsingError::TooManyCookies => {
@@ -134,7 +137,7 @@ pub async fn handle(
                         StatusCode::RequestHeaderFieldsTooLarge431,
                         format!("431 Header fields too large, and/or too many of them 😴"),
                     );
-                    let _ = timeout(Duration::from_secs(1), stream.write_all(&err_response)).await;
+                    let _ = timeout(Duration::from_secs(COMMON_STREAM_TIMEOUT_SECS), stream.write_all(&err_response)).await;
                 }
                 _ => {
                     eprintln!("main error, could not parse request {:?}", e);
@@ -142,7 +145,7 @@ pub async fn handle(
                         StatusCode::BadRequest400,
                         format!("400 Bad Request 🙀"),
                     );
-                    let _ = timeout(Duration::from_secs(1), stream.write_all(&err_response)).await;
+                    let _ = timeout(Duration::from_secs(COMMON_STREAM_TIMEOUT_SECS), stream.write_all(&err_response)).await;
                 }
             };
 
@@ -155,7 +158,7 @@ pub async fn handle(
     };
 
     let response = routing::generate_response(request_data, db_pool).await;
-    if let Err(_e) = timeout(Duration::from_secs(1), stream.write_all(&response)).await {
+    if let Err(_e) = timeout(Duration::from_secs(COMMON_STREAM_TIMEOUT_SECS), stream.write_all(&response)).await {
         dbg!("main.rs response write timeout");
     }
 

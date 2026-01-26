@@ -8,8 +8,17 @@ pub struct Config {
     pub per_ip_token_bucket_refill_rate_per_millis: f64,
 }
 
+
+
 pub fn read_config() -> Config {
-    let contents = read_to_string("config").expect("Couldn't find or read config file");
+    use std::env;
+    use std::path::PathBuf;
+
+    let path = env::var("WORKSPACE_ROOT_CONFIG_FILE")
+        .map(PathBuf::from)
+        .expect("WORKSPACE_ROOT_CONFIG must be set");
+
+    let contents = read_to_string(path.clone()).expect(format!("Could not find path {path:#?}").as_str());
 
     let mut ip: Option<String> = None;
     let mut port: Option<String> = None;

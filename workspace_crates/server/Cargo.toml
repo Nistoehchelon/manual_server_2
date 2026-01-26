@@ -17,5 +17,8 @@ user = { workspace = true }
 forum = { workspace = true }
 into_vec = { workspace = true }
 sqlx = { workspace = true }
+tokio-rustls = { workspace = true }
+rustls = { workspace = true }
 
+rcgen = { workspace = true }
 

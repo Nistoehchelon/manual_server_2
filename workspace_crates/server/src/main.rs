@@ -2,21 +2,32 @@ use http_stuff::{
     http_request_parsing::{HttpRequestParsingError, parse_http_request},
     http_response::{StatusCode, standalone_response},
 };
+use rcgen::{generate_simple_self_signed};
 use server::token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket};
 
 use std::{collections::HashMap, net::IpAddr, path::PathBuf, sync::Arc, time::Duration};
 
 use tokio::{
-    io::AsyncWriteExt,
+    io::{AsyncWriteExt, 
+        AsyncReadExt
+    },
     net::{TcpListener, TcpStream},
     sync::Mutex, time::timeout,
 };
+
+use tokio_rustls::TlsAcceptor;
+use tokio_rustls::rustls::{ServerConfig};
 
 const LISTENER_ACCEPT_TIMEOUT_SECS: u64 = 1;
 const COMMON_STREAM_TIMEOUT_SECS: u64 = 1;
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
+    // #1: Generate a self-signed cert 
+    //let cert = generate_simple_self_signed(vec!["localhost".into()]).unwrap();
+
+
+
     let env = config_reader::read_config(PathBuf::from("config"));
     let config_reader::Config {
         ip_and_port,

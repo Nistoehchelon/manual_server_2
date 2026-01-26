@@ -4,12 +4,12 @@ use http_stuff::{
 };
 use server::token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket};
 
-use std::{collections::HashMap, net::IpAddr, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, net::IpAddr, path::PathBuf, sync::Arc, time::Duration};
 
 use tokio::{
     io::AsyncWriteExt,
     net::{TcpListener, TcpStream},
-    sync::Mutex,
+    sync::Mutex, time::timeout,
 };
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
@@ -39,16 +39,26 @@ async fn main() -> std::io::Result<()> {
     let ip_buckets: IpBuckets = Arc::new(Mutex::new(HashMap::new()));
 
     loop {
-        let (mut stream, peer_ip) = match listener.accept().await {
-            Ok((s, a)) => (s, a),
-            Err(e) => {
+        // let (mut stream, peer_ip) = match listener.accept().await {
+        //     Ok((s, a)) => (s, a),
+        //     Err(e) => {
+        //         dbg!("Could not unwrap stream? :( ", e);
+        //         continue;
+        //     }
+        // };
+        let (mut stream, peer_ip) = match timeout(Duration::from_secs(1), listener.accept()).await {
+            Ok(Ok((s, a))) => (s, a),
+            Ok(Err(e)) => {
                 dbg!("Could not unwrap stream? :( ", e);
+                continue;
+            },
+            Err(_e) => {
+                dbg!("Timeout on accept", _e);
                 continue;
             }
         };
         let global_bucket = global_bucket.clone();
         let ip_buckets = ip_buckets.clone();
-
         let db_pool = db_pool.clone();
         tokio::spawn(async move {
             let _ = handle(
@@ -61,8 +71,19 @@ async fn main() -> std::io::Result<()> {
                 per_ip_token_bucket_refill_rate_per_millis,
             )
             .await;
-            let _ = stream.flush().await;
-            let _ = stream.shutdown().await;
+            let f = timeout(Duration::from_secs(1), stream.flush()).await;
+            if f.is_err() {
+                dbg!("main.rs flush timeout, dropping stream immediately");
+                drop(stream);
+                return;
+            }
+            let s = stream.shutdown().await;
+            if s.is_err() {
+                dbg!("main.rs stream shutdown timed out, dropping it I guess?");
+                drop(stream);
+                return;
+            }
+
         });
     }
 }
@@ -87,27 +108,32 @@ pub async fn handle(
     )
     .await
     {
-        let _ = stream.write_all(&error_response).await;
+        match timeout(Duration::from_secs(1), stream.write_all(&error_response)).await {
+            Err(_e) => {
+                dbg!("stream.write_all after bucket check time out");
+            },
+            _ => {},
+        }
         return Ok(());
     }
 
-    let request_data = match parse_http_request(stream).await {
-        Ok(data) => data,
-        Err(e) => {
+    let request_data = match timeout(Duration::from_secs(1), parse_http_request(stream)).await {
+        Ok(Ok(data)) => data,
+        Ok(Err(e)) => {
             match e {
                 HttpRequestParsingError::UriTooLong => {
                     let err_response = standalone_response(
                         StatusCode::UriTooLong414,
                         format!("414 Uri Too Long ☺️"),
                     );
-                    let _ = stream.write_all(&err_response).await;
+                    let _ = timeout(Duration::from_secs(1), stream.write_all(&err_response)).await;
                 }
                 HttpRequestParsingError::HttpVersionNotSupported => {
                     let err_response = standalone_response(
                         StatusCode::HttpVersionNotSupported505,
                         format!("505 HTTP Version Not Supported"),
                     );
-                    let _ = stream.write_all(&err_response).await;
+                    let _ = timeout(Duration::from_secs(1), stream.write_all(&err_response)).await;
                 }
                 HttpRequestParsingError::TooManyHeaders
                 | HttpRequestParsingError::TooManyCookies => {
@@ -115,7 +141,7 @@ pub async fn handle(
                         StatusCode::RequestHeaderFieldsTooLarge431,
                         format!("431 Header fields too large, and/or too many of them 😴"),
                     );
-                    let _ = stream.write_all(&err_response).await;
+                    let _ = timeout(Duration::from_secs(1), stream.write_all(&err_response)).await;
                 }
                 _ => {
                     eprintln!("main error, could not parse request {:?}", e);
@@ -123,16 +149,22 @@ pub async fn handle(
                         StatusCode::BadRequest400,
                         format!("400 Bad Request 🙀"),
                     );
-                    let _ = stream.write_all(&err_response).await;
+                    let _ = timeout(Duration::from_secs(1), stream.write_all(&err_response)).await;
                 }
             };
 
+            return Ok(());
+        },
+        Err(_e) => {
+            dbg!("main.rs parse_http_request timed out");
             return Ok(());
         }
     };
 
     let response = routing::generate_response(request_data, db_pool).await;
-    let _ = stream.write_all(&response).await;
+    if let Err(_e) = timeout(Duration::from_secs(1), stream.write_all(&response)).await {
+        dbg!("main.rs response write timeout");
+    }
 
     Ok(())
 }

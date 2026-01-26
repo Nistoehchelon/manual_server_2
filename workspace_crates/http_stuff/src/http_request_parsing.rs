@@ -2,9 +2,9 @@ use encoding::decode_request_string;
 use indexmap::IndexMap;
 use std::{
     collections::HashMap,
-    fmt::{self, Display},
+    fmt::{self, Display}, time::Duration,
 };
-use tokio::io::AsyncReadExt;
+use tokio::{io::AsyncReadExt, time::timeout};
 use tokio::io::BufReader;
 use url::Query;
 
@@ -37,6 +37,7 @@ pub struct HttpRequestData {
 
 #[derive(Clone, Debug)]
 pub enum HttpRequestParsingError {
+    StreamReadTimeout,
     TooManyCookies,
     HttpVersionNotSupported,
     UriTooLong,
@@ -51,6 +52,7 @@ pub enum HttpRequestParsingError {
 impl Display for HttpRequestParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
+            Self::StreamReadTimeout => "Stream Read Timeout",
             Self::BadRequest => "Bad Request",
             Self::ContentTooLarge => "Content Too Large",
             Self::SomeSortOfStreamError => "Some Sort Of Stream Error",
@@ -122,21 +124,25 @@ async fn parse_headers_stream(
 
     loop {
         count_calls_to_stream_read += 1;
-        let bytes_read = match stream.read(&mut byte_buf).await {
-            Ok(0) => {
+        let bytes_read = match timeout(Duration::from_millis(500), stream.read(&mut byte_buf)).await {
+            Ok(Ok(0)) => {
                 dbg!(format!(
                     "Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} bytes, having called stream.read {count_calls_to_stream_read} times) "
                 ));
                 return Err(HttpRequestParsingError::BadRequest);
             }
 
-            Ok(n) => n,
-            Err(e) => {
+            Ok(Ok(n)) => n,
+            Ok(Err(e)) => {
                 dbg!("Stream read error", e);
                 dbg!(format!(
                     "(in total read {read_total_bytes} having called stream.read {count_calls_to_stream_read} times) "
                 ));
                 return Err(HttpRequestParsingError::SomeSortOfStreamError);
+            },
+            Err(_e) => {
+                dbg!("headers read timeout");
+                return Err(HttpRequestParsingError::StreamReadTimeout);
             }
         };
 

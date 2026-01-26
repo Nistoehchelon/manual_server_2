@@ -3,7 +3,14 @@ use session;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn test_read_write() {
-    let env = read_config();
+    use std::env;
+    use std::path::PathBuf;
+
+    let config_path = env::var("WORKSPACE_ROOT_CONFIG_FILE")
+        .map(PathBuf::from)
+        .expect("WORKSPACE_ROOT_CONFIG_FILE must be set");
+
+    let env = read_config(config_path);
     let pool = sqlx::PgPool::connect(&env.database_str)
         .await
         .expect("No pool :(");

@@ -4,7 +4,7 @@ use http_stuff::{
 };
 use server::token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket};
 
-use std::{collections::HashMap, net::IpAddr, sync::Arc};
+use std::{collections::HashMap, net::IpAddr, path::PathBuf, sync::Arc};
 
 use tokio::{
     io::AsyncWriteExt,
@@ -14,7 +14,7 @@ use tokio::{
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
-    let env = config_reader::read_config();
+    let env = config_reader::read_config(PathBuf::from("config"));
     let config_reader::Config {
         ip_and_port,
         database_str,

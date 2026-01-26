@@ -1,4 +1,4 @@
-use std::fs::read_to_string;
+use std::{fs::read_to_string, path::PathBuf};
 pub struct Config {
     pub ip_and_port: String,
     pub database_str: String,
@@ -10,15 +10,8 @@ pub struct Config {
 
 
 
-pub fn read_config() -> Config {
-    use std::env;
-    use std::path::PathBuf;
-
-    let path = env::var("WORKSPACE_ROOT_CONFIG_FILE")
-        .map(PathBuf::from)
-        .expect("WORKSPACE_ROOT_CONFIG must be set");
-
-    let contents = read_to_string(path.clone()).expect(format!("Could not find path {path:#?}").as_str());
+pub fn read_config(config_file_path: PathBuf) -> Config {
+    let contents = read_to_string(&config_file_path).expect(format!("Could not find path config {config_file_path:#?}").as_str());
 
     let mut ip: Option<String> = None;
     let mut port: Option<String> = None;

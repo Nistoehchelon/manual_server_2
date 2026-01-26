@@ -4,9 +4,12 @@ use std::{
     collections::HashMap,
     fmt::{self, Display}, time::Duration,
 };
-use tokio::{io::AsyncReadExt, time::timeout};
+use tokio::{io::{AsyncRead, AsyncReadExt, AsyncWrite}, time::timeout};
 use tokio::io::BufReader;
 use url::Query;
+
+
+
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_HEADERS_COUNT: usize = 50; // 8 KB
@@ -109,8 +112,8 @@ pub fn parse_body_into_string_form_input_params(
     return Ok(params);
 }
 
-async fn parse_headers_stream(
-    stream: &mut tokio::net::TcpStream,
+async fn parse_headers_stream<S: AsyncRead + AsyncWrite + Unpin>(
+    stream: &mut S,
 ) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
     const BYTES_PER_READ: usize = 1024;
 
@@ -225,8 +228,8 @@ pub fn request_target_characters_are_valid(path: &str) -> bool {
     })
 }
 
-pub async fn parse_http_request(
-    stream: &mut tokio::net::TcpStream,
+pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
+    stream: &mut S,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
     let ParsedHeaderStream {
         headers,

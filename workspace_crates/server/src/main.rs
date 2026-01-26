@@ -2,30 +2,58 @@ use http_stuff::{
     http_request_parsing::{HttpRequestParsingError, parse_http_request},
     http_response::{StatusCode, standalone_response},
 };
-use rcgen::{generate_simple_self_signed};
 use server::token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket};
 
 use std::{collections::HashMap, net::IpAddr, path::PathBuf, sync::Arc, time::Duration};
 
 use tokio::{
-    io::{AsyncWriteExt, 
-        AsyncReadExt
+    io::{AsyncRead, AsyncWrite, AsyncWriteExt 
     },
-    net::{TcpListener, TcpStream},
+    net::{TcpListener},
     sync::Mutex, time::timeout,
 };
 
-use tokio_rustls::TlsAcceptor;
-use tokio_rustls::rustls::{ServerConfig};
+
+
+
+
 
 const LISTENER_ACCEPT_TIMEOUT_SECS: u64 = 1;
 const COMMON_STREAM_TIMEOUT_SECS: u64 = 1;
 
+
+use rcgen::generate_simple_self_signed;
+
+fn generate_self_signed_cert() -> std::io::Result<(Vec<u8>, Vec<u8>)> {
+    let subject_alt_names = vec!["localhost".to_string(), "127.0.0.1".to_string()];
+    let cert_key = generate_simple_self_signed(subject_alt_names).unwrap();
+    
+    // Serialize to DER format for rustls
+    let cert_der = cert_key.cert.der().to_vec();
+    let key_der = cert_key.signing_key.serialize_der();
+    
+    Ok((cert_der, key_der))
+}
+
+
+
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
-    // #1: Generate a self-signed cert 
-    //let cert = generate_simple_self_signed(vec!["localhost".into()]).unwrap();
 
+    let (cert_der, key_der) = generate_self_signed_cert().unwrap();
+    use tokio_rustls::rustls::{ServerConfig, pki_types::{CertificateDer, PrivateKeyDer}};
+    use tokio_rustls::TlsAcceptor;
+
+    let config = ServerConfig::builder()
+    .with_no_client_auth()
+    .with_single_cert(
+        vec![CertificateDer::from(cert_der)], 
+        PrivateKeyDer::Pkcs8(key_der.into())
+    )
+    .expect("Invalid configuration");
+
+    let acceptor = TlsAcceptor::from(Arc::new(config));
 
 
     let env = config_reader::read_config(PathBuf::from("config"));
@@ -53,8 +81,9 @@ async fn main() -> std::io::Result<()> {
     let ip_buckets: IpBuckets = Arc::new(Mutex::new(HashMap::new()));
 
     loop {
+        let acceptor = acceptor.clone();
 
-        let (mut stream, peer_ip) = match timeout(Duration::from_secs(LISTENER_ACCEPT_TIMEOUT_SECS), listener.accept()).await {
+        let (stream, peer_ip) = match timeout(Duration::from_secs(LISTENER_ACCEPT_TIMEOUT_SECS), listener.accept()).await {
             Ok(Ok((s, a))) => (s, a),
             Ok(Err(e)) => {
                 dbg!("Could not unwrap stream? :( ", e);
@@ -68,6 +97,15 @@ async fn main() -> std::io::Result<()> {
         let ip_buckets = ip_buckets.clone();
         let db_pool = db_pool.clone();
         tokio::spawn(async move {
+
+            let mut stream = match acceptor.accept(stream).await {
+                Ok(ts) => ts,
+                Err(e) => {
+                    dbg!(e);
+                    return;
+                }
+
+            };
             let _ = handle(
                 &mut stream,
                 db_pool,
@@ -95,8 +133,9 @@ async fn main() -> std::io::Result<()> {
     }
 }
 
-pub async fn handle(
-    stream: &mut TcpStream,
+
+pub async fn handle<S: AsyncRead + AsyncWrite + Unpin>(
+    stream: &mut S,
     db_pool: sqlx::PgPool,
     peer_ip: IpAddr,
     global_bucket: GlobalBucket,

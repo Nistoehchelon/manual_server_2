@@ -2,14 +2,15 @@ use encoding::decode_request_string;
 use indexmap::IndexMap;
 use std::{
     collections::HashMap,
-    fmt::{self, Display}, time::Duration,
+    fmt::{self, Display},
+    time::Duration,
 };
-use tokio::{io::{AsyncRead, AsyncReadExt, AsyncWrite}, time::timeout};
 use tokio::io::BufReader;
+use tokio::{
+    io::{AsyncRead, AsyncReadExt, AsyncWrite},
+    time::timeout,
+};
 use url::Query;
-
-
-
 
 pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
 pub const MAX_HEADERS_COUNT: usize = 50; // 8 KB
@@ -22,10 +23,6 @@ pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 pub const MAX_REQUEST_TARGET_LENGTH: usize = 150;
 
 pub const MAX_COOKIES_PER_REQUEST: usize = 50;
-
-
-
-
 
 pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
     stream: &mut S,
@@ -142,16 +139,20 @@ pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
         if content_length > 0 {
             let mut reader = BufReader::new(stream);
             let mut body_bytes_exact = vec![0; content_length];
-            match timeout(common_stream_timeout_duration, reader.read_exact(&mut body_bytes_exact)).await {
+            match timeout(
+                common_stream_timeout_duration,
+                reader.read_exact(&mut body_bytes_exact),
+            )
+            .await
+            {
                 Ok(Err(e)) => {
                     dbg!("read_exact error body", e);
                     return Err(HttpRequestParsingError::BadRequest);
                 }
-                Ok(Ok(_)) => {},
+                Ok(Ok(_)) => {}
                 Err(e) => {
                     dbg!("Timeout err read_exact body ", e);
                 }
-                
             }
             body.extend(body_bytes_exact);
         }
@@ -168,10 +169,6 @@ pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
     })
 }
 
-
-
-
-
 async fn parse_headers_from_stream<S: AsyncRead + AsyncWrite + Unpin>(
     stream: &mut S,
     common_stream_timeout_duration: Duration,
@@ -185,7 +182,9 @@ async fn parse_headers_from_stream<S: AsyncRead + AsyncWrite + Unpin>(
 
     loop {
         count_calls_to_stream_read += 1;
-        let bytes_read = match timeout(common_stream_timeout_duration, stream.read(&mut byte_buf)).await {
+        let bytes_read = match timeout(common_stream_timeout_duration, stream.read(&mut byte_buf))
+            .await
+        {
             Ok(Ok(0)) => {
                 dbg!(format!(
                     "Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} bytes, having called stream.read {count_calls_to_stream_read} times) "
@@ -200,7 +199,7 @@ async fn parse_headers_from_stream<S: AsyncRead + AsyncWrite + Unpin>(
                     "(in total read {read_total_bytes} having called stream.read {count_calls_to_stream_read} times) "
                 ));
                 return Err(HttpRequestParsingError::SomeSortOfStreamError);
-            },
+            }
             Err(_e) => {
                 dbg!("headers read timeout");
                 return Err(HttpRequestParsingError::HeadersStreamReadTimeout);
@@ -479,8 +478,6 @@ impl Headers {
         self.inner.contains_key(&name.to_ascii_lowercase())
     }
 }
-
-
 
 pub fn count_occurences_of_rn(s: &str) -> usize {
     s.match_indices("\r\n").count()

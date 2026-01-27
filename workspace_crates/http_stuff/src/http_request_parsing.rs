@@ -23,218 +23,18 @@ pub const MAX_REQUEST_TARGET_LENGTH: usize = 150;
 
 pub const MAX_COOKIES_PER_REQUEST: usize = 50;
 
-/// Holds all the parsed information from an HTTP request.
-#[derive(Clone, Debug)]
-pub struct HttpRequestData {
-    pub headers: Headers,
-    pub method: String,
-    pub path: String,
-    pub query: Query,
-    pub path_and_query: String,
-    pub body_bytes: Vec<u8>,
-    pub cookies: HashMap<String, String>,
-}
 
-#[derive(Clone, Debug)]
-pub enum HttpRequestParsingError {
-    HeadersStreamReadTimeout,
-    TooManyCookies,
-    HttpVersionNotSupported,
-    UriTooLong,
-    SomeSortOfStreamError,
-    ContentTooLarge,
-    BadRequest,
-    UnexpectedEof,
-    TooManyHeaders,
-    HeaderNameTooLong,
-    HeaderValueTooLong,
-}
-impl Display for HttpRequestParsingError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            Self::HeadersStreamReadTimeout => "Headers Stream Read Timeout",
-            Self::BadRequest => "Bad Request",
-            Self::ContentTooLarge => "Content Too Large",
-            Self::SomeSortOfStreamError => "Some Sort Of Stream Error",
-            Self::UnexpectedEof => "Unexpected End Of File",
-            Self::UriTooLong => "Uri Too Long",
-            Self::HttpVersionNotSupported => "HTTP Version Not Supported",
-            Self::TooManyHeaders => "Too Many Headers",
-            Self::TooManyCookies => "Too Many Cookies",
-            Self::HeaderNameTooLong => "Header Name Too Long",
-            Self::HeaderValueTooLong => "Header Value Too Long",
-        };
-        write!(f, "{}", s)
-    }
-}
-pub struct ParsedHeaderStream {
-    pub headers: Vec<u8>,
-    pub leftover: Vec<u8>,
-}
 
-pub fn parse_body_into_string_form_input_params(
-    body: Vec<u8>,
-) -> Result<HashMap<String, String>, String> {
-    let body = match String::from_utf8(body) {
-        Ok(b) => b,
-        Err(e) => return Err(format!("Could not parse body into valid utf8, {e:#?}")),
-    };
-    dbg!("body raw unparsed string", body.clone());
 
-    let body_clone = body.clone();
-    let split: Vec<&str> = body_clone.split('&').collect();
-    let mut params: HashMap<String, String> = HashMap::new();
-    for pair in split {
-        let (key, value) = match pair.split_once('=') {
-            Some((k, v)) => (k, v),
-            None => {
-                dbg!("Could not split post param");
-                return Err(format!("Could not split by = in post"));
-            }
-        };
-
-        let key = match decode_request_string(key.to_string()) {
-            Err(e) => {
-                return Err(format!("Could not decode key into string, {e:#?}"));
-            }
-            Ok(s) => s,
-        };
-
-        let value = match decode_request_string(value.to_string()) {
-            Err(e) => {
-                return Err(format!("Could not decode key into string, {e:#?}"));
-            }
-            Ok(s) => s,
-        };
-
-        params.insert(key.to_string(), value.to_string());
-    }
-    return Ok(params);
-}
-
-async fn parse_headers_stream<S: AsyncRead + AsyncWrite + Unpin>(
-    stream: &mut S,
-) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
-    const BYTES_PER_READ: usize = 1024;
-
-    let mut byte_buf = [0u8; BYTES_PER_READ];
-    let mut header_bytes = Vec::new();
-    let mut read_total_bytes = 0;
-    let mut count_calls_to_stream_read = 0;
-
-    const HEADERS_STREAM_READ_TIMEOUT_MS: u64 = 200;
-    loop {
-        count_calls_to_stream_read += 1;
-        let bytes_read = match timeout(Duration::from_millis(HEADERS_STREAM_READ_TIMEOUT_MS), stream.read(&mut byte_buf)).await {
-            Ok(Ok(0)) => {
-                dbg!(format!(
-                    "Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} bytes, having called stream.read {count_calls_to_stream_read} times) "
-                ));
-                return Err(HttpRequestParsingError::BadRequest);
-            }
-
-            Ok(Ok(n)) => n,
-            Ok(Err(e)) => {
-                dbg!("Stream read error", e);
-                dbg!(format!(
-                    "(in total read {read_total_bytes} having called stream.read {count_calls_to_stream_read} times) "
-                ));
-                return Err(HttpRequestParsingError::SomeSortOfStreamError);
-            },
-            Err(_e) => {
-                dbg!("headers read timeout");
-                return Err(HttpRequestParsingError::HeadersStreamReadTimeout);
-            }
-        };
-
-        read_total_bytes += bytes_read;
-
-        if read_total_bytes > MAX_HEADER_BYTES {
-            dbg!(
-                "Header size exceeded max allowed",
-                read_total_bytes,
-                MAX_HEADER_BYTES
-            );
-            return Err(HttpRequestParsingError::ContentTooLarge);
-        }
-
-        // Append the bytes we just read
-        header_bytes.extend_from_slice(&byte_buf[..bytes_read]);
-
-        // Check for header-body boundary
-        if let Some(pos) = header_bytes.windows(4).position(|w| w == b"\r\n\r\n") {
-            // `pos` points to the start of the \r\n\r\n sequence
-            let body_start = pos + 4; // skip the \r\n\r\n
-            let leftover_body = header_bytes[body_start..].to_vec(); // save bytes beyond headers
-
-            // truncate header_bytes to only the headers
-            header_bytes.truncate(body_start);
-
-            // not sure if there is a point to this check... Vec u8 will by definition only contain ascii  bytes, right?
-            if !header_bytes.is_ascii() {
-                dbg!("I do not accept headers with non-ascii bytes");
-                return Err(HttpRequestParsingError::BadRequest);
-            }
-
-            return Ok(ParsedHeaderStream {
-                headers: header_bytes,
-                leftover: leftover_body,
-            });
-        }
-    }
-}
-
-pub fn count_occurences_of_rn(s: &str) -> usize {
-    s.match_indices("\r\n").count()
-}
-
-pub fn all_characters_in_header_name_are_valid(name: &str) -> bool {
-    !name.is_empty()
-        && name.bytes().all(|b| {
-            matches!(b,
-                b'A'..=b'Z' |
-                b'a'..=b'z' |
-                b'0'..=b'9' |
-                b'!' | b'#' | b'$' | b'%' | b'&' | b'\'' | b'*' |
-                b'+' | b'-' | b'.' | b'^' | b'_' | b'`' | b'|' | b'~'
-            )
-        })
-}
-pub fn request_target_characters_are_valid(path: &str) -> bool {
-    path.chars().all(|c| {
-        c.is_ascii_alphanumeric()
-            || matches!(
-                c,
-                '-' | '.'
-                    | '_'
-                    | '~'
-                    | '!'
-                    | '$'
-                    | '&'
-                    | '\''
-                    | '('
-                    | ')'
-                    | '*'
-                    | '+'
-                    | ','
-                    | ';'
-                    | '='
-                    | ':'
-                    | '@'
-                    | '/'
-                    | '?'
-                    | '%'
-            )
-    })
-}
 
 pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
     stream: &mut S,
+    common_stream_timeout_duration: Duration,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
     let ParsedHeaderStream {
         headers,
         leftover: leftover_from_headers_parsing,
-    } = parse_headers_stream(stream).await?;
+    } = parse_headers_from_stream(stream, common_stream_timeout_duration.clone()).await?;
     let headers_string = String::from_utf8_lossy(&headers).to_string();
     let headers_count = count_occurences_of_rn(&headers_string);
 
@@ -342,12 +142,16 @@ pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
         if content_length > 0 {
             let mut reader = BufReader::new(stream);
             let mut body_bytes_exact = vec![0; content_length];
-            match reader.read_exact(&mut body_bytes_exact).await {
-                Err(e) => {
+            match timeout(common_stream_timeout_duration, reader.read_exact(&mut body_bytes_exact)).await {
+                Ok(Err(e)) => {
                     dbg!("read_exact error body", e);
                     return Err(HttpRequestParsingError::BadRequest);
                 }
-                Ok(_) => {}
+                Ok(Ok(_)) => {},
+                Err(e) => {
+                    dbg!("Timeout err read_exact body ", e);
+                }
+                
             }
             body.extend(body_bytes_exact);
         }
@@ -362,6 +166,171 @@ pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
         cookies,
         headers,
     })
+}
+
+
+
+
+
+async fn parse_headers_from_stream<S: AsyncRead + AsyncWrite + Unpin>(
+    stream: &mut S,
+    common_stream_timeout_duration: Duration,
+) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
+    const BYTES_PER_READ: usize = 1024;
+
+    let mut byte_buf = [0u8; BYTES_PER_READ];
+    let mut header_bytes = Vec::new();
+    let mut read_total_bytes = 0;
+    let mut count_calls_to_stream_read = 0;
+
+    loop {
+        count_calls_to_stream_read += 1;
+        let bytes_read = match timeout(common_stream_timeout_duration, stream.read(&mut byte_buf)).await {
+            Ok(Ok(0)) => {
+                dbg!(format!(
+                    "Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} bytes, having called stream.read {count_calls_to_stream_read} times) "
+                ));
+                return Err(HttpRequestParsingError::BadRequest);
+            }
+
+            Ok(Ok(n)) => n,
+            Ok(Err(e)) => {
+                dbg!("Stream read error", e);
+                dbg!(format!(
+                    "(in total read {read_total_bytes} having called stream.read {count_calls_to_stream_read} times) "
+                ));
+                return Err(HttpRequestParsingError::SomeSortOfStreamError);
+            },
+            Err(_e) => {
+                dbg!("headers read timeout");
+                return Err(HttpRequestParsingError::HeadersStreamReadTimeout);
+            }
+        };
+
+        read_total_bytes += bytes_read;
+
+        if read_total_bytes > MAX_HEADER_BYTES {
+            dbg!(
+                "Header size exceeded max allowed",
+                read_total_bytes,
+                MAX_HEADER_BYTES
+            );
+            return Err(HttpRequestParsingError::ContentTooLarge);
+        }
+
+        // Append the bytes we just read
+        header_bytes.extend_from_slice(&byte_buf[..bytes_read]);
+
+        // Check for header-body boundary
+        if let Some(pos) = header_bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+            // `pos` points to the start of the \r\n\r\n sequence
+            let body_start = pos + 4; // skip the \r\n\r\n
+            let leftover_body = header_bytes[body_start..].to_vec(); // save bytes beyond headers
+
+            // truncate header_bytes to only the headers
+            header_bytes.truncate(body_start);
+
+            // not sure if there is a point to this check... Vec u8 will by definition only contain ascii  bytes, right?
+            if !header_bytes.is_ascii() {
+                dbg!("I do not accept headers with non-ascii bytes");
+                return Err(HttpRequestParsingError::BadRequest);
+            }
+
+            return Ok(ParsedHeaderStream {
+                headers: header_bytes,
+                leftover: leftover_body,
+            });
+        }
+    }
+}
+
+/// Holds all the parsed information from an HTTP request.
+#[derive(Clone, Debug)]
+pub struct HttpRequestData {
+    pub headers: Headers,
+    pub method: String,
+    pub path: String,
+    pub query: Query,
+    pub path_and_query: String,
+    pub body_bytes: Vec<u8>,
+    pub cookies: HashMap<String, String>,
+}
+
+#[derive(Clone, Debug)]
+pub enum HttpRequestParsingError {
+    HeadersStreamReadTimeout,
+    TooManyCookies,
+    HttpVersionNotSupported,
+    UriTooLong,
+    SomeSortOfStreamError,
+    ContentTooLarge,
+    BadRequest,
+    UnexpectedEof,
+    TooManyHeaders,
+    HeaderNameTooLong,
+    HeaderValueTooLong,
+}
+impl Display for HttpRequestParsingError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::HeadersStreamReadTimeout => "Headers Stream Read Timeout",
+            Self::BadRequest => "Bad Request",
+            Self::ContentTooLarge => "Content Too Large",
+            Self::SomeSortOfStreamError => "Some Sort Of Stream Error",
+            Self::UnexpectedEof => "Unexpected End Of File",
+            Self::UriTooLong => "Uri Too Long",
+            Self::HttpVersionNotSupported => "HTTP Version Not Supported",
+            Self::TooManyHeaders => "Too Many Headers",
+            Self::TooManyCookies => "Too Many Cookies",
+            Self::HeaderNameTooLong => "Header Name Too Long",
+            Self::HeaderValueTooLong => "Header Value Too Long",
+        };
+        write!(f, "{}", s)
+    }
+}
+pub struct ParsedHeaderStream {
+    pub headers: Vec<u8>,
+    pub leftover: Vec<u8>,
+}
+
+pub fn parse_body_into_string_form_input_params(
+    body: Vec<u8>,
+) -> Result<HashMap<String, String>, String> {
+    let body = match String::from_utf8(body) {
+        Ok(b) => b,
+        Err(e) => return Err(format!("Could not parse body into valid utf8, {e:#?}")),
+    };
+    dbg!("body raw unparsed string", body.clone());
+
+    let body_clone = body.clone();
+    let split: Vec<&str> = body_clone.split('&').collect();
+    let mut params: HashMap<String, String> = HashMap::new();
+    for pair in split {
+        let (key, value) = match pair.split_once('=') {
+            Some((k, v)) => (k, v),
+            None => {
+                dbg!("Could not split post param");
+                return Err(format!("Could not split by = in post"));
+            }
+        };
+
+        let key = match decode_request_string(key.to_string()) {
+            Err(e) => {
+                return Err(format!("Could not decode key into string, {e:#?}"));
+            }
+            Ok(s) => s,
+        };
+
+        let value = match decode_request_string(value.to_string()) {
+            Err(e) => {
+                return Err(format!("Could not decode key into string, {e:#?}"));
+            }
+            Ok(s) => s,
+        };
+
+        params.insert(key.to_string(), value.to_string());
+    }
+    return Ok(params);
 }
 
 fn parse_path_and_query(path_with_query: String) -> (String, Query) {
@@ -509,4 +478,50 @@ impl Headers {
     pub fn contains(&self, name: &str) -> bool {
         self.inner.contains_key(&name.to_ascii_lowercase())
     }
+}
+
+
+
+pub fn count_occurences_of_rn(s: &str) -> usize {
+    s.match_indices("\r\n").count()
+}
+
+pub fn all_characters_in_header_name_are_valid(name: &str) -> bool {
+    !name.is_empty()
+        && name.bytes().all(|b| {
+            matches!(b,
+                b'A'..=b'Z' |
+                b'a'..=b'z' |
+                b'0'..=b'9' |
+                b'!' | b'#' | b'$' | b'%' | b'&' | b'\'' | b'*' |
+                b'+' | b'-' | b'.' | b'^' | b'_' | b'`' | b'|' | b'~'
+            )
+        })
+}
+pub fn request_target_characters_are_valid(path: &str) -> bool {
+    path.chars().all(|c| {
+        c.is_ascii_alphanumeric()
+            || matches!(
+                c,
+                '-' | '.'
+                    | '_'
+                    | '~'
+                    | '!'
+                    | '$'
+                    | '&'
+                    | '\''
+                    | '('
+                    | ')'
+                    | '*'
+                    | '+'
+                    | ','
+                    | ';'
+                    | '='
+                    | ':'
+                    | '@'
+                    | '/'
+                    | '?'
+                    | '%'
+            )
+    })
 }

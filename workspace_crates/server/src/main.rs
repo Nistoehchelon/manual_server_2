@@ -47,7 +47,7 @@ async fn main() -> std::io::Result<()> {
             server_config.ip_and_port.clone()
         ));
     println!(
-        "Server listening on http://{}",
+        "Server listening on https://{}",
         server_config.ip_and_port.clone()
     );
 

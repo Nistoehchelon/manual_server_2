@@ -1,3 +1,4 @@
+use config_reader::config_reader::SslOrPlain;
 use http_stuff::{
     http_request_parsing::{HttpRequestParsingError, parse_http_request},
     http_response::{StatusCode, standalone_response},
@@ -24,7 +25,7 @@ async fn main() -> std::io::Result<()> {
 
     let production = false;
     let mut state = AcmeConfig::new([server_config.domain_name.clone()])
-    .contact(["mailto:none@none.none"])
+    .contact(["mailto:email123@example.com"])
     .cache_option(Some(DirCache::new("./rustls_acme_cache")))
     .directory_lets_encrypt(production)
     .state();
@@ -32,7 +33,9 @@ async fn main() -> std::io::Result<()> {
     let challenge_rustls_config = state.challenge_rustls_config();
     let default_rustls_config = state.default_rustls_config();
 
-    tokio::spawn(async move {
+
+if server_config.ssl_or_plain == SslOrPlain::Ssl {
+        tokio::spawn(async move {
         loop {
             match state.next().await.unwrap() {
                 Ok(ok) => println!("event: {:#?}", ok),
@@ -41,6 +44,7 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
+}
     let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone()).await.expect(&format!(
             "I expected to bind to address {}",
             server_config.ip_and_port.clone()
@@ -64,6 +68,9 @@ async fn main() -> std::io::Result<()> {
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
     
     loop {
+        let global_bucket = global_bucket.clone();
+        let ip_buckets = ip_buckets.clone();
+        let db_pool = db_pool.clone();
         let (tcp, peer_ip) =
             match timeout(common_stream_timeout_duration.clone(), listener.accept()).await {
                 Ok(Ok((s, a))) => (s, a),
@@ -75,12 +82,43 @@ async fn main() -> std::io::Result<()> {
                     continue;
                 }
             };
+
+        if server_config.ssl_or_plain == SslOrPlain::Plain {
+
+                tokio::spawn(async move {
+                let mut stream = tcp;
+                let _ = handle(
+                &mut stream,
+                db_pool,
+                peer_ip.ip(),
+                global_bucket,
+                ip_buckets,
+                server_config.per_ip_token_bucket_capacity.clone(),
+                server_config
+                    .per_ip_token_bucket_refill_rate_per_millis
+                    .clone(),
+                common_stream_timeout_duration.clone(),
+            )
+            .await;
+            let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
+            if f.is_err() {
+                dbg!("main.rs flush timeout, dropping stream immediately");
+                drop(stream);
+                return;
+            }
+            let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
+            if s.is_err() {
+                dbg!("main.rs stream shutdown timed out, dropping it I guess?");
+                drop(stream);
+                return;
+            }
+        });
+
+        }  else { 
         let challenge_rustls_config = challenge_rustls_config.clone();
         let default_rustls_config = default_rustls_config.clone();
         
-        let global_bucket = global_bucket.clone();
-        let ip_buckets = ip_buckets.clone();
-        let db_pool = db_pool.clone();
+
 
         tokio::spawn(async move {
             let start_handshake = LazyConfigAcceptor::new(Default::default(), tcp).await.unwrap();
@@ -120,58 +158,7 @@ async fn main() -> std::io::Result<()> {
             }
         });
     }
-
-
-
-    // loop {
-
-
-    //     let acceptor = acceptor.clone();
-    //     let global_bucket = global_bucket.clone();
-    //     let ip_buckets = ip_buckets.clone();
-    //     let db_pool = db_pool.clone();
-
-    // }
-
-
-
-    /*
-    
-            tokio::spawn(async move {
-            let mut stream = match acceptor.accept(stream).await {
-                Ok(ts) => ts,
-                Err(e) => {
-                    dbg!(e);
-                    return;
-                }
-            };
-            let _ = handle(
-                &mut stream,
-                db_pool,
-                peer_ip.ip(),
-                global_bucket,
-                ip_buckets,
-                server_config.per_ip_token_bucket_capacity.clone(),
-                server_config
-                    .per_ip_token_bucket_refill_rate_per_millis
-                    .clone(),
-                common_stream_timeout_duration.clone(),
-            )
-            .await;
-            let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
-            if f.is_err() {
-                dbg!("main.rs flush timeout, dropping stream immediately");
-                drop(stream);
-                return;
-            }
-            let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
-            if s.is_err() {
-                dbg!("main.rs stream shutdown timed out, dropping it I guess?");
-                drop(stream);
-                return;
-            }
-        });
-     */
+    }
 }
 
 pub async fn handle<S: AsyncRead + AsyncWrite + Unpin>(

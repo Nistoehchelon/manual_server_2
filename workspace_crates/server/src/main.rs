@@ -2,47 +2,46 @@ use http_stuff::{
     http_request_parsing::{HttpRequestParsingError, parse_http_request},
     http_response::{StatusCode, standalone_response},
 };
+
 use server::{
-    ssl::generate_self_signed_cert,
     token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket},
 };
+use tokio_rustls::LazyConfigAcceptor;
 
 use std::{collections::HashMap, net::IpAddr, path::PathBuf, sync::Arc, time::Duration};
 
 use tokio::{
     io::{AsyncRead, AsyncWrite, AsyncWriteExt},
-    net::TcpListener,
     sync::Mutex,
     time::timeout,
 };
-
-use tokio_rustls::TlsAcceptor;
-use tokio_rustls::rustls::{
-    ServerConfig,
-    pki_types::{CertificateDer, PrivateKeyDer},
-};
+use rustls_acme::{AcmeConfig, caches::DirCache, is_tls_alpn_challenge};
+use tokio_stream::{StreamExt};
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
     let server_config = config_reader::read_config(PathBuf::from("config"));
 
-    rustls::crypto::aws_lc_rs::default_provider()
-        .install_default()
-        .expect("Failed to install aws-lc-rs provider");
-    let (cert_der, key_der) = generate_self_signed_cert().unwrap();
+    let production = false;
+    let mut state = AcmeConfig::new([server_config.domain_name.clone()])
+    .contact(["mailto:none@none.none"])
+    .cache_option(Some(DirCache::new("./rustls_acme_cache")))
+    .directory_lets_encrypt(production)
+    .state();
 
-    let tls_config = ServerConfig::builder()
-        .with_no_client_auth()
-        .with_single_cert(
-            vec![CertificateDer::from(cert_der)],
-            PrivateKeyDer::Pkcs8(key_der.into()),
-        )
-        .expect("Invalid configuration");
-    dbg!(tls_config.crypto_provider());
-    let acceptor = TlsAcceptor::from(Arc::new(tls_config));
-    let listener = TcpListener::bind(server_config.ip_and_port.clone())
-        .await
-        .expect(&format!(
+    let challenge_rustls_config = state.challenge_rustls_config();
+    let default_rustls_config = state.default_rustls_config();
+
+    tokio::spawn(async move {
+        loop {
+            match state.next().await.unwrap() {
+                Ok(ok) => println!("event: {:#?}", ok),
+                Err(err) => println!("error: {:#?}", err),
+            }
+        }
+    });
+
+    let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone()).await.expect(&format!(
             "I expected to bind to address {}",
             server_config.ip_and_port.clone()
         ));
@@ -51,7 +50,7 @@ async fn main() -> std::io::Result<()> {
         server_config.ip_and_port.clone()
     );
 
-    // for rate limiting
+        // for rate limiting
     let global_bucket: GlobalBucket = Arc::new(Mutex::new(TokenBucket::new(
         server_config.server_global_requests_token_bucket_capacity,
         server_config.server_global_requests_token_bucket_refill_rate_per_millis,
@@ -63,9 +62,9 @@ async fn main() -> std::io::Result<()> {
         .expect("Pool construction did not succeed");
     let common_stream_timeout_duration =
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
-
+    
     loop {
-        let (stream, peer_ip) =
+        let (tcp, peer_ip) =
             match timeout(common_stream_timeout_duration.clone(), listener.accept()).await {
                 Ok(Ok((s, a))) => (s, a),
                 Ok(Err(e)) => {
@@ -76,12 +75,69 @@ async fn main() -> std::io::Result<()> {
                     continue;
                 }
             };
-
-        let acceptor = acceptor.clone();
+        let challenge_rustls_config = challenge_rustls_config.clone();
+        let default_rustls_config = default_rustls_config.clone();
+        
         let global_bucket = global_bucket.clone();
         let ip_buckets = ip_buckets.clone();
         let db_pool = db_pool.clone();
+
         tokio::spawn(async move {
+            let start_handshake = LazyConfigAcceptor::new(Default::default(), tcp).await.unwrap();
+
+            if is_tls_alpn_challenge(&start_handshake.client_hello()) {
+                println!("Yay, received a TLS-ALPN-01 validation request. Time to destroy the planet.");
+                let mut tls = start_handshake.into_stream(challenge_rustls_config).await.unwrap();
+                tls.shutdown().await.unwrap();
+            } else {
+                let mut stream = start_handshake.into_stream(default_rustls_config).await.unwrap();
+                let _ = handle(
+                &mut stream,
+                db_pool,
+                peer_ip.ip(),
+                global_bucket,
+                ip_buckets,
+                server_config.per_ip_token_bucket_capacity.clone(),
+                server_config
+                    .per_ip_token_bucket_refill_rate_per_millis
+                    .clone(),
+                common_stream_timeout_duration.clone(),
+            )
+            .await;
+            let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
+            if f.is_err() {
+                dbg!("main.rs flush timeout, dropping stream immediately");
+                drop(stream);
+                return;
+            }
+            let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
+            if s.is_err() {
+                dbg!("main.rs stream shutdown timed out, dropping it I guess?");
+                drop(stream);
+                return;
+            }
+
+            }
+        });
+    }
+
+
+
+    // loop {
+
+
+    //     let acceptor = acceptor.clone();
+    //     let global_bucket = global_bucket.clone();
+    //     let ip_buckets = ip_buckets.clone();
+    //     let db_pool = db_pool.clone();
+
+    // }
+
+
+
+    /*
+    
+            tokio::spawn(async move {
             let mut stream = match acceptor.accept(stream).await {
                 Ok(ts) => ts,
                 Err(e) => {
@@ -115,7 +171,7 @@ async fn main() -> std::io::Result<()> {
                 return;
             }
         });
-    }
+     */
 }
 
 pub async fn handle<S: AsyncRead + AsyncWrite + Unpin>(

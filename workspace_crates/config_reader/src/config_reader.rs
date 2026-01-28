@@ -2,6 +2,7 @@ use std::{fs::read_to_string, path::PathBuf};
 pub struct Config {
     pub ip_and_port: String,
     pub database_str: String,
+    pub domain_name: String,
     pub server_global_requests_token_bucket_capacity: f64,
     pub server_global_requests_token_bucket_refill_rate_per_millis: f64,
     pub per_ip_token_bucket_capacity: f64,
@@ -25,6 +26,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut ip: Option<String> = None;
     let mut port: Option<String> = None;
     let mut db_url: Option<String> = None;
+
+    let mut domain_name: Option<String> = None;
 
     let mut server_token_bucket_capacity: Option<f64> = None;
     let mut server_token_bucket_refill_rate: Option<f64> = None;
@@ -58,6 +61,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             "IP" => ip = Some(value),
             "PORT" => port = Some(value),
             "DATABASE_URL" => db_url = Some(value),
+            "DOMAIN_NAME" => domain_name = Some(value),
             "SERVER_TOKEN_BUCKET_CAPACITY" => {
                 let value = value
                     .parse::<f64>()
@@ -144,6 +148,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let ip = ip.expect("Missing IP in config file");
     let port = port.expect("Missing PORT in config file");
     let db_url = db_url.expect("Missing DATABASE_URL in config file");
+    let domain_name = domain_name.expect("Missing DOMAIN_NAME in config file");
     let server_token_bucket_capacity =
         server_token_bucket_capacity.expect("Missing SERVER_TOKEN_BUCKET_CAPACITY in config");
     let server_token_bucket_refill_rate = server_token_bucket_refill_rate
@@ -172,6 +177,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     Config {
         ip_and_port: format!("{ip}:{port}"),
         database_str: db_url.to_string(),
+        domain_name,
         server_global_requests_token_bucket_capacity: server_token_bucket_capacity,
         server_global_requests_token_bucket_refill_rate_per_millis: server_token_bucket_refill_rate,
         per_ip_token_bucket_capacity: per_ip_token_bucket_capacity,

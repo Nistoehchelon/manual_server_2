@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 tokio = { workspace = true }
+tokio-stream = { workspace = true }
 urlencoding = {workspace = true}
 routing = { workspace = true }
 http_stuff = { workspace = true }
@@ -19,6 +20,5 @@ into_vec = { workspace = true }
 sqlx = { workspace = true }
 tokio-rustls = { workspace = true }
 rustls = { workspace = true }
-
-rcgen = { workspace = true }
+rustls-acme = { workspace = true }
 

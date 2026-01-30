@@ -5,15 +5,15 @@ use tokio::{
     net::TcpListener, time::timeout,
 };
 
-pub async fn http_to_https_redirect(domain: String, ip: String, port: u64, common_stream_timeout_duration: Duration) -> tokio::io::Result<()> {
-    let listener = TcpListener::bind(format!("{ip}:{port}").as_str()).await?;
+pub async fn http_to_https_redirect(domain: String, ip: String, ssl_port: u64, common_stream_timeout_duration: Duration) -> tokio::io::Result<()> {
+    let listener = TcpListener::bind(format!("{ip}:80").as_str()).await?;
     loop {
         let domain = domain.clone();
         let (mut stream, _addr) = listener.accept().await?;
         tokio::spawn(async move {
             let mut location = format!("https://{}", domain);
-            if port != 80 {
-                location.push_str(format!(":{port}").as_str());
+            if ssl_port != 443 {
+                location.push_str(format!(":{ssl_port}").as_str());
             }
             location.push_str("/");
             

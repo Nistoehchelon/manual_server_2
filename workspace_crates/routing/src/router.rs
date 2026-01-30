@@ -123,11 +123,9 @@ pub async fn route(
 
     if created_new_session {
         let ch = SetCookieHeader {
-            value: format!(
-                "{}={}; Path=/",
-                session::get_name_of_cookie_containing_session_id(),
-                session.id.clone()
-            ),
+            key: session::get_name_of_cookie_containing_session_id(),
+            value: session.id.clone(),
+            path: "/".to_string(),
         };
         match response_data.set_cookie_headers {
             None => {

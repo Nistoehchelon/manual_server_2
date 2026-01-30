@@ -49,7 +49,9 @@ impl Display for StatusCode {
 
 #[derive(Debug)]
 pub struct SetCookieHeader {
+    pub key: String,
     pub value: String,
+    pub path: String,
 }
 #[derive(Debug)]
 pub enum ContentType {
@@ -129,7 +131,13 @@ pub fn response(
     match set_cookie_headers {
         Some(set_cookie_headers_vec) => {
             for sc in set_cookie_headers_vec.iter() {
-                let set_cookie_headers_string = format!("Set-Cookie: {}\r\n", sc.value.to_string());
+                let set_cookie_headers_string = format!(
+                    "Set-Cookie: {}={}; Path={}; Secure; HttpOnly; SameSite=Strict
+\r\n",
+                    sc.key.to_lowercase().to_string(),
+                    sc.value.to_string(),
+                    sc.path.to_string()
+                );
                 http_response_string.push_str(&set_cookie_headers_string);
             }
         }
@@ -166,6 +174,10 @@ pub fn response(
     };
 
     http_response_string.push_str(&format!("Content-Length: {body_bytes_length}"));
+
+    http_response_string.push_str(&format!(
+        "Strict-Transport-Security: max-age=999999999; includeSubDomains; preload"
+    ));
 
     http_response_string.push_str("\r\n\r\n");
 

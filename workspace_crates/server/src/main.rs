@@ -5,6 +5,7 @@ use http_stuff::{
 };
 
 use server::{
+    http_to_https_redirect::http_to_https_redirect,
     load_local_cert::load_local_tls_config,
     token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket},
 };
@@ -71,6 +72,19 @@ async fn main() -> std::io::Result<()> {
     let common_stream_timeout_duration =
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
 
+    // redirect from http  to https
+
+    let server_config_for_task = server_config.clone();
+    tokio::spawn(async move {
+        let _ = http_to_https_redirect(
+            server_config_for_task.domain_name,
+            server_config_for_task.ip,
+            server_config_for_task.port,
+            Duration::from_millis(server_config_for_task.common_stream_timeout_millis),
+        )
+        .await;
+    });
+
     loop {
         let global_bucket = global_bucket.clone();
         let ip_buckets = ip_buckets.clone();
@@ -131,6 +145,7 @@ async fn main() -> std::io::Result<()> {
                             .await
                             .unwrap();
                         tls.shutdown().await.unwrap();
+                        return;
                     } else {
                         let mut stream = start_handshake
                             .into_stream(default_rustls_config)
@@ -145,6 +160,7 @@ async fn main() -> std::io::Result<()> {
                             server_config.clone(),
                         )
                         .await;
+                        return;
                     }
                 });
             }

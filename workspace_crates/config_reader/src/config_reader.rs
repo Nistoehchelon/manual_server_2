@@ -3,6 +3,8 @@ use std::{fs::read_to_string, path::PathBuf, str::FromStr};
 #[derive(Debug, Clone)]
 pub struct Config {
     pub ip_and_port: String,
+    pub port: u64,
+    pub ip: String,
     pub database_str: String,
     pub domain_name: String,
     pub server_global_requests_token_bucket_capacity: f64,
@@ -44,7 +46,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         .expect(format!("Could not find path config {config_file_path:#?}").as_str());
 
     let mut ip: Option<String> = None;
-    let mut port: Option<String> = None;
+    let mut port: Option<u64> = None;
     let mut db_url: Option<String> = None;
 
     let mut domain_name: Option<String> = None;
@@ -82,7 +84,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
 
         match key {
             "IP" => ip = Some(value),
-            "PORT" => port = Some(value),
+            "PORT" => port = Some(value.parse().unwrap()),
             "DATABASE_URL" => db_url = Some(value),
             "DOMAIN_NAME" => domain_name = Some(value),
             "ENVIRONMENT" => environment = Some(value.parse().unwrap()),
@@ -211,6 +213,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         lets_encrypt_contact_email.expect("Missing LETS_ENCRYPT_CONTACT_EMAIL in config file");
 
     Config {
+        ip: ip.clone(),
+        port,
         ip_and_port: format!("{ip}:{port}"),
         database_str: db_url.to_string(),
         domain_name,

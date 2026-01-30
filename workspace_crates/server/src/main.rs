@@ -1,4 +1,5 @@
-use config_reader::config_reader::SslOrPlain;
+
+use config_reader::config_reader::Environment;
 use http_stuff::{
     http_request_parsing::{HttpRequestParsingError, parse_http_request},
     http_response::{StatusCode, standalone_response},
@@ -23,19 +24,19 @@ use tokio_stream::{StreamExt};
 async fn main() -> std::io::Result<()> {
     let server_config = config_reader::read_config(PathBuf::from("config"));
 
-    let production = false;
     let mut state = AcmeConfig::new([server_config.domain_name.clone()])
-    .contact(["mailto:email123@example.com"])
+    .contact(["mailto:none-existent-email@23erwgrhsra132e.com"])
     .cache_option(Some(DirCache::new("./rustls_acme_cache")))
-    .directory_lets_encrypt(production)
+    .directory_lets_encrypt(server_config.lets_encrypt_production.clone())
     .state();
 
     let challenge_rustls_config = state.challenge_rustls_config();
     let default_rustls_config = state.default_rustls_config();
 
 
-if server_config.ssl_or_plain == SslOrPlain::Ssl {
-        tokio::spawn(async move {
+if server_config.environment == Environment::Production {
+// Spawns... the loop that updates the certs from Let's Encrypt if needed and so on, I think?
+    tokio::spawn(async move {
         loop {
             match state.next().await.unwrap() {
                 Ok(ok) => println!("event: {:#?}", ok),
@@ -43,7 +44,6 @@ if server_config.ssl_or_plain == SslOrPlain::Ssl {
             }
         }
     });
-
 }
     let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone()).await.expect(&format!(
             "I expected to bind to address {}",
@@ -83,7 +83,7 @@ if server_config.ssl_or_plain == SslOrPlain::Ssl {
                 }
             };
 
-        if server_config.ssl_or_plain == SslOrPlain::Plain {
+        if server_config.environment == Environment::Local {
 
                 tokio::spawn(async move {
                 let mut stream = tcp;

@@ -17,26 +17,25 @@ pub struct Config {
     pub max_total_body_size_bytes: usize,
     pub max_request_path_length: usize,
     pub max_cookies_count: usize,
-    pub ssl_or_plain: SslOrPlain,
+    pub environment: Environment,
+    pub lets_encrypt_production: bool,
 }
-
 #[derive(Debug, PartialEq)]
-pub enum SslOrPlain {
-    Ssl,
-    Plain,
+pub enum Environment {
+    Local,
+    Production,
 }
-impl FromStr for SslOrPlain {
+impl FromStr for Environment {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.trim().to_ascii_lowercase().as_str() {
-            "ssl" => Ok(SslOrPlain::Ssl),
-            "plain" => Ok(SslOrPlain::Plain),
-            other => Err(format!("Unknown TLS mode: {other}")),
+        match s {
+            "local" => Ok(Environment::Local),
+            "production" => Ok(Environment::Production),
+            any_other_input => Err(format!("Invalid environment {any_other_input}")),
         }
     }
 }
-
 pub fn read_config(config_file_path: PathBuf) -> Config {
     let contents = read_to_string(&config_file_path)
         .expect(format!("Could not find path config {config_file_path:#?}").as_str());
@@ -46,7 +45,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut db_url: Option<String> = None;
 
     let mut domain_name: Option<String> = None;
-    let mut ssl_or_plain: Option<SslOrPlain> = None;
+    let mut environment: Option<Environment> = None;
+    let mut lets_encrypt_production: Option<bool> = None;
 
     let mut server_token_bucket_capacity: Option<f64> = None;
     let mut server_token_bucket_refill_rate: Option<f64> = None;
@@ -81,7 +81,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             "PORT" => port = Some(value),
             "DATABASE_URL" => db_url = Some(value),
             "DOMAIN_NAME" => domain_name = Some(value),
-            "SSL_OR_PLAIN" => ssl_or_plain = Some(value.parse().unwrap()),
+            "ENVIRONMENT" => environment = Some(value.parse().unwrap()),
+            "LETS_ENCRYPT_PRODUCTION" => lets_encrypt_production = Some(value.parse().unwrap()),
             "SERVER_TOKEN_BUCKET_CAPACITY" => {
                 let value = value
                     .parse::<f64>()
@@ -193,7 +194,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let max_request_path_length =
         max_request_path_length.expect("Missing MAX_REQUEST_PATH_LENGTH in config file");
     let max_cookies_count = max_cookies_count.expect("Missing MAX_COOKIES_COUNT in config file");
-    let ssl_or_plain = ssl_or_plain.expect("Missing SSL_OR_PLAIN in config file");
+    let use_local_ssl = environment.expect("Missing ENVIRONMENT in config file");
+    let lets_encrypt_production = lets_encrypt_production.expect("Missing LETS_ENCRYPT_PRODUCTION in config file");
 
     Config {
         ip_and_port: format!("{ip}:{port}"),
@@ -211,6 +213,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         max_headers_count,
         max_request_path_length,
         max_total_headers_size_bytes,
-        ssl_or_plain,
+        environment: use_local_ssl,
+        lets_encrypt_production,
+
     }
 }

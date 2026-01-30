@@ -1,4 +1,4 @@
-use config_reader::config_reader::Environment;
+use config_reader::{Config, config_reader::Environment};
 use http_stuff::{
     http_request_parsing::{HttpRequestParsingError, parse_http_request},
     http_response::{StatusCode, standalone_response},
@@ -22,7 +22,7 @@ use tokio_stream::StreamExt;
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
-    let server_config = config_reader::read_config(PathBuf::from("config"));
+    let server_config = config_reader::read_config(PathBuf::from(".env"));
 
     let mut state = AcmeConfig::new([server_config.domain_name.clone()])
         .contact([format!("mailto:{}", server_config.lets_encrypt_contact_email.clone())])
@@ -97,31 +97,7 @@ async fn main() -> std::io::Result<()> {
                     }
                 };
 
-                let _ = handle(
-                    &mut stream,
-                    db_pool,
-                    peer_ip.ip(),
-                    global_bucket,
-                    ip_buckets,
-                    server_config.per_ip_token_bucket_capacity.clone(),
-                    server_config
-                        .per_ip_token_bucket_refill_rate_per_millis
-                        .clone(),
-                    common_stream_timeout_duration.clone(),
-                )
-                .await;
-                let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
-                if f.is_err() {
-                    dbg!("main.rs flush timeout, dropping stream immediately");
-                    drop(stream);
-                    return;
-                }
-                let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
-                if s.is_err() {
-                    dbg!("main.rs stream shutdown timed out, dropping it I guess?");
-                    drop(stream);
-                    return;
-                }
+              handle_stream(&mut stream, db_pool, peer_ip.ip(), global_bucket, ip_buckets, server_config.clone()).await;
             });
         } else {
             let challenge_rustls_config = challenge_rustls_config.clone();
@@ -146,39 +122,49 @@ async fn main() -> std::io::Result<()> {
                         .into_stream(default_rustls_config)
                         .await
                         .unwrap();
-                    let _ = handle(
-                        &mut stream,
-                        db_pool,
-                        peer_ip.ip(),
-                        global_bucket,
-                        ip_buckets,
-                        server_config.per_ip_token_bucket_capacity.clone(),
-                        server_config
-                            .per_ip_token_bucket_refill_rate_per_millis
-                            .clone(),
-                        common_stream_timeout_duration.clone(),
-                    )
-                    .await;
-                    let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
-                    if f.is_err() {
-                        dbg!("main.rs flush timeout, dropping stream immediately");
-                        drop(stream);
-                        return;
-                    }
-                    let s =
-                        timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
-                    if s.is_err() {
-                        dbg!("main.rs stream shutdown timed out, dropping it I guess?");
-                        drop(stream);
-                        return;
-                    }
+handle_stream(&mut stream, db_pool, peer_ip.ip(), global_bucket, ip_buckets, server_config.clone()).await;
                 }
             });
         }
     }
 }
 
-pub async fn handle<S: AsyncRead + AsyncWrite + Unpin>(
+
+pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(stream: &mut S,
+    db_pool: sqlx::PgPool,
+    peer_ip: IpAddr,
+    global_bucket: GlobalBucket,
+    ip_buckets: IpBuckets,
+    server_config: Config) {
+                    let common_stream_timeout_duration = Duration::from_millis(server_config.common_stream_timeout_millis.clone());
+
+                    let _ = generate_and_write_response(
+                    &mut stream,
+                    db_pool,
+                    peer_ip,
+                    global_bucket,
+                    ip_buckets,
+                    server_config.per_ip_token_bucket_capacity.clone(),
+                    server_config
+                        .per_ip_token_bucket_refill_rate_per_millis
+                        .clone(),
+                    common_stream_timeout_duration.clone(),
+                )
+                .await;
+                let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
+                if f.is_err() {
+                    dbg!("main.rs flush timeout, dropping stream immediately");
+                    drop(stream);
+                    return;
+                }
+                let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
+                if s.is_err() {
+                    dbg!("main.rs stream shutdown timed out, dropping it I guess?");
+                    drop(stream);
+                    return;
+                }
+}
+pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     stream: &mut S,
     db_pool: sqlx::PgPool,
     peer_ip: IpAddr,

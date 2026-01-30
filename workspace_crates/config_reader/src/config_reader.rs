@@ -1,4 +1,6 @@
 use std::{fs::read_to_string, path::PathBuf, str::FromStr};
+
+#[derive(Debug, Clone)]
 pub struct Config {
     pub ip_and_port: String,
     pub database_str: String,
@@ -21,7 +23,7 @@ pub struct Config {
     pub lets_encrypt_production: bool,
     pub lets_encrypt_contact_email: String,
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Environment {
     Local,
     Production,

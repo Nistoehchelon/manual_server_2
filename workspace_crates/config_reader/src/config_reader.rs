@@ -87,7 +87,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             "DOMAIN_NAME" => domain_name = Some(value),
             "ENVIRONMENT" => environment = Some(value.parse().unwrap()),
             "LETS_ENCRYPT_PRODUCTION" => lets_encrypt_production = Some(value.parse().unwrap()),
-            "LETS_ENCRYPT_CONTACT_EMAIL" => lets_encrypt_contact_email = Some(value.parse().unwrap()),
+            "LETS_ENCRYPT_CONTACT_EMAIL" => {
+                lets_encrypt_contact_email = Some(value.parse().unwrap())
+            }
             "SERVER_TOKEN_BUCKET_CAPACITY" => {
                 let value = value
                     .parse::<f64>()

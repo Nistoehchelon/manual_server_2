@@ -25,7 +25,10 @@ async fn main() -> std::io::Result<()> {
     let server_config = config_reader::read_config(PathBuf::from(".env"));
 
     let mut state = AcmeConfig::new([server_config.domain_name.clone()])
-        .contact([format!("mailto:{}", server_config.lets_encrypt_contact_email.clone())])
+        .contact([format!(
+            "mailto:{}",
+            server_config.lets_encrypt_contact_email.clone()
+        )])
         .cache_option(Some(DirCache::new("./rustls_acme_cache")))
         .directory_lets_encrypt(server_config.lets_encrypt_production.clone())
         .state();
@@ -85,83 +88,104 @@ async fn main() -> std::io::Result<()> {
                 }
             };
 
-        if server_config.environment == Environment::Local {
-            let local_tls_config = load_local_tls_config();
-            let local_tls_acceptor = TlsAcceptor::from(local_tls_config);
+        match server_config.environment {
+            Environment::Local => {
+                let local_tls_config = load_local_tls_config();
+                let local_tls_acceptor = TlsAcceptor::from(local_tls_config);
 
-            tokio::spawn(async move {
-                let mut stream = match local_tls_acceptor.accept(tcp).await {
-                    Ok(s) => s,
-                    Err(e) => {
-                        dbg!("Local TLS fail", e);
-                        return;
+                tokio::spawn(async move {
+                    let mut stream = match local_tls_acceptor.accept(tcp).await {
+                        Ok(s) => s,
+                        Err(e) => {
+                            dbg!("Local TLS fail", e);
+                            return;
+                        }
+                    };
+
+                    handle_stream(
+                        &mut stream,
+                        db_pool,
+                        peer_ip.ip(),
+                        global_bucket,
+                        ip_buckets,
+                        server_config.clone(),
+                    )
+                    .await;
+                });
+            }
+            Environment::Production => {
+                let challenge_rustls_config = challenge_rustls_config.clone();
+                let default_rustls_config = default_rustls_config.clone();
+
+                tokio::spawn(async move {
+                    let start_handshake = LazyConfigAcceptor::new(Default::default(), tcp)
+                        .await
+                        .unwrap();
+
+                    if is_tls_alpn_challenge(&start_handshake.client_hello()) {
+                        println!(
+                            "Yay, received a TLS-ALPN-01 validation request. Time to destroy the planet."
+                        );
+                        let mut tls = start_handshake
+                            .into_stream(challenge_rustls_config)
+                            .await
+                            .unwrap();
+                        tls.shutdown().await.unwrap();
+                    } else {
+                        let mut stream = start_handshake
+                            .into_stream(default_rustls_config)
+                            .await
+                            .unwrap();
+                        handle_stream(
+                            &mut stream,
+                            db_pool,
+                            peer_ip.ip(),
+                            global_bucket,
+                            ip_buckets,
+                            server_config.clone(),
+                        )
+                        .await;
                     }
-                };
-
-              handle_stream(&mut stream, db_pool, peer_ip.ip(), global_bucket, ip_buckets, server_config.clone()).await;
-            });
-        } else {
-            let challenge_rustls_config = challenge_rustls_config.clone();
-            let default_rustls_config = default_rustls_config.clone();
-
-            tokio::spawn(async move {
-                let start_handshake = LazyConfigAcceptor::new(Default::default(), tcp)
-                    .await
-                    .unwrap();
-
-                if is_tls_alpn_challenge(&start_handshake.client_hello()) {
-                    println!(
-                        "Yay, received a TLS-ALPN-01 validation request. Time to destroy the planet."
-                    );
-                    let mut tls = start_handshake
-                        .into_stream(challenge_rustls_config)
-                        .await
-                        .unwrap();
-                    tls.shutdown().await.unwrap();
-                } else {
-                    let mut stream = start_handshake
-                        .into_stream(default_rustls_config)
-                        .await
-                        .unwrap();
-handle_stream(&mut stream, db_pool, peer_ip.ip(), global_bucket, ip_buckets, server_config.clone()).await;
-                }
-            });
+                });
+            }
         }
     }
 }
 
-
-pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(stream: &mut S,
+pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
+    stream: &mut S,
     db_pool: sqlx::PgPool,
     peer_ip: IpAddr,
     global_bucket: GlobalBucket,
     ip_buckets: IpBuckets,
-    server_config: Config) {
-                    let common_stream_timeout_duration = Duration::from_millis(server_config.common_stream_timeout_millis.clone());
+    server_config: Config,
+) {
+    let common_stream_timeout_duration =
+        Duration::from_millis(server_config.common_stream_timeout_millis.clone());
 
-                    let _ = generate_and_write_response(
-                    stream,
-                    db_pool,
-                    peer_ip,
-                    global_bucket,
-                    ip_buckets,
-                    server_config.per_ip_token_bucket_capacity.clone(),
-                    server_config
-                        .per_ip_token_bucket_refill_rate_per_millis
-                        .clone(),
-                    common_stream_timeout_duration.clone(),
-                )
-                .await;
-                let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
-                if f.is_err() {
-                    dbg!("main.rs flush timeout");
-                    return;
-                }
-                let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
-                if s.is_err() {
-                    dbg!("main.rs stream shutdown timed out");
-                    return;
-                }
+    let _ = generate_and_write_response(
+        stream,
+        db_pool,
+        peer_ip,
+        global_bucket,
+        ip_buckets,
+        server_config.per_ip_token_bucket_capacity.clone(),
+        server_config
+            .per_ip_token_bucket_refill_rate_per_millis
+            .clone(),
+        common_stream_timeout_duration.clone(),
+    )
+    .await;
+    let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
+    if f.is_err() {
+        dbg!("main.rs flush timeout");
+        return;
+    }
+    let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
+    if s.is_err() {
+        dbg!("main.rs stream shutdown timed out");
+        return;
+    }
 }
 pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     stream: &mut S,

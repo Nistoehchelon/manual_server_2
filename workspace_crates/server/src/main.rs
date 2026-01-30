@@ -76,13 +76,20 @@ async fn main() -> std::io::Result<()> {
 
     let server_config_for_task = server_config.clone();
     tokio::spawn(async move {
-        let _ = http_to_https_redirect(
+        match http_to_https_redirect(
             server_config_for_task.domain_name,
             server_config_for_task.ip,
             server_config_for_task.port,
             Duration::from_millis(server_config_for_task.common_stream_timeout_millis),
         )
-        .await;
+        .await {
+            Ok(_) => {
+                
+            },
+            Err(e) => {
+                dbg!(e);
+            },
+        };
     });
 
     loop {

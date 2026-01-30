@@ -8,7 +8,17 @@ pub async fn http_to_https_redirect(
     ssl_port: u64,
     common_stream_timeout_duration: Duration,
 ) -> tokio::io::Result<()> {
-    let listener = TcpListener::bind(format!("{ip}:80").as_str()).await?;
+    let listener_at = format!("{ip}:80");
+    let listener = match TcpListener::bind(format!("{listener_at}").as_str()).await {
+        Ok(l) => {
+            dbg!(format!("Started http_to_https_redirect listener on http://{listener_at}"));
+            l
+        },
+        Err(e) => {
+            dbg!("Error starting http_to_https_redirect at ", listener_at);
+            return Err(e);
+        },
+    };
     loop {
         let domain = domain.clone();
         let (mut stream, _addr) = listener.accept().await?;

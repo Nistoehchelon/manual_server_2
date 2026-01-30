@@ -19,6 +19,7 @@ pub struct Config {
     pub max_cookies_count: usize,
     pub environment: Environment,
     pub lets_encrypt_production: bool,
+    pub lets_encrypt_contact_email: String,
 }
 #[derive(Debug, PartialEq)]
 pub enum Environment {
@@ -47,6 +48,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut domain_name: Option<String> = None;
     let mut environment: Option<Environment> = None;
     let mut lets_encrypt_production: Option<bool> = None;
+    let mut lets_encrypt_contact_email: Option<String> = None;
 
     let mut server_token_bucket_capacity: Option<f64> = None;
     let mut server_token_bucket_refill_rate: Option<f64> = None;
@@ -83,6 +85,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             "DOMAIN_NAME" => domain_name = Some(value),
             "ENVIRONMENT" => environment = Some(value.parse().unwrap()),
             "LETS_ENCRYPT_PRODUCTION" => lets_encrypt_production = Some(value.parse().unwrap()),
+            "LETS_ENCRYPT_CONTACT_EMAIL" => lets_encrypt_contact_email = Some(value.parse().unwrap()),
             "SERVER_TOKEN_BUCKET_CAPACITY" => {
                 let value = value
                     .parse::<f64>()
@@ -194,9 +197,14 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let max_request_path_length =
         max_request_path_length.expect("Missing MAX_REQUEST_PATH_LENGTH in config file");
     let max_cookies_count = max_cookies_count.expect("Missing MAX_COOKIES_COUNT in config file");
-    let use_local_ssl = environment.expect("Missing ENVIRONMENT in config file");
+
+    let environment = environment.expect("Missing ENVIRONMENT in config file");
+
     let lets_encrypt_production =
         lets_encrypt_production.expect("Missing LETS_ENCRYPT_PRODUCTION in config file");
+
+    let lets_encrypt_contact_email =
+        lets_encrypt_contact_email.expect("Missing LETS_ENCRYPT_CONTACT_EMAIL in config file");
 
     Config {
         ip_and_port: format!("{ip}:{port}"),
@@ -214,7 +222,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         max_headers_count,
         max_request_path_length,
         max_total_headers_size_bytes,
-        environment: use_local_ssl,
+        environment,
         lets_encrypt_production,
+        lets_encrypt_contact_email,
     }
 }

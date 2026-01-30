@@ -25,7 +25,7 @@ async fn main() -> std::io::Result<()> {
     let server_config = config_reader::read_config(PathBuf::from("config"));
 
     let mut state = AcmeConfig::new([server_config.domain_name.clone()])
-        .contact(["mailto:none-existent-email@23erwgrhsra132e.com"])
+        .contact([format!("mailto:{}", server_config.lets_encrypt_contact_email.clone())])
         .cache_option(Some(DirCache::new("./rustls_acme_cache")))
         .directory_lets_encrypt(server_config.lets_encrypt_production.clone())
         .state();

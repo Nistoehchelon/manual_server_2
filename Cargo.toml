@@ -39,6 +39,7 @@ tokio = { version = "1.49.0", features = ["full"] }
 tokio-rustls = "0.26.4"
 tokio-stream = { version = "0.1.18", features = ["net"] }
 rustls = { version = "0.23.36", features = ["prefer-post-quantum"]}
+rustls-pemfile = "2.2.0"
 rustls-acme = { version = "0.15.1", features = ["tokio"]}
 
 askama = { version = "0.15", features = ["std", "derive"] }

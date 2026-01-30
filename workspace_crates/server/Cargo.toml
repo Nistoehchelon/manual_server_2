@@ -20,5 +20,6 @@ into_vec = { workspace = true }
 sqlx = { workspace = true }
 tokio-rustls = { workspace = true }
 rustls = { workspace = true }
+rustls-pemfile = { workspace = true }
 rustls-acme = { workspace = true }
 

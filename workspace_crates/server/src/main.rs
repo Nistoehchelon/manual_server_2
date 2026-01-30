@@ -1,4 +1,3 @@
-
 use config_reader::config_reader::Environment;
 use http_stuff::{
     http_request_parsing::{HttpRequestParsingError, parse_http_request},
@@ -6,46 +5,48 @@ use http_stuff::{
 };
 
 use server::{
+    load_local_cert::load_local_tls_config,
     token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket},
 };
-use tokio_rustls::LazyConfigAcceptor;
+use tokio_rustls::{LazyConfigAcceptor, TlsAcceptor};
 
 use std::{collections::HashMap, net::IpAddr, path::PathBuf, sync::Arc, time::Duration};
 
+use rustls_acme::{AcmeConfig, caches::DirCache, is_tls_alpn_challenge};
 use tokio::{
     io::{AsyncRead, AsyncWrite, AsyncWriteExt},
     sync::Mutex,
     time::timeout,
 };
-use rustls_acme::{AcmeConfig, caches::DirCache, is_tls_alpn_challenge};
-use tokio_stream::{StreamExt};
+use tokio_stream::StreamExt;
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
     let server_config = config_reader::read_config(PathBuf::from("config"));
 
     let mut state = AcmeConfig::new([server_config.domain_name.clone()])
-    .contact(["mailto:none-existent-email@23erwgrhsra132e.com"])
-    .cache_option(Some(DirCache::new("./rustls_acme_cache")))
-    .directory_lets_encrypt(server_config.lets_encrypt_production.clone())
-    .state();
+        .contact(["mailto:none-existent-email@23erwgrhsra132e.com"])
+        .cache_option(Some(DirCache::new("./rustls_acme_cache")))
+        .directory_lets_encrypt(server_config.lets_encrypt_production.clone())
+        .state();
 
     let challenge_rustls_config = state.challenge_rustls_config();
     let default_rustls_config = state.default_rustls_config();
 
-
-if server_config.environment == Environment::Production {
-// Spawns... the loop that updates the certs from Let's Encrypt if needed and so on, I think?
-    tokio::spawn(async move {
-        loop {
-            match state.next().await.unwrap() {
-                Ok(ok) => println!("event: {:#?}", ok),
-                Err(err) => println!("error: {:#?}", err),
+    if server_config.environment == Environment::Production {
+        // Spawns... the loop that updates the certs from Let's Encrypt if needed and so on, I think?
+        tokio::spawn(async move {
+            loop {
+                match state.next().await.unwrap() {
+                    Ok(ok) => println!("event: {:#?}", ok),
+                    Err(err) => println!("error: {:#?}", err),
+                }
             }
-        }
-    });
-}
-    let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone()).await.expect(&format!(
+        });
+    }
+    let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone())
+        .await
+        .expect(&format!(
             "I expected to bind to address {}",
             server_config.ip_and_port.clone()
         ));
@@ -54,7 +55,7 @@ if server_config.environment == Environment::Production {
         server_config.ip_and_port.clone()
     );
 
-        // for rate limiting
+    // for rate limiting
     let global_bucket: GlobalBucket = Arc::new(Mutex::new(TokenBucket::new(
         server_config.server_global_requests_token_bucket_capacity,
         server_config.server_global_requests_token_bucket_refill_rate_per_millis,
@@ -66,7 +67,7 @@ if server_config.environment == Environment::Production {
         .expect("Pool construction did not succeed");
     let common_stream_timeout_duration =
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
-    
+
     loop {
         let global_bucket = global_bucket.clone();
         let ip_buckets = ip_buckets.clone();
@@ -84,80 +85,96 @@ if server_config.environment == Environment::Production {
             };
 
         if server_config.environment == Environment::Local {
+            let local_tls_config = load_local_tls_config();
+            let local_tls_acceptor = TlsAcceptor::from(local_tls_config);
 
-                tokio::spawn(async move {
-                let mut stream = tcp;
+            tokio::spawn(async move {
+                let mut stream = match local_tls_acceptor.accept(tcp).await {
+                    Ok(s) => s,
+                    Err(e) => {
+                        dbg!("Local TLS fail", e);
+                        return;
+                    }
+                };
+
                 let _ = handle(
-                &mut stream,
-                db_pool,
-                peer_ip.ip(),
-                global_bucket,
-                ip_buckets,
-                server_config.per_ip_token_bucket_capacity.clone(),
-                server_config
-                    .per_ip_token_bucket_refill_rate_per_millis
-                    .clone(),
-                common_stream_timeout_duration.clone(),
-            )
-            .await;
-            let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
-            if f.is_err() {
-                dbg!("main.rs flush timeout, dropping stream immediately");
-                drop(stream);
-                return;
-            }
-            let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
-            if s.is_err() {
-                dbg!("main.rs stream shutdown timed out, dropping it I guess?");
-                drop(stream);
-                return;
-            }
-        });
+                    &mut stream,
+                    db_pool,
+                    peer_ip.ip(),
+                    global_bucket,
+                    ip_buckets,
+                    server_config.per_ip_token_bucket_capacity.clone(),
+                    server_config
+                        .per_ip_token_bucket_refill_rate_per_millis
+                        .clone(),
+                    common_stream_timeout_duration.clone(),
+                )
+                .await;
+                let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
+                if f.is_err() {
+                    dbg!("main.rs flush timeout, dropping stream immediately");
+                    drop(stream);
+                    return;
+                }
+                let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
+                if s.is_err() {
+                    dbg!("main.rs stream shutdown timed out, dropping it I guess?");
+                    drop(stream);
+                    return;
+                }
+            });
+        } else {
+            let challenge_rustls_config = challenge_rustls_config.clone();
+            let default_rustls_config = default_rustls_config.clone();
 
-        }  else { 
-        let challenge_rustls_config = challenge_rustls_config.clone();
-        let default_rustls_config = default_rustls_config.clone();
-        
+            tokio::spawn(async move {
+                let start_handshake = LazyConfigAcceptor::new(Default::default(), tcp)
+                    .await
+                    .unwrap();
 
-
-        tokio::spawn(async move {
-            let start_handshake = LazyConfigAcceptor::new(Default::default(), tcp).await.unwrap();
-
-            if is_tls_alpn_challenge(&start_handshake.client_hello()) {
-                println!("Yay, received a TLS-ALPN-01 validation request. Time to destroy the planet.");
-                let mut tls = start_handshake.into_stream(challenge_rustls_config).await.unwrap();
-                tls.shutdown().await.unwrap();
-            } else {
-                let mut stream = start_handshake.into_stream(default_rustls_config).await.unwrap();
-                let _ = handle(
-                &mut stream,
-                db_pool,
-                peer_ip.ip(),
-                global_bucket,
-                ip_buckets,
-                server_config.per_ip_token_bucket_capacity.clone(),
-                server_config
-                    .per_ip_token_bucket_refill_rate_per_millis
-                    .clone(),
-                common_stream_timeout_duration.clone(),
-            )
-            .await;
-            let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
-            if f.is_err() {
-                dbg!("main.rs flush timeout, dropping stream immediately");
-                drop(stream);
-                return;
-            }
-            let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
-            if s.is_err() {
-                dbg!("main.rs stream shutdown timed out, dropping it I guess?");
-                drop(stream);
-                return;
-            }
-
-            }
-        });
-    }
+                if is_tls_alpn_challenge(&start_handshake.client_hello()) {
+                    println!(
+                        "Yay, received a TLS-ALPN-01 validation request. Time to destroy the planet."
+                    );
+                    let mut tls = start_handshake
+                        .into_stream(challenge_rustls_config)
+                        .await
+                        .unwrap();
+                    tls.shutdown().await.unwrap();
+                } else {
+                    let mut stream = start_handshake
+                        .into_stream(default_rustls_config)
+                        .await
+                        .unwrap();
+                    let _ = handle(
+                        &mut stream,
+                        db_pool,
+                        peer_ip.ip(),
+                        global_bucket,
+                        ip_buckets,
+                        server_config.per_ip_token_bucket_capacity.clone(),
+                        server_config
+                            .per_ip_token_bucket_refill_rate_per_millis
+                            .clone(),
+                        common_stream_timeout_duration.clone(),
+                    )
+                    .await;
+                    let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
+                    if f.is_err() {
+                        dbg!("main.rs flush timeout, dropping stream immediately");
+                        drop(stream);
+                        return;
+                    }
+                    let s =
+                        timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
+                    if s.is_err() {
+                        dbg!("main.rs stream shutdown timed out, dropping it I guess?");
+                        drop(stream);
+                        return;
+                    }
+                }
+            });
+        }
     }
 }
 

@@ -195,7 +195,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         max_request_path_length.expect("Missing MAX_REQUEST_PATH_LENGTH in config file");
     let max_cookies_count = max_cookies_count.expect("Missing MAX_COOKIES_COUNT in config file");
     let use_local_ssl = environment.expect("Missing ENVIRONMENT in config file");
-    let lets_encrypt_production = lets_encrypt_production.expect("Missing LETS_ENCRYPT_PRODUCTION in config file");
+    let lets_encrypt_production =
+        lets_encrypt_production.expect("Missing LETS_ENCRYPT_PRODUCTION in config file");
 
     Config {
         ip_and_port: format!("{ip}:{port}"),
@@ -215,6 +216,5 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         max_total_headers_size_bytes,
         environment: use_local_ssl,
         lets_encrypt_production,
-
     }
 }

@@ -72,6 +72,7 @@ async fn main() -> std::io::Result<()> {
         let global_bucket = global_bucket.clone();
         let ip_buckets = ip_buckets.clone();
         let db_pool = db_pool.clone();
+        let server_config = server_config.clone();
         let (tcp, peer_ip) =
             match timeout(common_stream_timeout_duration.clone(), listener.accept()).await {
                 Ok(Ok((s, a))) => (s, a),
@@ -139,7 +140,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(stream: &mut S,
                     let common_stream_timeout_duration = Duration::from_millis(server_config.common_stream_timeout_millis.clone());
 
                     let _ = generate_and_write_response(
-                    &mut stream,
+                    stream,
                     db_pool,
                     peer_ip,
                     global_bucket,
@@ -153,14 +154,12 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(stream: &mut S,
                 .await;
                 let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
                 if f.is_err() {
-                    dbg!("main.rs flush timeout, dropping stream immediately");
-                    drop(stream);
+                    dbg!("main.rs flush timeout");
                     return;
                 }
                 let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
                 if s.is_err() {
-                    dbg!("main.rs stream shutdown timed out, dropping it I guess?");
-                    drop(stream);
+                    dbg!("main.rs stream shutdown timed out");
                     return;
                 }
 }

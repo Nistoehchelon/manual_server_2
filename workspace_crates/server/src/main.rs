@@ -15,7 +15,7 @@ use std::{collections::HashMap, net::IpAddr, path::PathBuf, sync::Arc, time::Dur
 
 use rustls_acme::{AcmeConfig, caches::DirCache, is_tls_alpn_challenge};
 use tokio::{
-    io::{AsyncRead, AsyncWrite, AsyncWriteExt},
+    io::{AsyncRead, AsyncWrite, AsyncWriteExt, BufReader},
     sync::Mutex,
     time::timeout,
 };
@@ -117,16 +117,17 @@ async fn main() -> std::io::Result<()> {
                 let local_tls_acceptor = TlsAcceptor::from(local_tls_config);
 
                 tokio::spawn(async move {
-                    let mut stream = match local_tls_acceptor.accept(tcp).await {
+                    let stream = match local_tls_acceptor.accept(tcp).await {
                         Ok(s) => s,
                         Err(e) => {
                             dbg!("Local TLS fail", e);
                             return;
                         }
                     };
-
+                    let mut reader = BufReader::new(stream);
+                    
                     handle_stream(
-                        &mut stream,
+                        &mut reader,
                         db_pool,
                         peer_ip.ip(),
                         global_bucket,
@@ -157,12 +158,13 @@ async fn main() -> std::io::Result<()> {
                         tls.shutdown().await.unwrap();
                         return;
                     } else {
-                        let mut stream = start_handshake
+                        let stream = start_handshake
                             .into_stream(default_rustls_config)
                             .await
                             .unwrap();
+                        let mut reader = BufReader::new(stream);
                         handle_stream(
-                            &mut stream,
+                            &mut reader,
                             db_pool,
                             peer_ip.ip(),
                             global_bucket,
@@ -179,7 +181,7 @@ async fn main() -> std::io::Result<()> {
 }
 
 pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
-    stream: &mut S,
+    reader: &mut S,
     db_pool: sqlx::PgPool,
     peer_ip: IpAddr,
     global_bucket: GlobalBucket,
@@ -190,7 +192,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
 
     let _ = generate_and_write_response(
-        stream,
+        reader,
         db_pool,
         peer_ip,
         global_bucket,
@@ -202,19 +204,19 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         common_stream_timeout_duration.clone(),
     )
     .await;
-    let f = timeout(common_stream_timeout_duration.clone(), stream.flush()).await;
+    let f = timeout(common_stream_timeout_duration.clone(), reader.flush()).await;
     if f.is_err() {
         dbg!("main.rs flush timeout");
         return;
     }
-    let s = timeout(common_stream_timeout_duration.clone(), stream.shutdown()).await;
+    let s = timeout(common_stream_timeout_duration.clone(), reader.shutdown()).await;
     if s.is_err() {
         dbg!("main.rs stream shutdown timed out");
         return;
     }
 }
 pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
-    stream: &mut S,
+    reader: &mut S,
     db_pool: sqlx::PgPool,
     peer_ip: IpAddr,
     global_bucket: GlobalBucket,
@@ -236,7 +238,7 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     {
         match timeout(
             common_stream_timeout_duration.clone(),
-            stream.write_all(&error_response),
+            reader.write_all(&error_response),
         )
         .await
         {
@@ -247,16 +249,16 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
         }
         return Ok(());
     }
-
+    
     let request_data = match timeout(
         common_stream_timeout_duration.clone(),
-        parse_http_request(stream, common_stream_timeout_duration.clone()),
+        parse_http_request(reader, common_stream_timeout_duration.clone()),
     )
     .await
     {
         Ok(Ok(data)) => data,
         Ok(Err(e)) => {
-            write_http_parsing_error(e, stream, common_stream_timeout_duration.clone()).await;
+            write_http_parsing_error(e, reader, common_stream_timeout_duration.clone()).await;
             return Ok(());
         }
         Err(_e) => {
@@ -268,7 +270,7 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     let response = routing::generate_response(request_data, db_pool).await;
     if let Err(_e) = timeout(
         common_stream_timeout_duration.clone(),
-        stream.write_all(&response),
+        reader.write_all(&response),
     )
     .await
     {

@@ -48,6 +48,8 @@ async fn main() -> std::io::Result<()> {
             }
         });
     }
+
+
     let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone())
         .await
         .expect(&format!(
@@ -68,7 +70,7 @@ async fn main() -> std::io::Result<()> {
 
     let db_pool = sqlx::PgPool::connect(&server_config.database_str)
         .await
-        .expect("Pool construction did not succeed");
+        .expect("I expected pool construction to succeed :)");
     let common_stream_timeout_duration =
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
 
@@ -151,6 +153,7 @@ async fn main() -> std::io::Result<()> {
                             .into_stream(challenge_rustls_config)
                             .await
                             .unwrap();
+                        tls.flush().await.unwrap();
                         tls.shutdown().await.unwrap();
                         return;
                     } else {
@@ -253,7 +256,30 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     {
         Ok(Ok(data)) => data,
         Ok(Err(e)) => {
-            match e {
+            write_http_parsing_error(e, stream, common_stream_timeout_duration.clone()).await;
+            return Ok(());
+        }
+        Err(_e) => {
+            dbg!("main.rs parse_http_request timed out");
+            return Ok(());
+        }
+    };
+
+    let response = routing::generate_response(request_data, db_pool).await;
+    if let Err(_e) = timeout(
+        common_stream_timeout_duration.clone(),
+        stream.write_all(&response),
+    )
+    .await
+    {
+        dbg!("main.rs response write timeout");
+    }
+
+    Ok(())
+}
+
+async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(e: HttpRequestParsingError, stream: &mut S, common_stream_timeout_duration: Duration) {
+    match e {
                 HttpRequestParsingError::UriTooLong => {
                     let err_response = standalone_response(
                         StatusCode::UriTooLong414,
@@ -301,26 +327,6 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
                     .await;
                 }
             };
-
-            return Ok(());
-        }
-        Err(_e) => {
-            dbg!("main.rs parse_http_request timed out");
-            return Ok(());
-        }
-    };
-
-    let response = routing::generate_response(request_data, db_pool).await;
-    if let Err(_e) = timeout(
-        common_stream_timeout_duration.clone(),
-        stream.write_all(&response),
-    )
-    .await
-    {
-        dbg!("main.rs response write timeout");
-    }
-
-    Ok(())
 }
 
 async fn check_and_consume_buckets(

@@ -169,6 +169,7 @@ async fn read_line_bounded<R: AsyncRead + Unpin>(
         line.push(byte);
 
         if line.len() > max_line_len {
+            dbg!("Header line parsing: line exceeded max_line_len, rejecting request", line.len(), max_line_len);
             return Err(HttpRequestParsingError::HeaderValueTooLong);
         }
 

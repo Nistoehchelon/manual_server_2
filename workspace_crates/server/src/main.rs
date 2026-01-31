@@ -49,7 +49,6 @@ async fn main() -> std::io::Result<()> {
         });
     }
 
-
     let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone())
         .await
         .expect(&format!(
@@ -84,13 +83,12 @@ async fn main() -> std::io::Result<()> {
             server_config_for_task.port,
             Duration::from_millis(server_config_for_task.common_stream_timeout_millis),
         )
-        .await {
-            Ok(_) => {
-                
-            },
+        .await
+        {
+            Ok(_) => {}
             Err(e) => {
                 dbg!(e);
-            },
+            }
         };
     });
 
@@ -125,7 +123,7 @@ async fn main() -> std::io::Result<()> {
                         }
                     };
                     let mut reader = BufReader::new(stream);
-                    
+
                     handle_stream(
                         &mut reader,
                         db_pool,
@@ -181,7 +179,7 @@ async fn main() -> std::io::Result<()> {
 }
 
 pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
-    reader: &mut S,
+    reader: &mut BufReader<S>,
     db_pool: sqlx::PgPool,
     peer_ip: IpAddr,
     global_bucket: GlobalBucket,
@@ -197,11 +195,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         peer_ip,
         global_bucket,
         ip_buckets,
-        server_config.per_ip_token_bucket_capacity.clone(),
-        server_config
-            .per_ip_token_bucket_refill_rate_per_millis
-            .clone(),
-        common_stream_timeout_duration.clone(),
+        server_config.clone(),
     )
     .await;
     let f = timeout(common_stream_timeout_duration.clone(), reader.flush()).await;
@@ -216,17 +210,23 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     }
 }
 pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
-    reader: &mut S,
+    reader: &mut BufReader<S>,
     db_pool: sqlx::PgPool,
     peer_ip: IpAddr,
     global_bucket: GlobalBucket,
     ip_buckets: IpBuckets,
-    per_ip_token_bucket_capacity: f64,
-    per_ip_token_bucket_refill_rate_per_millis: f64,
-    common_stream_timeout_duration: Duration,
+    server_config: Config,
 ) -> std::io::Result<()> {
     dbg!("Peer with IP ", peer_ip, "just issued a request");
-
+    let Config {
+        per_ip_token_bucket_capacity,
+        per_ip_token_bucket_refill_rate_per_millis,
+        common_stream_timeout_millis,
+        max_header_name_len,
+        max_header_value_len,
+        ..
+    } = server_config.clone();
+    let common_stream_timeout_duration = Duration::from_millis(common_stream_timeout_millis);
     if let Err(error_response) = check_and_consume_buckets(
         &peer_ip,
         &global_bucket,
@@ -249,10 +249,14 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
         }
         return Ok(());
     }
-    
+
     let request_data = match timeout(
         common_stream_timeout_duration.clone(),
-        parse_http_request(reader, common_stream_timeout_duration.clone()),
+        parse_http_request(
+            reader,
+            max_header_name_len + max_header_value_len,
+            common_stream_timeout_duration.clone(),
+        ),
     )
     .await
     {
@@ -280,55 +284,54 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     Ok(())
 }
 
-async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(e: HttpRequestParsingError, stream: &mut S, common_stream_timeout_duration: Duration) {
+async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
+    e: HttpRequestParsingError,
+    stream: &mut BufReader<S>,
+    common_stream_timeout_duration: Duration,
+) {
     match e {
-                HttpRequestParsingError::UriTooLong => {
-                    let err_response = standalone_response(
-                        StatusCode::UriTooLong414,
-                        format!("414 Uri Too Long ☺️"),
-                    );
-                    let _ = timeout(
-                        common_stream_timeout_duration.clone(),
-                        stream.write_all(&err_response),
-                    )
-                    .await;
-                }
-                HttpRequestParsingError::HttpVersionNotSupported => {
-                    let err_response = standalone_response(
-                        StatusCode::HttpVersionNotSupported505,
-                        format!("505 HTTP Version Not Supported"),
-                    );
-                    let _ = timeout(
-                        common_stream_timeout_duration.clone(),
-                        stream.write_all(&err_response),
-                    )
-                    .await;
-                }
-                HttpRequestParsingError::TooManyHeaders
-                | HttpRequestParsingError::TooManyCookies => {
-                    let err_response = standalone_response(
-                        StatusCode::RequestHeaderFieldsTooLarge431,
-                        format!("431 Header fields too large, and/or too many of them 😴"),
-                    );
-                    let _ = timeout(
-                        common_stream_timeout_duration.clone(),
-                        stream.write_all(&err_response),
-                    )
-                    .await;
-                }
-                _ => {
-                    eprintln!("main error, could not parse request {:?}", e);
-                    let err_response = standalone_response(
-                        StatusCode::BadRequest400,
-                        format!("400 Bad Request 🙀"),
-                    );
-                    let _ = timeout(
-                        common_stream_timeout_duration.clone(),
-                        stream.write_all(&err_response),
-                    )
-                    .await;
-                }
-            };
+        HttpRequestParsingError::UriTooLong => {
+            let err_response =
+                standalone_response(StatusCode::UriTooLong414, format!("414 Uri Too Long ☺️"));
+            let _ = timeout(
+                common_stream_timeout_duration.clone(),
+                stream.write_all(&err_response),
+            )
+            .await;
+        }
+        HttpRequestParsingError::HttpVersionNotSupported => {
+            let err_response = standalone_response(
+                StatusCode::HttpVersionNotSupported505,
+                format!("505 HTTP Version Not Supported"),
+            );
+            let _ = timeout(
+                common_stream_timeout_duration.clone(),
+                stream.write_all(&err_response),
+            )
+            .await;
+        }
+        HttpRequestParsingError::TooManyHeaders | HttpRequestParsingError::TooManyCookies => {
+            let err_response = standalone_response(
+                StatusCode::RequestHeaderFieldsTooLarge431,
+                format!("431 Header fields too large, and/or too many of them 😴"),
+            );
+            let _ = timeout(
+                common_stream_timeout_duration.clone(),
+                stream.write_all(&err_response),
+            )
+            .await;
+        }
+        _ => {
+            eprintln!("main error, could not parse request {:?}", e);
+            let err_response =
+                standalone_response(StatusCode::BadRequest400, format!("400 Bad Request 🙀"));
+            let _ = timeout(
+                common_stream_timeout_duration.clone(),
+                stream.write_all(&err_response),
+            )
+            .await;
+        }
+    };
 }
 
 async fn check_and_consume_buckets(

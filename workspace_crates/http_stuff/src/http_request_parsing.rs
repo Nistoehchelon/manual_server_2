@@ -5,9 +5,9 @@ use std::{
     fmt::{self, Display},
     time::Duration,
 };
-use tokio::io::BufReader;
+use tokio::io::{BufReader};
 use tokio::{
-    io::{AsyncRead, AsyncReadExt, AsyncWrite},
+    io::{AsyncRead, AsyncReadExt},
     time::timeout,
 };
 use url::Query;
@@ -24,14 +24,14 @@ pub const MAX_REQUEST_TARGET_LENGTH: usize = 150;
 
 pub const MAX_COOKIES_PER_REQUEST: usize = 50;
 
-pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
-    stream: &mut S,
+pub async fn parse_http_request<S: AsyncRead + Unpin>(
+    reader: &mut BufReader<S>,
+    max_line_len: usize,
     common_stream_timeout_duration: Duration,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
     let ParsedHeaderStream {
         headers,
-        leftover: leftover_from_headers_parsing,
-    } = parse_headers_from_stream(stream, common_stream_timeout_duration.clone()).await?;
+    } = parse_headers_from_stream(reader, max_line_len, common_stream_timeout_duration.clone()).await?;
     let headers_string = String::from_utf8_lossy(&headers).to_string();
     let headers_count = count_occurences_of_rn(&headers_string);
 
@@ -79,7 +79,6 @@ pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
     if !(headers.contains("host")) {
         return Err(HttpRequestParsingError::BadRequest);
     }
-
     let first_line_split = first_line.split(" ").collect::<Vec<&str>>();
     if first_line_split.len() != 3 {
         dbg!(format!(
@@ -109,7 +108,7 @@ pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
 
     let mut body: Vec<u8> = vec![];
 
-    let mut content_length = match headers
+    let content_length = match headers
         .get("content-length")
         .unwrap_or(&"0".to_string())
         .parse::<usize>()
@@ -124,20 +123,7 @@ pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
         dbg!(content_length, "exceeds", MAX_BODY_BYTES);
         return Err(HttpRequestParsingError::ContentTooLarge);
     } else if method == "POST" {
-        if leftover_from_headers_parsing.len() > 0 {
-            if leftover_from_headers_parsing.len() > content_length {
-                dbg!(
-                    "Leftover from header reading is greater than promised content length, rejecting",
-                    leftover_from_headers_parsing.len(),
-                    content_length
-                );
-                return Err(HttpRequestParsingError::BadRequest);
-            }
-            content_length -= leftover_from_headers_parsing.len();
-            body.extend(leftover_from_headers_parsing);
-        }
         if content_length > 0 {
-            let mut reader = BufReader::new(stream);
             let mut body_bytes_exact = vec![0; content_length];
             match timeout(
                 common_stream_timeout_duration,
@@ -169,44 +155,43 @@ pub async fn parse_http_request<S: AsyncRead + AsyncWrite + Unpin>(
     })
 }
 
-async fn parse_headers_from_stream<S: AsyncRead + AsyncWrite + Unpin>(
-    stream: &mut S,
-    common_stream_timeout_duration: Duration,
-) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
-    const BYTES_PER_READ: usize = 1024;
-
-    let mut byte_buf = [0u8; BYTES_PER_READ];
-    let mut header_bytes = Vec::new();
-    let mut read_total_bytes = 0;
-    let mut count_calls_to_stream_read = 0;
+async fn read_line_bounded<R: AsyncRead + Unpin>(
+    reader: &mut BufReader<R>,
+    max_line_len: usize,
+    timeout_dur: Duration,
+) -> Result<Vec<u8>, HttpRequestParsingError> {
+    let mut line = Vec::with_capacity(128);
 
     loop {
-        count_calls_to_stream_read += 1;
-        let bytes_read = match timeout(common_stream_timeout_duration, stream.read(&mut byte_buf))
-            .await
-        {
-            Ok(Ok(0)) => {
-                dbg!(format!(
-                    "Connection closed?  before headers completed. 0 bytes read this stream.read call  (in total read {read_total_bytes} bytes, having called stream.read {count_calls_to_stream_read} times) "
-                ));
-                return Err(HttpRequestParsingError::BadRequest);
-            }
+        let byte = timeout(timeout_dur, reader.read_u8()).await
+            .map_err(|_| HttpRequestParsingError::HeadersStreamReadTimeout)?.map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
 
-            Ok(Ok(n)) => n,
-            Ok(Err(e)) => {
-                dbg!("Stream read error", e);
-                dbg!(format!(
-                    "(in total read {read_total_bytes} having called stream.read {count_calls_to_stream_read} times) "
-                ));
-                return Err(HttpRequestParsingError::SomeSortOfStreamError);
-            }
-            Err(_e) => {
-                dbg!("headers read timeout");
-                return Err(HttpRequestParsingError::HeadersStreamReadTimeout);
-            }
-        };
+        line.push(byte);
 
-        read_total_bytes += bytes_read;
+        if line.len() > max_line_len {
+            return Err(HttpRequestParsingError::HeaderValueTooLong);
+        }
+
+        if line.ends_with(b"\n") {
+            break;
+        }
+    }
+
+    Ok(line)
+}
+
+
+async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
+    reader: &mut BufReader<S>,
+    max_line_len: usize,
+    common_stream_timeout_duration: Duration,
+) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
+    let mut header_bytes = Vec::new();
+    let mut read_total_bytes = 0;
+
+    loop {
+        let line = read_line_bounded(reader, max_line_len, common_stream_timeout_duration).await.map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+        read_total_bytes += line.len();
 
         if read_total_bytes > MAX_HEADER_BYTES {
             dbg!(
@@ -218,29 +203,21 @@ async fn parse_headers_from_stream<S: AsyncRead + AsyncWrite + Unpin>(
         }
 
         // Append the bytes we just read
-        header_bytes.extend_from_slice(&byte_buf[..bytes_read]);
+        header_bytes.extend(&line);
 
         // Check for header-body boundary
-        if let Some(pos) = header_bytes.windows(4).position(|w| w == b"\r\n\r\n") {
-            // `pos` points to the start of the \r\n\r\n sequence
-            let body_start = pos + 4; // skip the \r\n\r\n
-            let leftover_body = header_bytes[body_start..].to_vec(); // save bytes beyond headers
-
-            // truncate header_bytes to only the headers
-            header_bytes.truncate(body_start);
-
+        if header_bytes.ends_with(b"\r\n\r\n") {
             // not sure if there is a point to this check... Vec u8 will by definition only contain ascii  bytes, right?
             if !header_bytes.is_ascii() {
                 dbg!("I do not accept headers with non-ascii bytes");
                 return Err(HttpRequestParsingError::BadRequest);
             }
-
-            return Ok(ParsedHeaderStream {
-                headers: header_bytes,
-                leftover: leftover_body,
-            });
+            break;
         }
     }
+    return Ok(ParsedHeaderStream {
+        headers: header_bytes,
+    });
 }
 
 /// Holds all the parsed information from an HTTP request.
@@ -289,7 +266,6 @@ impl Display for HttpRequestParsingError {
 }
 pub struct ParsedHeaderStream {
     pub headers: Vec<u8>,
-    pub leftover: Vec<u8>,
 }
 
 pub fn parse_body_into_string_form_input_params(

@@ -44,7 +44,7 @@ rustls-acme = { version = "0.15.1", features = ["tokio"]}
 
 askama = { version = "0.15", features = ["std", "derive"] }
 
-blake3 = "1.8.2"
+argon2 = {version = "0.5.3", features = ["zeroize"] }
 
 
 rand = "0.9.2"

@@ -1,52 +1,61 @@
-use hex;
-use rand::RngCore;
+use argon2::{Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version, password_hash::{SaltString}};
+use rand::{TryRngCore, rand_core::{OsRng}};
 
-pub const SALT_BYTES_LENGTH: usize = 64;
 
-pub fn generate_secure_random_bytes(length: usize) -> Vec<u8> {
+pub const MAX_VALID_SALT_BYTES_LENGTH: usize = 48;
+pub const SALT_BYTES_LENGTH: usize = MAX_VALID_SALT_BYTES_LENGTH;
+
+fn strong_argon2() -> Result<Argon2<'static>, String> {
+    let m_cost = 64 * 1024;
+    let t_cost = 3;
+    let p_cost = 1;
+    let params = Params::new(m_cost, t_cost, p_cost, None).map_err(|e| {
+        dbg!("Error on argo2 params::new", e.to_string());
+        return e.to_string()
+    })?;
+    Ok(Argon2::new(Algorithm::Argon2id, Version::V0x13, params))
+}
+
+pub fn hash_password(password: String) -> Result<String, String> {
+    let salt = generate_salt(SALT_BYTES_LENGTH)?;
+    let argon2 = strong_argon2()?;
+
+    let password_hash = match argon2.hash_password(password.as_bytes(), &salt) {
+        Ok(ph) => ph.to_string(),
+        Err(e) => {
+            dbg!("Error hashing password", e);
+            return Err(e.to_string());
+        }
+    };
+
+    Ok(password_hash)
+
+}
+
+pub fn verify_password(password: String, stored_hash: String) -> Result<bool, String> {
+    let parsed_hash = PasswordHash::new(&stored_hash).map_err(|e| {
+        dbg!("Error parsing hash", e.to_string());
+        return e.to_string();
+    })?;
+    let argon2 = strong_argon2()?;
+
+    Ok(argon2.verify_password(password.as_bytes(), &parsed_hash).is_ok())
+}
+
+
+pub fn generate_secure_random_bytes(length: usize) -> Result<Vec<u8>, String> {
     let mut bytes = vec![0u8; length];
-    rand::rng().fill_bytes(&mut bytes);
-    bytes
+    match OsRng.try_fill_bytes(&mut bytes) {
+        Ok(_) => {},
+        Err(e) => {
+            return Err(e.to_string());
+        }
+    };
+    Ok(bytes)
 }
-
-pub struct HashAndSalt {
-    pub hash: String,
-    pub salt: String,
-}
-
-pub fn verify_password(
-    unhashed_unconfirmed_password: String,
-    the_hash: String,
-    the_salt: String,
-) -> bool {
-    let hash_of_unconfirmed = hash(format!("{unhashed_unconfirmed_password}{the_salt}"));
-    return hash_of_unconfirmed == the_hash;
-}
-
-pub fn hash_password_generate_salt(unhashed_password: String) -> HashAndSalt {
-    let salt = generate_salt();
-    let hash = hash_password(unhashed_password, salt.clone());
-    return HashAndSalt { hash, salt };
-}
-
-pub fn hash_password(unhashed_password: String, salt: String) -> String {
-    let hash_salt_string = format!("{}{}", unhashed_password, salt);
-    let hash = hash(hash_salt_string);
-    return hash;
-}
-
-fn hash(string_i_want_to_hash: String) -> String {
-    let hash = blake3::hash(string_i_want_to_hash.as_bytes());
-    let hashed_string = hash.to_string();
-    return hashed_string;
-}
-
-fn generate_salt() -> String {
-    let bytes = generate_secure_random_bytes(SALT_BYTES_LENGTH);
-    let hexed_bytes = encode_bytes_to_hex_string(bytes);
-    return hexed_bytes;
-}
-
-fn encode_bytes_to_hex_string(bytes: Vec<u8>) -> String {
-    return hex::encode(bytes);
+pub fn generate_salt(length: usize) -> Result<SaltString, String> {
+        Ok(SaltString::encode_b64(&generate_secure_random_bytes(length)?).map_err(|e| {
+            dbg!("Error generating salt", e.to_string());
+            e.to_string()
+        })?)
 }

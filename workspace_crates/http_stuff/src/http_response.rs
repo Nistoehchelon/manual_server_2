@@ -173,7 +173,7 @@ pub fn response(
         None => Vec::new(),
     };
 
-    http_response_string.push_str(&format!("Content-Length: {body_bytes_length}"));
+    http_response_string.push_str(&format!("Content-Length: {body_bytes_length}\r\n"));
 
     http_response_string.push_str(&format!(
         "Strict-Transport-Security: max-age=999999999; includeSubDomains; preload"

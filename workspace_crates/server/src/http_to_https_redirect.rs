@@ -35,7 +35,13 @@ pub async fn http_to_https_redirect(
     };
     loop {
         let domain = domain.clone();
-        let (mut stream, peer_ip) = listener.accept().await?;
+        let (mut stream, peer_ip) = match listener.accept().await {
+            Ok((s, pi)) => (s, pi),
+            Err(e) => {
+                dbg!(e);
+                continue;
+            }
+        };
         let peer_ip = peer_ip.ip();
         if let Err(error_response) = check_and_consume_buckets(
             &peer_ip,
@@ -64,15 +70,14 @@ pub async fn http_to_https_redirect(
             continue;
         }
         tokio::spawn(async move {
+
+
             let mut location = String::from("https://");
             location.push_str(domain.as_str());
             location.push_str("/");
 
             let response = format!(
-                "HTTP/1.1 308 Permanent Redirect\r\n\
-                 Location: {}\r\n\
-                 Content-Length: 0\r\n\
-                 Connection: close\r\n\r\n",
+                "HTTP/1.1 308 Permanent Redirect\r\nLocation: {}\r\nConnection: close\r\n\r\n",
                 location
             );
 

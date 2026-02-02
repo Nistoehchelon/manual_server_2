@@ -97,15 +97,15 @@ pub struct ResponseData {
 }
 
 pub fn ok_html(content: String) -> ResponseData {
-    ok(content.into_bytes(), ContentType::TextHtml)
+    ok(content.into_bytes(), ContentType::TextHtml, Some(Charset::Utf8))
 }
 
-pub fn ok(content: Vec<u8>, content_type: ContentType) -> ResponseData {
+pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>) -> ResponseData {
     ResponseData {
         status_code: StatusCode::Ok200,
         content_type,
         body: Some(content),
-        charset: Some(Charset::Utf8),
+        charset,
         set_cookie_headers: None,
         location: None,
     }
@@ -121,7 +121,7 @@ pub fn response(
         location,
     }: ResponseData,
 ) -> Result<HttpResponse, HttpResponseError> {
-    let mut http_response_string: String = String::from("");
+    let mut http_response_string: String = String::new();
     http_response_string.push_str("HTTP/1.1");
     http_response_string.push_str(" ");
     let status_code_string = status_code.to_string();
@@ -132,9 +132,8 @@ pub fn response(
         Some(set_cookie_headers_vec) => {
             for sc in set_cookie_headers_vec.iter() {
                 let set_cookie_headers_string = format!(
-                    "Set-Cookie: {}={}; Path={}; Secure; HttpOnly; SameSite=Strict
-\r\n",
-                    sc.key.to_lowercase().to_string(),
+                    "Set-Cookie: {}={}; Path={}; Secure; HttpOnly; SameSite=Strict\r\n",
+                    sc.key.to_string(),
                     sc.value.to_string(),
                     sc.path.to_string()
                 );

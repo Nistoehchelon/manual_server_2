@@ -5,6 +5,7 @@ use http_stuff::{
 };
 
 use server::{
+    check_and_consume_buckets::check_and_consume_buckets,
     http_to_https_redirect::http_to_https_redirect,
     load_local_cert::load_local_tls_config,
     token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket},
@@ -74,23 +75,27 @@ async fn main() -> std::io::Result<()> {
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
 
     // redirect from http  to https
-
-    let server_config_for_task = server_config.clone();
-    tokio::spawn(async move {
-        match http_to_https_redirect(
-            server_config_for_task.domain_name,
-            server_config_for_task.ip,
-            server_config_for_task.port,
-            Duration::from_millis(server_config_for_task.common_stream_timeout_millis),
-        )
-        .await
-        {
-            Ok(_) => {}
-            Err(e) => {
-                dbg!(e);
-            }
-        };
-    });
+    // but only if the port is 443, since if it isn't then there is no point
+    if server_config.port == 443 {
+        let server_config_for_task = server_config.clone();
+        let global_bucket = global_bucket.clone();
+        let ip_buckets = ip_buckets.clone();
+        tokio::spawn(async move {
+            match http_to_https_redirect(
+                server_config_for_task.clone(),
+                global_bucket,
+                ip_buckets,
+                Duration::from_millis(server_config_for_task.common_stream_timeout_millis),
+            )
+            .await
+            {
+                Ok(_) => {}
+                Err(e) => {
+                    dbg!(e);
+                }
+            };
+        });
+    }
 
     loop {
         let global_bucket = global_bucket.clone();
@@ -332,40 +337,4 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             .await;
         }
     };
-}
-
-async fn check_and_consume_buckets(
-    peer_ip: &IpAddr,
-    global_bucket: &GlobalBucket,
-    ip_buckets: &IpBuckets,
-    per_ip_token_bucket_capacity: f64,
-    per_ip_token_bucket_refill_rate_per_millis: f64,
-) -> Result<(), Vec<u8>> {
-    // Check global bucket
-    if !global_bucket.lock().await.try_to_consume_one_token() {
-        let response = standalone_response(
-            StatusCode::ServiceUnavailable503,
-            "503 Service Unavailable 🫨".to_string(),
-        );
-        return Err(response);
-    }
-
-    // Check per-IP bucket
-    let mut ip_buckets_guard = ip_buckets.lock().await;
-    let ip_bucket = ip_buckets_guard.entry(*peer_ip).or_insert_with(|| {
-        TokenBucket::new(
-            per_ip_token_bucket_capacity,
-            per_ip_token_bucket_refill_rate_per_millis,
-        )
-    });
-
-    if !ip_bucket.try_to_consume_one_token() {
-        let response = standalone_response(
-            StatusCode::TooManyRequests429,
-            "429 Too Many Requests 😈".to_string(),
-        );
-        return Err(response);
-    }
-
-    Ok(())
 }

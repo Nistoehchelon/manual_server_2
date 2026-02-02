@@ -1,15 +1,27 @@
 use std::time::Duration;
 
+use config_reader::Config;
 use tokio::{io::AsyncWriteExt, net::TcpListener, time::timeout};
 
+use crate::{
+    check_and_consume_buckets::check_and_consume_buckets,
+    token_buckets_for_requests::{GlobalBucket, IpBuckets},
+};
+
 pub async fn http_to_https_redirect(
-    domain: String,
-    ip: String,
-    ssl_port: u64,
+    Config {
+        domain_name: domain,
+        ip,
+        per_ip_token_bucket_capacity,
+        per_ip_token_bucket_refill_rate_per_millis,
+        ..
+    }: Config,
+    global_bucket: GlobalBucket,
+    ip_buckets: IpBuckets,
     common_stream_timeout_duration: Duration,
 ) -> tokio::io::Result<()> {
     let listener_at = format!("{ip}:80");
-    let listener = match TcpListener::bind(format!("{listener_at}").as_str()).await {
+    let listener = match TcpListener::bind(&listener_at).await {
         Ok(l) => {
             dbg!(format!(
                 "Started http_to_https_redirect listener on http://{listener_at}"
@@ -23,18 +35,43 @@ pub async fn http_to_https_redirect(
     };
     loop {
         let domain = domain.clone();
-        let (mut stream, _addr) = listener.accept().await?;
-        tokio::spawn(async move {
-            let mut location = format!("https://{}", domain);
-            if ssl_port != 443 {
-                location.push_str(format!(":{ssl_port}").as_str());
+        let (mut stream, peer_ip) = listener.accept().await?;
+        let peer_ip = peer_ip.ip();
+        if let Err(error_response) = check_and_consume_buckets(
+            &peer_ip,
+            &global_bucket,
+            &ip_buckets,
+            per_ip_token_bucket_capacity,
+            per_ip_token_bucket_refill_rate_per_millis,
+        )
+        .await
+        {
+            match timeout(
+                Duration::from_millis(200),
+                stream.write_all(&error_response),
+            )
+            .await
+            {
+                Err(e) => {
+                    dbg!("Timeout", e);
+                }
+                Ok(Err(e)) => {
+                    dbg!("Stream write error", e);
+                }
+                Ok(Ok(_)) => {}
             }
+            let _ = stream.shutdown().await;
+            continue;
+        }
+        tokio::spawn(async move {
+            let mut location = String::from("https://");
+            location.push_str(domain.as_str());
             location.push_str("/");
 
             let response = format!(
                 "HTTP/1.1 308 Permanent Redirect\r\n\
                  Location: {}\r\n\
-                 Strict-Transport-Security: max-age=999999999; includeSubDomains; preload\r\n\
+                 Content-Length: 0\r\n\
                  Connection: close\r\n\r\n",
                 location
             );

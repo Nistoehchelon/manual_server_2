@@ -33,7 +33,7 @@ encoding = { path = "workspace_crates/encoding" }
 # third-party external crates
 
 indexmap = "2.13.0"
-sqlx = { version = "0.8.6", features = ["postgres", "macros", "runtime-tokio", "time"] }
+sqlx = { version = "0.8.6", features = ["postgres", "macros", "runtime-tokio", "time", "tls-rustls-aws-lc-rs"] }
 
 tokio = { version = "1.49.0", features = ["full"] }
 tokio-rustls = "0.26.4"

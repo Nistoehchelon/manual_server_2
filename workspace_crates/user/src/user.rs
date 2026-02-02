@@ -41,7 +41,9 @@ pub async fn try_to_create_new_user(
         ))));
     }
 
-    let username_available = is_username_available(username.clone(), db_pool.clone()).await.map_err(SomeSortOfError::new)?;
+    let username_available = is_username_available(username.clone(), db_pool.clone())
+        .await
+        .map_err(SomeSortOfError::new)?;
 
     if !username_available {
         return Ok(Err(PublicError::new(format!(
@@ -62,7 +64,9 @@ pub async fn try_to_create_new_user(
         password_hash: hash,
         bio: format!("Default bio"),
     };
-    let user = storage_specific_create_new_user(db_pool, new_user).await.map_err(SomeSortOfError::new)?;
+    let user = storage_specific_create_new_user(db_pool, new_user)
+        .await
+        .map_err(SomeSortOfError::new)?;
 
     Ok(Ok(user))
 }
@@ -117,15 +121,16 @@ pub async fn find_by_username_and_password(
     password: String,
     db_pool: sqlx::PgPool,
 ) -> Result<Option<User>, SomeSortOfError> {
-    let user = get_by_username(username.clone(), db_pool).await.map_err(SomeSortOfError::new)?;
+    let user = get_by_username(username.clone(), db_pool)
+        .await
+        .map_err(SomeSortOfError::new)?;
     let user = match user {
         Some(u) => u,
         None => return Ok(None),
     };
-    if password_hashing::verify_password(
-        password.clone(),
-        user.password_hash.clone(),
-    ).map_err(SomeSortOfError::new)? != true
+    if password_hashing::verify_password(password.clone(), user.password_hash.clone())
+        .map_err(SomeSortOfError::new)?
+        != true
     {
         dbg!("Failed password hash verification");
         dbg!(password.clone());
@@ -177,10 +182,19 @@ async fn storage_specific_add_user(
     db_pool: sqlx::PgPool,
     user: User,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
-    match sqlx::query!(r#"INSERT INTO users (id, username, password_hash, bio) VALUES ($1,$2,$3,$4)"#, user.id, user.username, user.password_hash, user.bio).execute(&db_pool).await {
+    match sqlx::query!(
+        r#"INSERT INTO users (id, username, password_hash, bio) VALUES ($1,$2,$3,$4)"#,
+        user.id,
+        user.username,
+        user.password_hash,
+        user.bio
+    )
+    .execute(&db_pool)
+    .await
+    {
         Ok(_) => {
             return Ok(DbSuccess::new("User created"));
-        },
+        }
         Err(e) => {
             return Err(DbError::new(e));
         }
@@ -191,11 +205,18 @@ async fn storage_specific_get_user_by_user_id(
     user_id: String,
     db_pool: sqlx::PgPool,
 ) -> Result<Option<User>, db_manager::DbError> {
-    match sqlx::query_as!(User, r#"SELECT primary_key, id, username, password_hash, bio FROM users WHERE id = $1"#, user_id).fetch_optional(&db_pool).await {
+    match sqlx::query_as!(
+        User,
+        r#"SELECT primary_key, id, username, password_hash, bio FROM users WHERE id = $1"#,
+        user_id
+    )
+    .fetch_optional(&db_pool)
+    .await
+    {
         Ok(opt) => {
             return Ok(opt);
-        },
-        Err(e)=>{
+        }
+        Err(e) => {
             return Err(DbError::new(e));
         }
     }

@@ -11,13 +11,15 @@ pub async fn http_to_https_redirect(
     let listener_at = format!("{ip}:80");
     let listener = match TcpListener::bind(format!("{listener_at}").as_str()).await {
         Ok(l) => {
-            dbg!(format!("Started http_to_https_redirect listener on http://{listener_at}"));
+            dbg!(format!(
+                "Started http_to_https_redirect listener on http://{listener_at}"
+            ));
             l
-        },
+        }
         Err(e) => {
             dbg!("Error starting http_to_https_redirect at ", listener_at);
             return Err(e);
-        },
+        }
     };
     loop {
         let domain = domain.clone();

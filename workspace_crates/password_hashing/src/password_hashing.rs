@@ -1,6 +1,8 @@
-use argon2::{Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version, password_hash::{SaltString}};
-use rand::{TryRngCore, rand_core::{OsRng}};
-
+use argon2::{
+    Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version,
+    password_hash::SaltString,
+};
+use rand::{TryRngCore, rand_core::OsRng};
 
 pub const MAX_VALID_SALT_BYTES_LENGTH: usize = 48;
 pub const SALT_BYTES_LENGTH: usize = MAX_VALID_SALT_BYTES_LENGTH;
@@ -11,7 +13,7 @@ fn strong_argon2() -> Result<Argon2<'static>, String> {
     let p_cost = 1;
     let params = Params::new(m_cost, t_cost, p_cost, None).map_err(|e| {
         dbg!("Error on argo2 params::new", e.to_string());
-        return e.to_string()
+        return e.to_string();
     })?;
     Ok(Argon2::new(Algorithm::Argon2id, Version::V0x13, params))
 }
@@ -29,7 +31,6 @@ pub fn hash_password(password: String) -> Result<String, String> {
     };
 
     Ok(password_hash)
-
 }
 
 pub fn verify_password(password: String, stored_hash: String) -> Result<bool, String> {
@@ -39,14 +40,15 @@ pub fn verify_password(password: String, stored_hash: String) -> Result<bool, St
     })?;
     let argon2 = strong_argon2()?;
 
-    Ok(argon2.verify_password(password.as_bytes(), &parsed_hash).is_ok())
+    Ok(argon2
+        .verify_password(password.as_bytes(), &parsed_hash)
+        .is_ok())
 }
-
 
 pub fn generate_secure_random_bytes(length: usize) -> Result<Vec<u8>, String> {
     let mut bytes = vec![0u8; length];
     match OsRng.try_fill_bytes(&mut bytes) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
             return Err(e.to_string());
         }
@@ -54,8 +56,10 @@ pub fn generate_secure_random_bytes(length: usize) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 pub fn generate_salt(length: usize) -> Result<SaltString, String> {
-        Ok(SaltString::encode_b64(&generate_secure_random_bytes(length)?).map_err(|e| {
+    Ok(
+        SaltString::encode_b64(&generate_secure_random_bytes(length)?).map_err(|e| {
             dbg!("Error generating salt", e.to_string());
             e.to_string()
-        })?)
+        })?,
+    )
 }

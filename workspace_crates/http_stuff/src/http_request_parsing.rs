@@ -5,7 +5,7 @@ use std::{
     fmt::{self, Display},
     time::Duration,
 };
-use tokio::io::{BufReader};
+use tokio::io::BufReader;
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
     time::timeout,
@@ -29,9 +29,9 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
     max_line_len: usize,
     common_stream_timeout_duration: Duration,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
-    let ParsedHeaderStream {
-        headers,
-    } = parse_headers_from_stream(reader, max_line_len, common_stream_timeout_duration.clone()).await?;
+    let ParsedHeaderStream { headers } =
+        parse_headers_from_stream(reader, max_line_len, common_stream_timeout_duration.clone())
+            .await?;
     let headers_string = String::from_utf8_lossy(&headers).to_string();
     let headers_count = count_occurences_of_rn(&headers_string);
 
@@ -163,13 +163,19 @@ async fn read_line_bounded<R: AsyncRead + Unpin>(
     let mut line = Vec::with_capacity(128);
 
     loop {
-        let byte = timeout(timeout_dur, reader.read_u8()).await
-            .map_err(|_| HttpRequestParsingError::HeadersStreamReadTimeout)?.map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+        let byte = timeout(timeout_dur, reader.read_u8())
+            .await
+            .map_err(|_| HttpRequestParsingError::HeadersStreamReadTimeout)?
+            .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
 
         line.push(byte);
 
         if line.len() > max_line_len {
-            dbg!("Header line parsing: line exceeded max_line_len, rejecting request", line.len(), max_line_len);
+            dbg!(
+                "Header line parsing: line exceeded max_line_len, rejecting request",
+                line.len(),
+                max_line_len
+            );
             return Err(HttpRequestParsingError::HeaderValueTooLong);
         }
 
@@ -181,7 +187,6 @@ async fn read_line_bounded<R: AsyncRead + Unpin>(
     Ok(line)
 }
 
-
 async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
     reader: &mut BufReader<S>,
     max_line_len: usize,
@@ -191,7 +196,9 @@ async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
     let mut read_total_bytes = 0;
 
     loop {
-        let line = read_line_bounded(reader, max_line_len, common_stream_timeout_duration).await.map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+        let line = read_line_bounded(reader, max_line_len, common_stream_timeout_duration)
+            .await
+            .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
         read_total_bytes += line.len();
 
         if read_total_bytes > MAX_HEADER_BYTES {

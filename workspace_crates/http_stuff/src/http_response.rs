@@ -86,6 +86,21 @@ impl Display for Charset {
     }
 }
 
+#[derive(Debug, PartialEq)]
+
+pub enum KeepAliveOrClose {
+    KeepAlive,
+    Close,
+}
+
+impl Display for KeepAliveOrClose  {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KeepAliveOrClose::KeepAlive => write!(f, "keep-Alive"),
+            KeepAliveOrClose::Close => write!(f, "close"),
+        }
+    }
+}
 #[derive(Debug)]
 pub struct ResponseData {
     pub status_code: StatusCode,
@@ -94,6 +109,7 @@ pub struct ResponseData {
     pub body: Option<Vec<u8>>,
     pub set_cookie_headers: Option<Vec<SetCookieHeader>>,
     pub location: Option<String>,
+    pub connection: KeepAliveOrClose,
 }
 
 pub fn ok_html(content: String) -> ResponseData {
@@ -108,6 +124,8 @@ pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>)
         charset,
         set_cookie_headers: None,
         location: None,
+        connection: KeepAliveOrClose::KeepAlive,
+        
     }
 }
 
@@ -119,6 +137,7 @@ pub fn response(
         content_type,
         charset,
         location,
+        connection
     }: ResponseData,
 ) -> Result<HttpResponse, HttpResponseError> {
     let mut http_response_string: String = String::new();
@@ -143,7 +162,7 @@ pub fn response(
         None => {}
     }
 
-    http_response_string.push_str("Connection: close\r\n");
+    http_response_string.push_str(&format!("Connection: {}\r\n", connection.to_string()));
 
     let content_type_string = content_type.to_string();
     http_response_string.push_str(&format!("Content-Type: {content_type_string}"));
@@ -203,6 +222,7 @@ pub fn redirect_to(page: String) -> ResponseData {
         charset: None,
         body: None,
         set_cookie_headers: None,
+        connection: KeepAliveOrClose::KeepAlive,
     }
 }
 
@@ -214,6 +234,7 @@ pub fn internal_server_error_500() -> ResponseData {
         body: None,
         set_cookie_headers: None,
         location: None,
+        connection: KeepAliveOrClose::KeepAlive,
     };
     return resp;
 }
@@ -225,6 +246,7 @@ pub fn bad_request_400() -> ResponseData {
         body: None,
         set_cookie_headers: None,
         location: None,
+        connection: KeepAliveOrClose::KeepAlive,
     };
     return resp;
 }

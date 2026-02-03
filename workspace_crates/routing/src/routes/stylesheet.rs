@@ -11,6 +11,7 @@ pub fn get() -> Result<ResponseData, error_structs::InternalAppError> {
         body: Some(stylesheet_bytes),
         set_cookie_headers: None,
         location: None,
+        connection: KeepAliveOrClose::KeepAlive,
     })
 }
 

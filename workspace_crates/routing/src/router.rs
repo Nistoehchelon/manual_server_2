@@ -2,8 +2,7 @@ use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{
-        ResponseData, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to,
-        response, standalone_response,
+        Charset, ResponseData, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to, response, standalone_response
     },
 };
 use session::{self, Session, SessionNotification, add_session_notification};
@@ -196,16 +195,19 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
     }
 }
 
-pub async fn generate_response(request_data: HttpRequestData, db_pool: sqlx::PgPool) -> Vec<u8> {
-    if is_requesting_static_resource(request_data.path.clone()) {
-        let response_data = generate_static_response(request_data);
-        let response_bytes = match response(response_data) {
+pub async fn response_to_bytes(response_data: ResponseData) -> Vec<u8> {
+    let response_bytes = match response(response_data) {
             Ok(rb) => rb,
             Err(_) => {
                 return standalone_response(StatusCode::InternalServerError500, format!("Error"));
             }
         };
-        return response_bytes;
+    return response_bytes;
+}
+pub async fn generate_response_data(request_data: HttpRequestData, db_pool: sqlx::PgPool) -> ResponseData {
+    if is_requesting_static_resource(request_data.path.clone()) {
+        let response_data = generate_static_response(request_data);
+        return response_data;
     }
 
     let cookies = request_data.cookies.clone();
@@ -213,24 +215,14 @@ pub async fn generate_response(request_data: HttpRequestData, db_pool: sqlx::PgP
         match session::get_existing_or_make_new_session(db_pool.clone(), cookies).await {
             Ok((s, cns)) => (s, cns),
             Err(_) => {
-                return standalone_response(
-                    StatusCode::InternalServerError500,
-                    format!("internal_server_error_500"),
-                );
-            }
-        };
+                return ResponseData { status_code: StatusCode::InternalServerError500, content_type: http_stuff::http_response::ContentType::TextPlain, charset: Some(Charset::Utf8), body: Some(b"500".to_vec()), set_cookie_headers: None, location: None, connection: http_stuff::http_response::KeepAliveOrClose::KeepAlive };
+        }
+    };
     // Route handling
     let response_data = route(db_pool.clone(), session, created_new_session, request_data)
         .await
         .unwrap_or(internal_server_error_500());
-    let response_bytes = match response(response_data) {
-        Ok(rb) => rb,
-        Err(e) => {
-            dbg!(&e);
-            standalone_response(StatusCode::InternalServerError500, format!(":("))
-        }
-    };
-    return response_bytes;
+    return response_data;
 }
 
 pub fn is_requesting_static_resource(path: String) -> bool {

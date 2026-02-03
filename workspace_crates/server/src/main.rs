@@ -1,9 +1,10 @@
 use config_reader::{Config, config_reader::Environment};
 use http_stuff::{
     http_request_parsing::{HttpRequestParsingError, parse_http_request},
-    http_response::{StatusCode, standalone_response},
+    http_response::{KeepAliveOrClose, StatusCode, standalone_response},
 };
 
+use routing::router::response_to_bytes;
 use server::{
     check_and_consume_buckets::check_and_consume_buckets,
     http_to_https_redirect::http_to_https_redirect,
@@ -12,7 +13,13 @@ use server::{
 };
 use tokio_rustls::{LazyConfigAcceptor, TlsAcceptor};
 
-use std::{collections::HashMap, net::IpAddr, path::PathBuf, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    net::IpAddr,
+    path::PathBuf,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use rustls_acme::{AcmeConfig, caches::DirCache, is_tls_alpn_challenge};
 use tokio::{
@@ -193,20 +200,48 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
 ) {
     let common_stream_timeout_duration =
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
+    const MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION: u64 = 10;
+    const MAX_TIME_FOR_ALL_REQUEST_ON_KEEP_ALIVE_CONNECTION_MILLIS: u64 = 5000;
+    let max_time_dur =
+        Duration::from_millis(MAX_TIME_FOR_ALL_REQUEST_ON_KEEP_ALIVE_CONNECTION_MILLIS);
+    let mut requests_count = 0;
+    let mut time_spent_on_serving_all_requests_up_to_now = Duration::ZERO;
+    loop {
+        let start = Instant::now();
+        let keep_alive_or_close = match generate_and_write_response(
+            reader,
+            db_pool.clone(),
+            peer_ip,
+            global_bucket.clone(),
+            ip_buckets.clone(),
+            server_config.clone(),
+        )
+        .await
+        {
+            Ok(kaoc) => kaoc,
+            Err(e) => {
+                dbg!(e);
+                let _ = timeout(common_stream_timeout_duration.clone(), reader.flush()).await;
+                let _ = timeout(common_stream_timeout_duration.clone(), reader.shutdown()).await;
+                return;
+            }
+        };
+        let f = timeout(common_stream_timeout_duration.clone(), reader.flush()).await;
+        if f.is_err() {
+            dbg!("main.rs flush timeout");
+            return;
+        }
 
-    let _ = generate_and_write_response(
-        reader,
-        db_pool,
-        peer_ip,
-        global_bucket,
-        ip_buckets,
-        server_config.clone(),
-    )
-    .await;
-    let f = timeout(common_stream_timeout_duration.clone(), reader.flush()).await;
-    if f.is_err() {
-        dbg!("main.rs flush timeout");
-        return;
+        if keep_alive_or_close == KeepAliveOrClose::Close
+            || requests_count > MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION
+            || time_spent_on_serving_all_requests_up_to_now > max_time_dur
+        {
+            dbg!("Closing connection", requests_count, MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION, time_spent_on_serving_all_requests_up_to_now.as_millis(), max_time_dur.as_millis());
+            break;
+        }
+        let time_elapsed = start.elapsed();
+        time_spent_on_serving_all_requests_up_to_now += time_elapsed;
+        requests_count += 1;
     }
     let s = timeout(common_stream_timeout_duration.clone(), reader.shutdown()).await;
     if s.is_err() {
@@ -214,6 +249,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         return;
     }
 }
+
 pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     reader: &mut BufReader<S>,
     db_pool: sqlx::PgPool,
@@ -221,7 +257,8 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     global_bucket: GlobalBucket,
     ip_buckets: IpBuckets,
     server_config: Config,
-) -> std::io::Result<()> {
+) -> std::io::Result<KeepAliveOrClose> {
+    let mut close_or_keep_alive = KeepAliveOrClose::Close;
     dbg!("Peer with IP ", peer_ip, "just issued a request");
     let Config {
         per_ip_token_bucket_capacity,
@@ -252,7 +289,7 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
             }
             _ => {}
         }
-        return Ok(());
+        return Ok(close_or_keep_alive);
     }
 
     let request_data = match timeout(
@@ -268,25 +305,39 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
         Ok(Ok(data)) => data,
         Ok(Err(e)) => {
             write_http_parsing_error(e, reader, common_stream_timeout_duration.clone()).await;
-            return Ok(());
+            return Ok(close_or_keep_alive);
         }
         Err(_e) => {
             dbg!("main.rs parse_http_request timed out");
-            return Ok(());
+            return Ok(close_or_keep_alive);
         }
     };
 
-    let response = routing::generate_response(request_data, db_pool).await;
+    let response_data = routing::generate_response_data(request_data.clone(), db_pool).await;
+    match response_data.connection {
+        KeepAliveOrClose::Close => {
+            close_or_keep_alive = KeepAliveOrClose::Close;
+        }
+        KeepAliveOrClose::KeepAlive => {
+            close_or_keep_alive = KeepAliveOrClose::KeepAlive;
+            if let Some(connection_header) = request_data.headers.get("connection") {
+                if connection_header == "close" {
+                    close_or_keep_alive = KeepAliveOrClose::Close;
+                }
+            }
+        }
+    }
+    let response_bytes = response_to_bytes(response_data).await;
     if let Err(_e) = timeout(
         common_stream_timeout_duration.clone(),
-        reader.write_all(&response),
+        reader.write_all(&response_bytes),
     )
     .await
     {
         dbg!("main.rs response write timeout");
     }
 
-    Ok(())
+    Ok(close_or_keep_alive)
 }
 
 async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(

@@ -2,3 +2,5 @@ config
 rustls_acme_cache
 local_ssl/localhost.crt
 local_ssl/localhost.key
+local_ssl/postgres.crt
+local_ssl/postgres.key

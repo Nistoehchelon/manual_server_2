@@ -1,4 +1,4 @@
-config
+.env
 rustls_acme_cache
 local_ssl/localhost.crt
 local_ssl/localhost.key

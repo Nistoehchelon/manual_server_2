@@ -96,7 +96,7 @@ pub enum KeepAliveOrClose {
 impl Display for KeepAliveOrClose  {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            KeepAliveOrClose::KeepAlive => write!(f, "keep-Alive"),
+            KeepAliveOrClose::KeepAlive => write!(f, "keep-alive"),
             KeepAliveOrClose::Close => write!(f, "close"),
         }
     }

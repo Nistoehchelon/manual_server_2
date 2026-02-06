@@ -9,7 +9,10 @@ use server::{
     check_and_consume_buckets::check_and_consume_buckets,
     http_to_https_redirect::http_to_https_redirect,
     load_local_cert::load_local_tls_config,
-    token_buckets_for_requests::{GlobalBucket, IpBuckets, TokenBucket},
+    token_buckets_for_requests::{
+        GlobalBuckets, IpBuckets, TimeBucket, TokenAndTimeBuckets, TokenAndTimeBucketsAndLastSeen,
+        TokenBucket,
+    },
 };
 use tokio_rustls::{LazyConfigAcceptor, TlsAcceptor};
 
@@ -69,10 +72,16 @@ async fn main() -> std::io::Result<()> {
     );
 
     // for rate limiting
-    let global_bucket: GlobalBucket = Arc::new(Mutex::new(TokenBucket::new(
-        server_config.server_global_requests_token_bucket_capacity,
-        server_config.server_global_requests_token_bucket_refill_rate_per_millis,
-    )));
+    let global_bucket: GlobalBuckets = Arc::new(Mutex::new(TokenAndTimeBuckets {
+        token_bucket: TokenBucket::new(
+            server_config.server_global_requests_token_bucket_capacity,
+            server_config.server_global_requests_token_bucket_refill_rate_per_millis,
+        ),
+        time_bucket: TimeBucket::new(
+            server_config.server_time_credits_capacity,
+            server_config.server_time_credits_refill_rate_per_millis,
+        ),
+    }));
     let ip_buckets: IpBuckets = Arc::new(Mutex::new(HashMap::new()));
 
     let db_pool = sqlx::PgPool::connect(&server_config.database_str)
@@ -194,7 +203,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     reader: &mut BufReader<S>,
     db_pool: sqlx::PgPool,
     peer_ip: IpAddr,
-    global_bucket: GlobalBucket,
+    global_bucket: GlobalBuckets,
     ip_buckets: IpBuckets,
     server_config: Config,
 ) {
@@ -215,8 +224,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             &peer_ip,
             &global_bucket,
             &ip_buckets,
-            server_config.per_ip_token_bucket_capacity,
-            server_config.per_ip_token_bucket_refill_rate_per_millis,
+            server_config.clone(),
         )
         .await
         {
@@ -257,6 +265,28 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             return;
         }
 
+        let time_elapsed = start.elapsed();
+        {
+            let mut ip_buckets = ip_buckets.lock().await;
+            let ip_bucket =
+                ip_buckets
+                    .entry(peer_ip)
+                    .or_insert_with(|| TokenAndTimeBucketsAndLastSeen {
+                        token_bucket: TokenBucket::new(
+                            server_config.per_ip_token_bucket_capacity,
+                            server_config.per_ip_token_bucket_refill_rate_per_millis,
+                        ),
+                        time_bucket: TimeBucket::new(
+                            server_config.per_ip_time_credits_capacity,
+                            server_config.per_ip_time_credits_refill_rate_per_millis,
+                        ),
+                        last_seen: Instant::now(),
+                    });
+            ip_bucket.time_bucket.consume_time(time_elapsed);
+        }
+        time_spent_on_serving_all_requests_up_to_now += time_elapsed;
+        requests_count += 1;
+
         if keep_alive_or_close == KeepAliveOrClose::Close
             || requests_count > max_requests_per_keep_alive_connection
             || time_spent_on_serving_all_requests_up_to_now > max_time_dur
@@ -271,9 +301,6 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             );
             break;
         }
-        let time_elapsed = start.elapsed();
-        time_spent_on_serving_all_requests_up_to_now += time_elapsed;
-        requests_count += 1;
     }
     let s = timeout(common_stream_timeout_duration.clone(), reader.shutdown()).await;
     if s.is_err() {
@@ -310,11 +337,12 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     {
         Ok(Ok(data)) => data,
         Ok(Err(e)) => {
+            dbg!(e.clone());
             write_http_parsing_error(e, reader, common_stream_timeout_duration.clone()).await;
             return Ok(close_or_keep_alive);
         }
-        Err(_e) => {
-            dbg!("main.rs parse_http_request timed out");
+        Err(e) => {
+            dbg!("main.rs parse_http_request timed out", e);
             return Ok(close_or_keep_alive);
         }
     };
@@ -382,9 +410,9 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
                 stream.write_all(&err_response),
             )
             .await;
-        }
-        _ => {
-            eprintln!("main error, could not parse request {:?}", e);
+        }   
+        hm => {
+            eprintln!("main error, could not parse request {:?}", hm);
             let err_response =
                 standalone_response(StatusCode::BadRequest400, format!("400 Bad Request 🙀"));
             let _ = timeout(
@@ -393,5 +421,8 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             )
             .await;
         }
+        
     };
+    let _ =    stream.flush().await;
+    let _ = stream.shutdown().await;
 }

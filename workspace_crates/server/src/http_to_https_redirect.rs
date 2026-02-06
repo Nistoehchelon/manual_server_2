@@ -5,21 +5,20 @@ use tokio::{io::AsyncWriteExt, net::TcpListener, time::timeout};
 
 use crate::{
     check_and_consume_buckets::check_and_consume_buckets,
-    token_buckets_for_requests::{GlobalBucket, IpBuckets},
+    token_buckets_for_requests::{GlobalBuckets, IpBuckets},
 };
 
 pub async fn http_to_https_redirect(
-    Config {
-        domain_name: domain,
-        ip,
-        per_ip_token_bucket_capacity,
-        per_ip_token_bucket_refill_rate_per_millis,
-        ..
-    }: Config,
-    global_bucket: GlobalBucket,
+    config: Config,
+    global_bucket: GlobalBuckets,
     ip_buckets: IpBuckets,
     common_stream_timeout_duration: Duration,
 ) -> tokio::io::Result<()> {
+        let Config {
+        domain_name: domain,
+        ip,
+        ..
+    } = config.clone();
     let listener_at = format!("{ip}:80");
     let listener = match TcpListener::bind(&listener_at).await {
         Ok(l) => {
@@ -48,8 +47,7 @@ pub async fn http_to_https_redirect(
             &peer_ip,
             &global_bucket,
             &ip_buckets,
-            per_ip_token_bucket_capacity,
-            per_ip_token_bucket_refill_rate_per_millis,
+            config.clone(),
         )
         .await
         {

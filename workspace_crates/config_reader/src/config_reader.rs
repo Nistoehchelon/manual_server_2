@@ -1,4 +1,4 @@
-use std::{fs::read_to_string, path::PathBuf, str::FromStr};
+use std::{fs::read_to_string, path::PathBuf, str::FromStr, time::Duration};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -26,6 +26,10 @@ pub struct Config {
     pub environment: Environment,
     pub lets_encrypt_production: bool,
     pub lets_encrypt_contact_email: String,
+    pub server_time_credits_refill_rate_per_millis: Duration,
+    pub server_time_credits_capacity: Duration,
+    pub per_ip_time_credits_refill_rate_per_millis: Duration,
+    pub per_ip_time_credits_capacity: Duration,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum Environment {
@@ -73,6 +77,12 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut max_requests_per_keep_alive_connection: Option<u64> = None;
     let mut max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis: Option<u64> = None;
 
+    let mut server_time_credits_capacity_millis: Option<u64> = None;
+    let mut server_time_credits_refill_rate_millis_per_millis: Option<u64> = None;
+    
+    let mut per_ip_time_credits_capacity_millis: Option<u64> = None;
+    let mut per_ip_time_credits_refill_rate_millis: Option<u64> = None;
+
     let mut unk_keys_count = 0;
 
     for line in contents
@@ -89,6 +99,10 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         let value = value.trim().to_string();
 
         match key {
+            "PER_IP_TIME_CREDITS_CAPACITY_MILLIS" => per_ip_time_credits_capacity_millis = Some(value.parse().unwrap()), 
+            "PER_IP_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS" => per_ip_time_credits_refill_rate_millis = Some(value.parse().unwrap()), 
+            "SERVER_TIME_CREDITS_CAPACITY_MILLIS" => server_time_credits_capacity_millis = Some(value.parse().unwrap()),
+            "SERVER_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS" => server_time_credits_refill_rate_millis_per_millis = Some(value.parse().unwrap()),
             "MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUESTS_ON_KEEP_ALIVE_CONNECTION_MILLIS" => max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis = Some(value.parse().unwrap()),
             "MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION" => max_requests_per_keep_alive_connection = Some(value.parse().unwrap()),
             "IP" => ip = Some(value),
@@ -191,44 +205,50 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         panic!("Panicking due to {unk_keys_count} unknown keys.");
     }
 
+    let server_time_credits_capacity  = Duration::from_millis(server_time_credits_capacity_millis.expect("Missing SERVER_TIME_CREDITS_CAPACITY_MILLIS in env file"));
+    let server_time_credits_refill_rate_per_millis  = Duration::from_millis(server_time_credits_refill_rate_millis_per_millis.expect("Missing SERVER_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS in env file"));
+
+    let per_ip_time_credits_capacity  = Duration::from_millis(per_ip_time_credits_capacity_millis.expect("Missing PER_IP_TIME_CREDITS_CAPACITY_MILLIS in env file"));
+    let per_ip_time_credits_refill_rate_per_millis  = Duration::from_millis(per_ip_time_credits_refill_rate_millis.expect("Missing PER_IP_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS in env file"));
+
     let max_requests_per_keep_alive_connection = max_requests_per_keep_alive_connection.expect("Missing MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION in file");
     let max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis = max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis.expect("Missing MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUESTS_ON_KEEP_ALIVE_CONNECTION_MILLIS in file");
-    let ip = ip.expect("Missing IP in config file");
-    let port = port.expect("Missing PORT in config file");
-    let db_url = db_url.expect("Missing DATABASE_URL in config file");
-    let domain_name = domain_name.expect("Missing DOMAIN_NAME in config file");
+    let ip = ip.expect("Missing IP in env file");
+    let port = port.expect("Missing PORT in env file");
+    let db_url = db_url.expect("Missing DATABASE_URL in env file");
+    let domain_name = domain_name.expect("Missing DOMAIN_NAME in env file");
     let server_token_bucket_capacity =
         server_token_bucket_capacity.expect("Missing SERVER_TOKEN_BUCKET_CAPACITY in config");
     let server_token_bucket_refill_rate = server_token_bucket_refill_rate
-        .expect("Missing SERVER_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in config file");
+        .expect("Missing SERVER_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in env file");
     let per_ip_token_bucket_capacity =
         per_ip_token_bucket_capacity.expect("Missing PER_IP_TOKEN_BUCKET_CAPACITY in config");
     let per_ip_token_bucket_refill_rate = per_ip_token_bucket_refill_rate
-        .expect("Missing PER_IP_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in config file");
+        .expect("Missing PER_IP_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in env file");
 
     let common_stream_timeout_millis =
-        common_stream_timeout_millis.expect("Missing COMMON_STREAM_TIMEOUT_MILLIS in config file");
+        common_stream_timeout_millis.expect("Missing COMMON_STREAM_TIMEOUT_MILLIS in env file");
 
     let max_total_headers_size_bytes =
-        max_total_headers_size_bytes.expect("Missing MAX_TOTAL_HEADERS_SIZE_BYTES in config file");
-    let max_headers_count = max_headers_count.expect("Missing MAX_HEADERS_COUNT in config file");
+        max_total_headers_size_bytes.expect("Missing MAX_TOTAL_HEADERS_SIZE_BYTES in env file");
+    let max_headers_count = max_headers_count.expect("Missing MAX_HEADERS_COUNT in env file");
     let max_header_name_length =
-        max_header_name_length.expect("Missing MAX_HEADER_NAME_LENGTH in config file");
+        max_header_name_length.expect("Missing MAX_HEADER_NAME_LENGTH in env file");
     let max_header_value_length =
-        max_header_value_length.expect("Missing MAX_HEADER_VALUE_LENGTH in config file");
+        max_header_value_length.expect("Missing MAX_HEADER_VALUE_LENGTH in env file");
     let max_total_body_size_bytes =
-        max_total_body_size_bytes.expect("Missing MAX_TOTAL_BODY_SIZE_BYTES in config file");
+        max_total_body_size_bytes.expect("Missing MAX_TOTAL_BODY_SIZE_BYTES in env file");
     let max_request_path_length =
-        max_request_path_length.expect("Missing MAX_REQUEST_PATH_LENGTH in config file");
-    let max_cookies_count = max_cookies_count.expect("Missing MAX_COOKIES_COUNT in config file");
+        max_request_path_length.expect("Missing MAX_REQUEST_PATH_LENGTH in env file");
+    let max_cookies_count = max_cookies_count.expect("Missing MAX_COOKIES_COUNT in env file");
 
-    let environment = environment.expect("Missing ENVIRONMENT in config file");
+    let environment = environment.expect("Missing ENVIRONMENT in env file");
 
     let lets_encrypt_production =
-        lets_encrypt_production.expect("Missing LETS_ENCRYPT_PRODUCTION in config file");
+        lets_encrypt_production.expect("Missing LETS_ENCRYPT_PRODUCTION in env file");
 
     let lets_encrypt_contact_email =
-        lets_encrypt_contact_email.expect("Missing LETS_ENCRYPT_CONTACT_EMAIL in config file");
+        lets_encrypt_contact_email.expect("Missing LETS_ENCRYPT_CONTACT_EMAIL in env file");
 
     Config {
         ip: ip.clone(),
@@ -253,5 +273,10 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         lets_encrypt_contact_email,
         max_requests_per_keep_alive_connection,
         max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis,
+        server_time_credits_capacity,
+        server_time_credits_refill_rate_per_millis,
+        per_ip_time_credits_capacity,
+        per_ip_time_credits_refill_rate_per_millis,
+    
     }
 }

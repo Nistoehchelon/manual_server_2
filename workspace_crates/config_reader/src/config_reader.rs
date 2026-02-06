@@ -11,6 +11,8 @@ pub struct Config {
     pub server_global_requests_token_bucket_refill_rate_per_millis: f64,
     pub per_ip_token_bucket_capacity: f64,
     pub per_ip_token_bucket_refill_rate_per_millis: f64,
+    pub max_requests_per_keep_alive_connection: u64,
+    pub max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis: u64,
 
     pub common_stream_timeout_millis: u64,
 
@@ -68,6 +70,10 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut max_total_body_size_bytes: Option<usize> = None;
     let mut max_request_path_length: Option<usize> = None;
     let mut max_cookies_count: Option<usize> = None;
+    let mut max_requests_per_keep_alive_connection: Option<u64> = None;
+    let mut max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis: Option<u64> = None;
+
+    let mut unk_keys_count = 0;
 
     for line in contents
         .lines()
@@ -83,6 +89,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         let value = value.trim().to_string();
 
         match key {
+            "MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUESTS_ON_KEEP_ALIVE_CONNECTION_MILLIS" => max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis = Some(value.parse().unwrap()),
+            "MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION" => max_requests_per_keep_alive_connection = Some(value.parse().unwrap()),
             "IP" => ip = Some(value),
             "PORT" => port = Some(value.parse().unwrap()),
             "DATABASE_URL" => db_url = Some(value),
@@ -168,13 +176,23 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
                     .parse::<usize>()
                     .expect(&format!("Expected usize parsing of {value}  to work out"));
                 max_cookies_count = Some(value)
-            }
+            },
+
 
             // ...
-            unk_key => panic!("Unknown key {unk_key}"),
+            unk_key => { 
+                unk_keys_count += 1;
+                println!("Unknown key {unk_key}") 
+        },
         }
     }
 
+    if unk_keys_count > 0 {
+        panic!("Panicking due to {unk_keys_count} unknown keys.");
+    }
+
+    let max_requests_per_keep_alive_connection = max_requests_per_keep_alive_connection.expect("Missing MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION in file");
+    let max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis = max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis.expect("Missing MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUESTS_ON_KEEP_ALIVE_CONNECTION_MILLIS in file");
     let ip = ip.expect("Missing IP in config file");
     let port = port.expect("Missing PORT in config file");
     let db_url = db_url.expect("Missing DATABASE_URL in config file");
@@ -233,5 +251,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         environment,
         lets_encrypt_production,
         lets_encrypt_contact_email,
+        max_requests_per_keep_alive_connection,
+        max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis,
     }
 }

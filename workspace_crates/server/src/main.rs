@@ -200,10 +200,10 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
 ) {
     let common_stream_timeout_duration =
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
-    const MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION: u64 = 10;
-    const MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUEST_ON_KEEP_ALIVE_CONNECTION_MILLIS: u64 = 5000;
+    let max_requests_per_keep_alive_connection = server_config.max_requests_per_keep_alive_connection;
+    let max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis = server_config.max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis;
     let max_time_dur =
-        Duration::from_millis(MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUEST_ON_KEEP_ALIVE_CONNECTION_MILLIS);
+        Duration::from_millis(max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis);
     let mut requests_count = 0;
     let mut time_spent_on_serving_all_requests_up_to_now = Duration::ZERO;
     loop {
@@ -233,10 +233,10 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         }
 
         if keep_alive_or_close == KeepAliveOrClose::Close
-            || requests_count > MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION
+            || requests_count > max_requests_per_keep_alive_connection
             || time_spent_on_serving_all_requests_up_to_now > max_time_dur
         {
-            dbg!("Closing connection", keep_alive_or_close, requests_count, MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION, time_spent_on_serving_all_requests_up_to_now.as_millis(), max_time_dur.as_millis());
+            dbg!("Closing connection", keep_alive_or_close, requests_count, max_requests_per_keep_alive_connection, time_spent_on_serving_all_requests_up_to_now.as_millis(), max_time_dur.as_millis());
             break;
         }
         let time_elapsed = start.elapsed();

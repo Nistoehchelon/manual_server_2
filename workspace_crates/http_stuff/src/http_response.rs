@@ -93,7 +93,7 @@ pub enum KeepAliveOrClose {
     Close,
 }
 
-impl Display for KeepAliveOrClose  {
+impl Display for KeepAliveOrClose {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             KeepAliveOrClose::KeepAlive => write!(f, "keep-alive"),
@@ -113,7 +113,11 @@ pub struct ResponseData {
 }
 
 pub fn ok_html(content: String) -> ResponseData {
-    ok(content.into_bytes(), ContentType::TextHtml, Some(Charset::Utf8))
+    ok(
+        content.into_bytes(),
+        ContentType::TextHtml,
+        Some(Charset::Utf8),
+    )
 }
 
 pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>) -> ResponseData {
@@ -125,7 +129,6 @@ pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>)
         set_cookie_headers: None,
         location: None,
         connection: KeepAliveOrClose::KeepAlive,
-        
     }
 }
 
@@ -137,7 +140,7 @@ pub fn response(
         content_type,
         charset,
         location,
-        connection
+        connection,
     }: ResponseData,
 ) -> Result<HttpResponse, HttpResponseError> {
     let mut http_response_string: String = String::new();
@@ -147,39 +150,30 @@ pub fn response(
     http_response_string.push_str(&status_code_string);
     http_response_string.push_str("\r\n");
 
-    match set_cookie_headers {
-        Some(set_cookie_headers_vec) => {
-            for sc in set_cookie_headers_vec.iter() {
-                let set_cookie_headers_string = format!(
-                    "Set-Cookie: {}={}; Path={}; Secure; HttpOnly; SameSite=Strict\r\n",
-                    sc.key.to_string(),
-                    sc.value.to_string(),
-                    sc.path.to_string()
-                );
-                http_response_string.push_str(&set_cookie_headers_string);
-            }
+    if let Some(set_cookie_headers) = set_cookie_headers {
+        for sc in set_cookie_headers.iter() {
+            let set_cookie_headers_string = format!(
+                "Set-Cookie: {}={}; Path={}; Secure; HttpOnly; SameSite=Strict\r\n",
+                sc.key.to_string(),
+                sc.value.to_string(),
+                sc.path.to_string()
+            );
+            http_response_string.push_str(&set_cookie_headers_string);
         }
-        None => {}
     }
 
     http_response_string.push_str(&format!("Connection: {}\r\n", connection.to_string()));
 
     let content_type_string = content_type.to_string();
     http_response_string.push_str(&format!("Content-Type: {content_type_string}"));
-    match charset {
-        Some(cs) => {
-            http_response_string.push_str("; charset=");
-            http_response_string.push_str(&(cs.to_string()));
-        }
-        None => {}
+    if let Some(cs) = charset {
+        http_response_string.push_str("; charset=");
+        http_response_string.push_str(&(cs.to_string()));
     }
     http_response_string.push_str("\r\n");
 
-    match location {
-        Some(l) => {
-            http_response_string.push_str(&format!("Location: {l}\r\n",));
-        }
-        None => {}
+    if let Some(l) = location {
+        http_response_string.push_str(&format!("Location: {l}\r\n",));
     }
 
     let mut body_bytes_length = 0;
@@ -194,8 +188,45 @@ pub fn response(
     http_response_string.push_str(&format!("Content-Length: {body_bytes_length}\r\n"));
 
     http_response_string.push_str(&format!(
-        "Strict-Transport-Security: max-age=999999999; includeSubDomains; preload"
+        "Strict-Transport-Security: max-age=999999999; includeSubDomains; preload\r\n"
     ));
+    http_response_string.push_str(&format!(
+        "X-Content-Type-Options: nosniff\r\n"
+    ));
+    http_response_string.push_str(&format!(
+        "X-Frame-Options: DENY\r\n"
+    ));    
+
+    http_response_string.push_str(&format!(
+        "Cross-Origin-Embedder-Policy: require-corp\r\n"
+    ));
+    http_response_string.push_str(&format!(
+        "Cross-Origin-Resource-Policy: same-origin\r\n"
+    ));
+    http_response_string.push_str(&format!(
+        "Cross-Origin-Opener-Policy: same-origin\r\n"
+    ));
+    http_response_string.push_str(&format!(
+        "Cross-Origin-Opener-Policy: same-origin\r\n"
+    ));
+    http_response_string.push_str(&format!(
+        "Referrer-Policy: no-referrer\r\n"
+    ));
+    http_response_string.push_str(&format!(
+        "Permissions-Policy:\
+camera=(),\
+microphone=(),\
+geolocation=(),\
+payment=(),\
+usb=(),\
+bluetooth=()\r\n"
+    ));
+
+    let nonce = "test_make_this_random_later";
+    http_response_string.push_str(&format!(
+        "Content-Security-Policy: default-src 'none'; script-src 'nonce-{nonce}' 'strict-dynamic'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; img-src 'self'; style-src 'self'; connect-src 'self'; font-src 'self'; form-action 'self';"
+    ));
+
 
     http_response_string.push_str("\r\n\r\n");
 

@@ -200,20 +200,45 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
 ) {
     let common_stream_timeout_duration =
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
-    let max_requests_per_keep_alive_connection = server_config.max_requests_per_keep_alive_connection;
-    let max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis = server_config.max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis;
-    let max_time_dur =
-        Duration::from_millis(max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis);
+    let max_requests_per_keep_alive_connection =
+        server_config.max_requests_per_keep_alive_connection;
+    let max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis =
+        server_config.max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis;
+    let max_time_dur = Duration::from_millis(
+        max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis,
+    );
     let mut requests_count = 0;
     let mut time_spent_on_serving_all_requests_up_to_now = Duration::ZERO;
     loop {
+        if let Err(error_response) = check_and_consume_buckets(
+            Instant::now(),
+            &peer_ip,
+            &global_bucket,
+            &ip_buckets,
+            server_config.per_ip_token_bucket_capacity,
+            server_config.per_ip_token_bucket_refill_rate_per_millis,
+        )
+        .await
+        {
+            match timeout(
+                common_stream_timeout_duration.clone(),
+                reader.write_all(&error_response),
+            )
+            .await
+            {
+                Err(_e) => {
+                    dbg!("stream.write_all after bucket check time out");
+                }
+                _ => {}
+            }
+            break;
+        }
+
         let start = Instant::now();
         let keep_alive_or_close = match generate_and_write_response(
             reader,
             db_pool.clone(),
             peer_ip,
-            global_bucket.clone(),
-            ip_buckets.clone(),
             server_config.clone(),
         )
         .await
@@ -236,7 +261,14 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             || requests_count > max_requests_per_keep_alive_connection
             || time_spent_on_serving_all_requests_up_to_now > max_time_dur
         {
-            dbg!("Closing connection", keep_alive_or_close, requests_count, max_requests_per_keep_alive_connection, time_spent_on_serving_all_requests_up_to_now.as_millis(), max_time_dur.as_millis());
+            dbg!(
+                "Closing connection",
+                keep_alive_or_close,
+                requests_count,
+                max_requests_per_keep_alive_connection,
+                time_spent_on_serving_all_requests_up_to_now.as_millis(),
+                max_time_dur.as_millis()
+            );
             break;
         }
         let time_elapsed = start.elapsed();
@@ -254,43 +286,17 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     reader: &mut BufReader<S>,
     db_pool: sqlx::PgPool,
     peer_ip: IpAddr,
-    global_bucket: GlobalBucket,
-    ip_buckets: IpBuckets,
     server_config: Config,
 ) -> std::io::Result<KeepAliveOrClose> {
     let mut close_or_keep_alive = KeepAliveOrClose::Close;
     dbg!("Peer with IP ", peer_ip, "just issued a request");
     let Config {
-        per_ip_token_bucket_capacity,
-        per_ip_token_bucket_refill_rate_per_millis,
         common_stream_timeout_millis,
         max_header_name_len,
         max_header_value_len,
         ..
     } = server_config.clone();
     let common_stream_timeout_duration = Duration::from_millis(common_stream_timeout_millis);
-    if let Err(error_response) = check_and_consume_buckets(
-        &peer_ip,
-        &global_bucket,
-        &ip_buckets,
-        per_ip_token_bucket_capacity,
-        per_ip_token_bucket_refill_rate_per_millis,
-    )
-    .await
-    {
-        match timeout(
-            common_stream_timeout_duration.clone(),
-            reader.write_all(&error_response),
-        )
-        .await
-        {
-            Err(_e) => {
-                dbg!("stream.write_all after bucket check time out");
-            }
-            _ => {}
-        }
-        return Ok(close_or_keep_alive);
-    }
 
     let request_data = match timeout(
         common_stream_timeout_duration.clone(),

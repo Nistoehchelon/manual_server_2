@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use config_reader::Config;
 use tokio::{io::AsyncWriteExt, net::TcpListener, time::timeout};
@@ -44,6 +44,7 @@ pub async fn http_to_https_redirect(
         };
         let peer_ip = peer_ip.ip();
         if let Err(error_response) = check_and_consume_buckets(
+            Instant::now(),
             &peer_ip,
             &global_bucket,
             &ip_buckets,

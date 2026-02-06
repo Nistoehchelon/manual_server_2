@@ -1,8 +1,10 @@
+use std::time::Instant;
+
 use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{
-        Charset, ResponseData, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to, response, standalone_response
+        Charset, ContentType, ResponseData, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to, response, standalone_response
     },
 };
 use session::{self, Session, SessionNotification, add_session_notification};
@@ -210,6 +212,7 @@ pub async fn generate_response_data(request_data: HttpRequestData, db_pool: sqlx
         return response_data;
     }
 
+    let request_start = Instant::now();
     let cookies = request_data.cookies.clone();
     let (session, created_new_session) =
         match session::get_existing_or_make_new_session(db_pool.clone(), cookies).await {
@@ -219,10 +222,33 @@ pub async fn generate_response_data(request_data: HttpRequestData, db_pool: sqlx
         }
     };
     // Route handling
-    let response_data = route(db_pool.clone(), session, created_new_session, request_data)
+    let response_data = route(db_pool.clone(), session.clone(), created_new_session, request_data)
         .await
         .unwrap_or(internal_server_error_500());
+    let response_data = add_elapsed(response_data, session, request_start);
+
     return response_data;
+}
+
+pub fn add_elapsed(mut response_data: ResponseData, session: Session, request_start: Instant) -> ResponseData {
+ 
+if let Some(body) = &mut response_data.body {
+    if response_data.content_type == ContentType::TextHtml {
+        if let Ok(mut html) = String::from_utf8(body.clone()) {
+            let elapsed_ms = request_start.elapsed().as_millis();
+
+            let timing_html = format!(
+                r#"<div>
+Page loading took {elapsed_ms} ms
+</div>"#
+            );
+
+            html = html.replace("</body>", &format!("{}\n</body>", timing_html));
+            *body = html.into_bytes();
+        }
+    }
+}
+response_data
 }
 
 pub fn is_requesting_static_resource(path: String) -> bool {

@@ -53,7 +53,7 @@ pub struct SetCookieHeader {
     pub value: String,
     pub path: String,
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ContentType {
     TextHtml,
     TextCss,

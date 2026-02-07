@@ -7,7 +7,7 @@ use http_stuff::{
         Charset, ContentType, ResponseData, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to, response, standalone_response
     },
 };
-use session::{self, Session, SessionNotification, add_session_notification};
+use session::{self, Session, SessionNotification, add_session_notification, get_session_by_session_id, set_previous_page_load_time_ms};
 use user::{self, get_user_by_user_id};
 
 use crate::routes;
@@ -225,21 +225,34 @@ pub async fn generate_response_data(request_data: HttpRequestData, db_pool: sqlx
     let response_data = route(db_pool.clone(), session.clone(), created_new_session, request_data)
         .await
         .unwrap_or(internal_server_error_500());
-    let response_data = add_elapsed(response_data, session, request_start);
+    let response_data = add_elapsed(response_data, session, request_start, db_pool).await;
 
     return response_data;
 }
 
-pub fn add_elapsed(mut response_data: ResponseData, session: Session, request_start: Instant) -> ResponseData {
- 
+pub async fn add_elapsed(mut response_data: ResponseData, Session { id: session_id, .. }: Session, request_start: Instant, db_pool: sqlx::PgPool) -> ResponseData {
+ let session_data = match get_session_by_session_id(session_id.clone(), db_pool.clone()).await {
+    Ok(Ok(session_data)) => session_data,
+    Ok(Err(e)) => {
+        dbg!("Could not get session, returning as is", e);
+        return response_data;
+    }
+    Err(_e) => {
+        dbg!("Could not get session, returning as is", _e);
+        return response_data;
+    },
+    };
+    let elapsed_ms = request_start.elapsed().as_millis();
 if let Some(body) = &mut response_data.body {
     if response_data.content_type == ContentType::TextHtml {
         if let Ok(mut html) = String::from_utf8(body.clone()) {
-            let elapsed_ms = request_start.elapsed().as_millis();
+
+            let previous_ms = session_data.previous_page_load_time_ms;
 
             let timing_html = format!(
                 r#"<div>
-Page loading took {elapsed_ms} ms
+Previous page loading took {previous_ms} ms<br>
+Page loading took {elapsed_ms} ms<br>
 </div>"#
             );
 
@@ -248,6 +261,16 @@ Page loading took {elapsed_ms} ms
         }
     }
 }
+    let elapsed_ms: i64 = match i64::try_from(elapsed_ms) {
+        Ok(v) => v,
+        Err(_e) => {
+            dbg!("Try_from failed, could not convert u128 into i64", _e);
+            return response_data;
+        },
+    };
+    if let Err(_) = set_previous_page_load_time_ms(db_pool, session_id, elapsed_ms).await {
+        dbg!("Could not edit previous_page_load_time_ms");
+    }
 response_data
 }
 

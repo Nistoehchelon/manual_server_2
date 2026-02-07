@@ -9,6 +9,18 @@ pub struct Session {
     pub id: String,
     pub user_id: String,
     pub logged_in: bool,
+    pub previous_page_load_time_ms: i64,
+}
+
+impl Session {
+    pub fn default_with_id(id: String) -> Self {
+        Self {
+        id: id,
+        user_id: String::new(),
+        logged_in: false,
+        previous_page_load_time_ms: 0,
+    }
+    }
 }
 
 #[derive(Clone, Debug)]

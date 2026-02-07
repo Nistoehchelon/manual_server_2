@@ -18,6 +18,7 @@ async fn test_read_write() {
         id: format!("32ed32"),
         user_id: format!("user_id_1232"),
         logged_in: false,
+        previous_page_load_time_ms: 0,
     };
     sqlx::query!(
         "INSERT INTO public.sessions (id, user_id, logged_in) VALUES ($1, $2, $3)",
@@ -42,6 +43,7 @@ async fn test_read_write() {
         id: retrieved.id,
         user_id: retrieved.user_id,
         logged_in: retrieved.logged_in,
+        previous_page_load_time_ms: 0,
     };
 
     assert_eq!(session.id, retrieved_session.id);

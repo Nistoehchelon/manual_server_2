@@ -253,7 +253,7 @@ pub fn redirect_to(page: String) -> ResponseData {
         charset: None,
         body: None,
         set_cookie_headers: None,
-        connection: KeepAliveOrClose::KeepAlive,
+        connection: KeepAliveOrClose::Close,
     }
 }
 

@@ -42,7 +42,7 @@ async fn main() -> std::io::Result<()> {
             server_config.lets_encrypt_contact_email.clone()
         )])
         .cache_option(Some(DirCache::new("./rustls_acme_cache")))
-        .directory_lets_encrypt(server_config.lets_encrypt_production.clone())
+        .directory_lets_encrypt(server_config.lets_encrypt_production)
         .state();
 
     let challenge_rustls_config = state.challenge_rustls_config();
@@ -62,10 +62,8 @@ async fn main() -> std::io::Result<()> {
 
     let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone())
         .await
-        .expect(&format!(
-            "I expected to bind to address {}",
-            server_config.ip_and_port.clone()
-        ));
+        .unwrap_or_else(|_| panic!("I expected to bind to address {}",
+            server_config.ip_and_port.clone()));
     println!(
         "Server listening on https://{}",
         server_config.ip_and_port.clone()
@@ -88,7 +86,7 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("I expected pool construction to succeed :)");
     let common_stream_timeout_duration =
-        Duration::from_millis(server_config.common_stream_timeout_millis.clone());
+        Duration::from_millis(server_config.common_stream_timeout_millis);
 
     // redirect from http  to https
     // but only if the main port is 443, since if it isn't then there is no point, I think? Not sure
@@ -119,7 +117,7 @@ async fn main() -> std::io::Result<()> {
         let db_pool = db_pool.clone();
         let server_config = server_config.clone();
         let (tcp, peer_ip) =
-            match timeout(common_stream_timeout_duration.clone(), listener.accept()).await {
+            match timeout(common_stream_timeout_duration, listener.accept()).await {
                 Ok(Ok((s, a))) => (s, a),
                 Ok(Err(e)) => {
                     dbg!("Could not unwrap stream? :( ", e);
@@ -175,7 +173,6 @@ async fn main() -> std::io::Result<()> {
                             .unwrap();
                         tls.flush().await.unwrap();
                         tls.shutdown().await.unwrap();
-                        return;
                     } else {
                         let stream = start_handshake
                             .into_stream(default_rustls_config)
@@ -191,7 +188,6 @@ async fn main() -> std::io::Result<()> {
                             server_config.clone(),
                         )
                         .await;
-                        return;
                     }
                 });
             }
@@ -208,7 +204,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     server_config: Config,
 ) {
     let common_stream_timeout_duration =
-        Duration::from_millis(server_config.common_stream_timeout_millis.clone());
+        Duration::from_millis(server_config.common_stream_timeout_millis);
     let max_requests_per_keep_alive_connection =
         server_config.max_requests_per_keep_alive_connection;
     let max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis =
@@ -228,16 +224,12 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         )
         .await
         {
-            match timeout(
-                common_stream_timeout_duration.clone(),
+            if let Err(_e) = timeout(
+                common_stream_timeout_duration,
                 reader.write_all(&error_response),
             )
-            .await
-            {
-                Err(_e) => {
-                    dbg!("stream.write_all after bucket check time out");
-                }
-                _ => {}
+            .await {
+                dbg!("stream.write_all after bucket check time out");
             }
             break;
         }
@@ -254,12 +246,12 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             Ok(kaoc) => kaoc,
             Err(e) => {
                 dbg!(e);
-                let _ = timeout(common_stream_timeout_duration.clone(), reader.flush()).await;
-                let _ = timeout(common_stream_timeout_duration.clone(), reader.shutdown()).await;
+                let _ = timeout(common_stream_timeout_duration, reader.flush()).await;
+                let _ = timeout(common_stream_timeout_duration, reader.shutdown()).await;
                 return;
             }
         };
-        let f = timeout(common_stream_timeout_duration.clone(), reader.flush()).await;
+        let f = timeout(common_stream_timeout_duration, reader.flush()).await;
         if f.is_err() {
             dbg!("main.rs flush timeout");
             return;
@@ -302,8 +294,8 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             break;
         }
     }
-    let _ = timeout(common_stream_timeout_duration.clone(), reader.flush()).await;
-    let _ = timeout(common_stream_timeout_duration.clone(), reader.shutdown()).await;
+    let _ = timeout(common_stream_timeout_duration, reader.flush()).await;
+    let _ = timeout(common_stream_timeout_duration, reader.shutdown()).await;
 }
 
 pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
@@ -323,11 +315,11 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
     let common_stream_timeout_duration = Duration::from_millis(common_stream_timeout_millis);
 
     let request_data = match timeout(
-        common_stream_timeout_duration.clone(),
+        common_stream_timeout_duration,
         parse_http_request(
             reader,
             max_header_name_len + max_header_value_len,
-            common_stream_timeout_duration.clone(),
+            common_stream_timeout_duration,
         ),
     )
     .await
@@ -335,7 +327,7 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
         Ok(Ok(data)) => data,
         Ok(Err(e)) => {
             dbg!(e.clone());
-            write_http_parsing_error(e, reader, common_stream_timeout_duration.clone()).await;
+            write_http_parsing_error(e, reader, common_stream_timeout_duration).await;
             return Ok(close_or_keep_alive);
         }
         Err(e) => {
@@ -351,16 +343,15 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
         }
         KeepAliveOrClose::KeepAlive => {
             close_or_keep_alive = KeepAliveOrClose::KeepAlive;
-            if let Some(connection_header) = request_data.headers.get("connection") {
-                if connection_header == "close" {
+            if let Some(connection_header) = request_data.headers.get("connection")
+                && connection_header == "close" {
                     close_or_keep_alive = KeepAliveOrClose::Close;
                 }
-            }
         }
     }
     let response_bytes = response_to_bytes(response_data).await;
     if let Err(_e) = timeout(
-        common_stream_timeout_duration.clone(),
+        common_stream_timeout_duration,
         reader.write_all(&response_bytes),
     )
     .await
@@ -380,10 +371,10 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
         HttpRequestParsingError::UriTooLong => {
             let err_response = standalone_response(
                 StatusCode::Code414UriTooLong,
-                format!("414 Uri Too Long ☺️"),
+                "414 Uri Too Long ☺️".to_string(),
             );
             let _ = timeout(
-                common_stream_timeout_duration.clone(),
+                common_stream_timeout_duration,
                 stream.write_all(&err_response),
             )
             .await;
@@ -391,10 +382,10 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
         HttpRequestParsingError::HttpVersionNotSupported => {
             let err_response = standalone_response(
                 StatusCode::Code505HttpVersionNotSupported,
-                format!("505 HTTP Version Not Supported"),
+                "505 HTTP Version Not Supported".to_string(),
             );
             let _ = timeout(
-                common_stream_timeout_duration.clone(),
+                common_stream_timeout_duration,
                 stream.write_all(&err_response),
             )
             .await;
@@ -402,10 +393,10 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
         HttpRequestParsingError::TooManyHeaders | HttpRequestParsingError::TooManyCookies => {
             let err_response = standalone_response(
                 StatusCode::Code431RequestHeaderFieldsTooLarge,
-                format!("431 Header fields too large, and/or too many of them 😴"),
+                "431 Header fields too large, and/or too many of them 😴".to_string(),
             );
             let _ = timeout(
-                common_stream_timeout_duration.clone(),
+                common_stream_timeout_duration,
                 stream.write_all(&err_response),
             )
             .await;
@@ -413,9 +404,9 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
         hm => {
             eprintln!("main error, could not parse request {:?}", hm);
             let err_response =
-                standalone_response(StatusCode::Code400BadRequest, format!("400 Bad Request 🙀"));
+                standalone_response(StatusCode::Code400BadRequest, "400 Bad Request 🙀".to_string());
             let _ = timeout(
-                common_stream_timeout_duration.clone(),
+                common_stream_timeout_duration,
                 stream.write_all(&err_response),
             )
             .await;

@@ -71,7 +71,7 @@ pub async fn http_to_https_redirect(
         tokio::spawn(async move {
             let mut location = String::from("https://");
             location.push_str(domain.as_str());
-            location.push_str("/");
+            location.push('/');
 
             let response = format!(
                 "HTTP/1.1 308 Permanent Redirect\r\nLocation: {}\r\nConnection: close\r\n\r\n",

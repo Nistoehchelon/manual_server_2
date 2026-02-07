@@ -302,11 +302,8 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             break;
         }
     }
-    let s = timeout(common_stream_timeout_duration.clone(), reader.shutdown()).await;
-    if s.is_err() {
-        dbg!("main.rs stream shutdown timed out");
-        return;
-    }
+    let _ = timeout(common_stream_timeout_duration.clone(), reader.flush()).await;
+    let _ = timeout(common_stream_timeout_duration.clone(), reader.shutdown()).await;
 }
 
 pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(

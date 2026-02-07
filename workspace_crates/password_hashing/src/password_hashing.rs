@@ -13,7 +13,7 @@ fn strong_argon2() -> Result<Argon2<'static>, String> {
     let p_cost = 2;
     let params = Params::new(m_cost, t_cost, p_cost, None).map_err(|e| {
         dbg!("Error on argo2 params::new", e.to_string());
-        return e.to_string();
+        e.to_string()
     })?;
     Ok(Argon2::new(Algorithm::Argon2id, Version::V0x13, params))
 }
@@ -36,7 +36,7 @@ pub fn hash_password(password: String) -> Result<String, String> {
 pub fn verify_password(password: String, stored_hash: String) -> Result<bool, String> {
     let parsed_hash = PasswordHash::new(&stored_hash).map_err(|e| {
         dbg!("Error parsing hash", e.to_string());
-        return e.to_string();
+        e.to_string()
     })?;
     let argon2 = strong_argon2()?;
 
@@ -56,10 +56,8 @@ pub fn generate_secure_random_bytes(length: usize) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 pub fn generate_salt(length: usize) -> Result<SaltString, String> {
-    Ok(
-        SaltString::encode_b64(&generate_secure_random_bytes(length)?).map_err(|e| {
+    SaltString::encode_b64(&generate_secure_random_bytes(length)?).map_err(|e| {
             dbg!("Error generating salt", e.to_string());
             e.to_string()
-        })?,
-    )
+        })
 }

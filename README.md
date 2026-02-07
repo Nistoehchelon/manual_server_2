@@ -12,9 +12,20 @@ Several possibilities:
  
 I would assume this particular issue might come from code. 
 However, I do notice that postgres is acting up too, for example it no longer starts up on laptop start up unlike before and I have to do this manually, not sure why. Maybe something switched around after I manually did "pg_ctl restart" when testing ssl stuff? Since then, I had to manually start it.
-If the issue regarding 400 is coming from code:
-My thought on it so far:
-1. It seems to primarily happen during login/logout. I have not tested message sending. But maybe the issue is with redirects? 
+From what the logs say at the point the 400 error happens, it seems the header reading fails. In other words, it seems that client is not sending anything sometimes? But it kinda should? Or not? Should I try ignoring it and sending nothing, just maybe closing connection? or waiting more?
+
+It seems to primarily happen during login/logout. I have not tested message sending. But maybe the issue is with redirects? Maybe it is due to keep alive implementation I am playing around with? Maybe it has to do with flush? Do I need to flush before stream shutdown after breaking keep alive loop? Maybe the issue is with keeping alive after redirect?
+
+I
+What I tried:
+Changing redirect to always be connection close. But did not seem like this fixed anything. Fair enough.
+If I close connection at redirect, the  next connection also has this issue, seemingly.
+
+What I have not tried:
+Seeing what happens if instead of returning 400 I just continue if byte reading time outs...
+
+What I will do now:
+I have had no success in solving  this on my own. I suppose it might be time to focus on something else and deal with the random 400's for now. I suppose if nothing will pop up in the mind regarding this, I will ask for help on stackoverflow.com or something.
 
 How I usually set this up:
 1. Install PostGres:

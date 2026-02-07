@@ -202,7 +202,7 @@ pub async fn response_to_bytes(response_data: ResponseData) -> Vec<u8> {
     match response(response_data) {
         Ok(rb) => rb,
         Err(_) => {
-            return standalone_response(StatusCode::Code500InternalServerError, "Error".to_string());
+            standalone_response(StatusCode::Code500InternalServerError, "Error".to_string())
         }
     }
 }

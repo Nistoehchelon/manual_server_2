@@ -17,31 +17,33 @@ impl HttpResponseError {
 
 #[derive(Debug)]
 pub enum StatusCode {
-    Ok200,
-    Found302,
-    InternalServerError500,
-    ServiceUnavailable503,
-    BadRequest400,
-    TooManyRequests429,
-    ContentTooLarge413,
-    UriTooLong414,
-    HttpVersionNotSupported505,
-    RequestHeaderFieldsTooLarge431,
+    Code200Ok,
+    Code302Found,
+    Code303SeeOther,
+    Code500InternalServerError,
+    Code503ServiceUnavailable,
+    Code400BadRequest,
+    Code429TooManyRequests,
+    Code413ContentTooLarge,
+    Code414UriTooLong,
+    Code505HttpVersionNotSupported,
+    Code431RequestHeaderFieldsTooLarge,
 }
 
 impl Display for StatusCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let c = match self {
-            Self::InternalServerError500 => "500 Internal Server Error",
-            Self::ServiceUnavailable503 => "503 Service Unavailable",
-            Self::Ok200 => "200 OK",
-            Self::Found302 => "302 Found",
-            Self::ContentTooLarge413 => "413 Content Too Large",
-            Self::BadRequest400 => "400 Bad Request",
-            Self::TooManyRequests429 => "429 Too Many Requests",
-            Self::UriTooLong414 => "414 Uri Too Long",
-            Self::HttpVersionNotSupported505 => "505 HTTP Version Not Supported",
-            Self::RequestHeaderFieldsTooLarge431 => "431 Request Header Fields Too Large",
+            Self::Code500InternalServerError => "500 Internal Server Error",
+            Self::Code503ServiceUnavailable => "503 Service Unavailable",
+            Self::Code200Ok => "200 OK",
+            Self::Code302Found => "302 Found",
+            Self::Code303SeeOther => "303 See Other",
+            Self::Code413ContentTooLarge => "413 Content Too Large",
+            Self::Code400BadRequest => "400 Bad Request",
+            Self::Code429TooManyRequests => "429 Too Many Requests",
+            Self::Code414UriTooLong => "414 Uri Too Long",
+            Self::Code505HttpVersionNotSupported => "505 HTTP Version Not Supported",
+            Self::Code431RequestHeaderFieldsTooLarge => "431 Request Header Fields Too Large",
         };
         write!(f, "{}", c)
     }
@@ -122,7 +124,7 @@ pub fn ok_html(content: String) -> ResponseData {
 
 pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>) -> ResponseData {
     ResponseData {
-        status_code: StatusCode::Ok200,
+        status_code: StatusCode::Code200Ok,
         content_type,
         body: Some(content),
         charset,
@@ -247,7 +249,7 @@ bluetooth=()\r\n"
 
 pub fn redirect_to(page: String) -> ResponseData {
     ResponseData {
-        status_code: StatusCode::Found302,
+        status_code: StatusCode::Code302Found,
         content_type: ContentType::TextHtml,
         location: Some(format!("{page}")),
         charset: None,
@@ -259,7 +261,7 @@ pub fn redirect_to(page: String) -> ResponseData {
 
 pub fn internal_server_error_500() -> ResponseData {
     let resp = ResponseData {
-        status_code: StatusCode::InternalServerError500,
+        status_code: StatusCode::Code500InternalServerError,
         content_type: ContentType::TextHtml,
         charset: Some(Charset::Utf8),
         body: None,
@@ -271,7 +273,7 @@ pub fn internal_server_error_500() -> ResponseData {
 }
 pub fn bad_request_400() -> ResponseData {
     let resp = ResponseData {
-        status_code: StatusCode::BadRequest400,
+        status_code: StatusCode::Code400BadRequest,
         content_type: ContentType::TextHtml,
         charset: Some(Charset::Utf8),
         body: None,

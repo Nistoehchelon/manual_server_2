@@ -382,7 +382,7 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
     match e {
         HttpRequestParsingError::UriTooLong => {
             let err_response =
-                standalone_response(StatusCode::UriTooLong414, format!("414 Uri Too Long ☺️"));
+                standalone_response(StatusCode::Code414UriTooLong, format!("414 Uri Too Long ☺️"));
             let _ = timeout(
                 common_stream_timeout_duration.clone(),
                 stream.write_all(&err_response),
@@ -391,7 +391,7 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
         }
         HttpRequestParsingError::HttpVersionNotSupported => {
             let err_response = standalone_response(
-                StatusCode::HttpVersionNotSupported505,
+                StatusCode::Code505HttpVersionNotSupported,
                 format!("505 HTTP Version Not Supported"),
             );
             let _ = timeout(
@@ -402,7 +402,7 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
         }
         HttpRequestParsingError::TooManyHeaders | HttpRequestParsingError::TooManyCookies => {
             let err_response = standalone_response(
-                StatusCode::RequestHeaderFieldsTooLarge431,
+                StatusCode::Code431RequestHeaderFieldsTooLarge,
                 format!("431 Header fields too large, and/or too many of them 😴"),
             );
             let _ = timeout(
@@ -414,7 +414,7 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
         hm => {
             eprintln!("main error, could not parse request {:?}", hm);
             let err_response =
-                standalone_response(StatusCode::BadRequest400, format!("400 Bad Request 🙀"));
+                standalone_response(StatusCode::Code400BadRequest, format!("400 Bad Request 🙀"));
             let _ = timeout(
                 common_stream_timeout_duration.clone(),
                 stream.write_all(&err_response),

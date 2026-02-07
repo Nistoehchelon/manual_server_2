@@ -57,7 +57,7 @@ pub async fn check_and_consume_buckets(
     }
     if reject {
         let response = standalone_response(
-            StatusCode::TooManyRequests429,
+            StatusCode::Code429TooManyRequests,
             "429 Too Many Requests 😈".to_string(),
         );
         return Err(response);
@@ -76,7 +76,7 @@ pub async fn check_and_consume_buckets(
     }
     if reject {
         let response = standalone_response(
-            StatusCode::ServiceUnavailable503,
+            StatusCode::Code503ServiceUnavailable,
             "503 Service Unavailable 🫨".to_string(),
         );
         return Err(response);

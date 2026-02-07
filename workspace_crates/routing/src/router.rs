@@ -201,7 +201,7 @@ pub async fn response_to_bytes(response_data: ResponseData) -> Vec<u8> {
     let response_bytes = match response(response_data) {
             Ok(rb) => rb,
             Err(_) => {
-                return standalone_response(StatusCode::InternalServerError500, format!("Error"));
+                return standalone_response(StatusCode::Code500InternalServerError, format!("Error"));
             }
         };
     return response_bytes;
@@ -218,7 +218,7 @@ pub async fn generate_response_data(request_data: HttpRequestData, db_pool: sqlx
         match session::get_existing_or_make_new_session(db_pool.clone(), cookies).await {
             Ok((s, cns)) => (s, cns),
             Err(_) => {
-                return ResponseData { status_code: StatusCode::InternalServerError500, content_type: http_stuff::http_response::ContentType::TextPlain, charset: Some(Charset::Utf8), body: Some(b"500".to_vec()), set_cookie_headers: None, location: None, connection: http_stuff::http_response::KeepAliveOrClose::KeepAlive };
+                return ResponseData { status_code: StatusCode::Code500InternalServerError, content_type: http_stuff::http_response::ContentType::TextPlain, charset: Some(Charset::Utf8), body: Some(b"500".to_vec()), set_cookie_headers: None, location: None, connection: http_stuff::http_response::KeepAliveOrClose::KeepAlive };
         }
     };
     // Route handling

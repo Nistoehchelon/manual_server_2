@@ -104,7 +104,7 @@ pub async fn get_by_username(
                     return Err(DbError::new(e));
                 }
             };
-            return Ok(Some(user_row));
+            Ok(Some(user_row))
         }
         None => {
             Ok(None)

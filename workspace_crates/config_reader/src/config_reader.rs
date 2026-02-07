@@ -49,7 +49,7 @@ impl FromStr for Environment {
 }
 pub fn read_config(config_file_path: PathBuf) -> Config {
     let contents = read_to_string(&config_file_path)
-        .expect(format!("Could not find path config {config_file_path:#?}").as_str());
+        .unwrap_or_else(|_| panic!("Could not find path config {config_file_path:#?}"));
 
     let mut ip: Option<String> = None;
     let mut port: Option<u64> = None;
@@ -94,7 +94,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     {
         let (key, value) = line
             .split_once('=')
-            .expect(format!("Invalid config line {line} expected KEY=VALUE").as_str());
+            .unwrap_or_else(|| panic!("Invalid config line {line} expected KEY=VALUE"));
 
         let key = key.trim();
         let value = value.trim().to_string();
@@ -131,78 +131,78 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             "SERVER_TOKEN_BUCKET_CAPACITY" => {
                 let value = value
                     .parse::<f64>()
-                    .expect(&format!("Expected f64 parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected f64 parsing of {value}  to work out"));
                 server_token_bucket_capacity = Some(value)
             }
             "SERVER_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS" => {
                 let value = value
                     .parse::<f64>()
-                    .expect(&format!("Expected f64 parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected f64 parsing of {value}  to work out"));
                 server_token_bucket_refill_rate = Some(value)
             }
             "PER_IP_TOKEN_BUCKET_CAPACITY" => {
                 let value = value
                     .parse::<f64>()
-                    .expect(&format!("Expected f64 parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected f64 parsing of {value}  to work out"));
                 per_ip_token_bucket_capacity = Some(value)
             }
             "PER_IP_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS" => {
                 let value = value
                     .parse::<f64>()
-                    .expect(&format!("Expected f64 parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected f64 parsing of {value}  to work out"));
                 per_ip_token_bucket_refill_rate = Some(value)
             }
             "COMMON_STREAM_TIMEOUT_MILLIS" => {
                 let value = value
                     .parse::<u64>()
-                    .expect(&format!("Expected u64 parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected u64 parsing of {value}  to work out"));
                 common_stream_timeout_millis = Some(value)
             }
             // ...
             "MAX_TOTAL_HEADERS_SIZE_BYTES" => {
                 let value = value
                     .parse::<usize>()
-                    .expect(&format!("Expected usize parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
                 max_total_headers_size_bytes = Some(value)
             }
             "MAX_HEADERS_COUNT" => {
                 let value = value
                     .parse::<usize>()
-                    .expect(&format!("Expected usize parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
                 max_headers_count = Some(value)
             }
 
             "MAX_HEADER_NAME_LENGTH" => {
                 let value = value
                     .parse::<usize>()
-                    .expect(&format!("Expected usize parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
                 max_header_name_length = Some(value)
             }
             "MAX_HEADER_VALUE_LENGTH" => {
                 let value = value
                     .parse::<usize>()
-                    .expect(&format!("Expected usize parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
                 max_header_value_length = Some(value)
             }
 
             "MAX_TOTAL_BODY_SIZE_BYTES" => {
                 let value = value
                     .parse::<usize>()
-                    .expect(&format!("Expected usize parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
                 max_total_body_size_bytes = Some(value)
             }
 
             "MAX_REQUEST_PATH_LENGTH" => {
                 let value = value
                     .parse::<usize>()
-                    .expect(&format!("Expected usize parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
                 max_request_path_length = Some(value)
             }
 
             "MAX_COOKIES_COUNT" => {
                 let value = value
                     .parse::<usize>()
-                    .expect(&format!("Expected usize parsing of {value}  to work out"));
+                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
                 max_cookies_count = Some(value)
             }
 
@@ -284,9 +284,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         domain_name,
         server_global_requests_token_bucket_capacity: server_token_bucket_capacity,
         server_global_requests_token_bucket_refill_rate_per_millis: server_token_bucket_refill_rate,
-        per_ip_token_bucket_capacity: per_ip_token_bucket_capacity,
+        per_ip_token_bucket_capacity,
         per_ip_token_bucket_refill_rate_per_millis: per_ip_token_bucket_refill_rate,
-        common_stream_timeout_millis: common_stream_timeout_millis,
+        common_stream_timeout_millis,
         max_cookies_count,
         max_header_name_len: max_header_name_length,
         max_total_body_size_bytes,

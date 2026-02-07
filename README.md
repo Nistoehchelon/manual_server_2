@@ -1,3 +1,21 @@
+This document has the following parts:
+1 -> Issues I would like to solve
+2 -> How I usually set up the program
+
+Issues I would like to solve
+
+There is an issue that can be observer when the following happens: Often, but not always, when I do this: login, logout, I see a 400 error (remember, the web server is written by me, so it returns this because I made it do that). 
+I am not sure what causes this unclear issue.
+Several possibilities:
+1. Problem is in logic encoded in the code.
+2. Maybe it's just PostGres acting up? In other words, I need to look into the postgres setup rather than trying to fix the app code
+ 
+I would assume this particular issue might come from code. 
+However, I do notice that postgres is acting up too, for example it no longer starts up on laptop start up unlike before and I have to do this manually, not sure why. Maybe something switched around after I manually did "pg_ctl restart" when testing ssl stuff? Since then, I had to manually start it.
+If the issue regarding 400 is coming from code:
+My thought on it so far:
+1. It seems to primarily happen during login/logout. I have not tested message sending. But maybe the issue is with redirects? 
+
 How I usually set this up:
 1. Install PostGres:
 On Windows I used the GUI installer.

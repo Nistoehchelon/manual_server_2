@@ -1,6 +1,9 @@
 .env
-rustls_acme_cache
-local_ssl/localhost.crt
-local_ssl/localhost.key
-local_ssl/postgres.crt
-local_ssl/postgres.key
+# I think ** will match even if I ever (perhaps accidentally) move these folders outside the ./ of this .gitignore.
+# because I do not want to bother running git-filter-repo again if I accidentally change the locations somehow. 
+# I don't suppose there is any drawback, not really, to this ** usage.
+**/rustls_acme_cache/
+# Ignore everything in local_ssl except config files and README
+**/local_ssl/*
+!**/local_ssl/*.config
+!**/local_ssl/README.md

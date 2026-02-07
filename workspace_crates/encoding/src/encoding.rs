@@ -15,6 +15,5 @@ pub fn decode_request_string(s: String) -> Result<String, String> {
 pub fn encode_request_string(s: String) -> String {
     let s = s.replace(" ", "+");
     let s = urlencoding::encode(&s);
-    let s = s.to_string();
-    s
+    s.to_string()
 }

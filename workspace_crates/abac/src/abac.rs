@@ -61,7 +61,8 @@ pub async fn can_create_forum(
     )
     .fetch_optional(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?.is_some();
+    .map_err(SomeSortOfError::new)?
+    .is_some();
     Ok(b)
 }
 
@@ -117,6 +118,7 @@ pub async fn can_create_thread(
     )
     .fetch_optional(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?.is_some();
+    .map_err(SomeSortOfError::new)?
+    .is_some();
     Ok(b)
 }

@@ -30,8 +30,7 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
     common_stream_timeout_duration: Duration,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
     let ParsedHeaderStream { headers } =
-        parse_headers_from_stream(reader, max_line_len, common_stream_timeout_duration)
-            .await?;
+        parse_headers_from_stream(reader, max_line_len, common_stream_timeout_duration).await?;
     let headers_string = String::from_utf8_lossy(&headers).to_string();
     let headers_count = count_occurences_of_rn(&headers_string);
 
@@ -122,26 +121,25 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
     if content_length > MAX_BODY_BYTES {
         dbg!(content_length, "exceeds", MAX_BODY_BYTES);
         return Err(HttpRequestParsingError::ContentTooLarge);
-    } else if method == "POST"
-        && content_length > 0 {
-            let mut body_bytes_exact = vec![0; content_length];
-            match timeout(
-                common_stream_timeout_duration,
-                reader.read_exact(&mut body_bytes_exact),
-            )
-            .await
-            {
-                Ok(Err(e)) => {
-                    dbg!("read_exact error body", e);
-                    return Err(HttpRequestParsingError::BadRequest);
-                }
-                Ok(Ok(_)) => {}
-                Err(e) => {
-                    dbg!("Timeout err read_exact body ", e);
-                }
+    } else if method == "POST" && content_length > 0 {
+        let mut body_bytes_exact = vec![0; content_length];
+        match timeout(
+            common_stream_timeout_duration,
+            reader.read_exact(&mut body_bytes_exact),
+        )
+        .await
+        {
+            Ok(Err(e)) => {
+                dbg!("read_exact error body", e);
+                return Err(HttpRequestParsingError::BadRequest);
             }
-            body.extend(body_bytes_exact);
+            Ok(Ok(_)) => {}
+            Err(e) => {
+                dbg!("Timeout err read_exact body ", e);
+            }
         }
+        body.extend(body_bytes_exact);
+    }
 
     Ok(HttpRequestData {
         method,

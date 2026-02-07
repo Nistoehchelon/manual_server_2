@@ -57,7 +57,7 @@ pub fn generate_secure_random_bytes(length: usize) -> Result<Vec<u8>, String> {
 }
 pub fn generate_salt(length: usize) -> Result<SaltString, String> {
     SaltString::encode_b64(&generate_secure_random_bytes(length)?).map_err(|e| {
-            dbg!("Error generating salt", e.to_string());
-            e.to_string()
-        })
+        dbg!("Error generating salt", e.to_string());
+        e.to_string()
+    })
 }

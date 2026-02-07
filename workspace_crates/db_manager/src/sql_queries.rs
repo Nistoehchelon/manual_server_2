@@ -15,13 +15,9 @@ pub async fn get_token_id_by_session_id_and_designated_purpose(
     {
         Ok(opt) => match opt {
             Some(s) => Ok(Some(s.id)),
-            None => {
-                Ok(None)
-            }
+            None => Ok(None),
         },
-        Err(e) => {
-            Err(DbError::new(e))
-        }
+        Err(e) => Err(DbError::new(e)),
     }
 }
 
@@ -68,9 +64,7 @@ pub async fn validate_token(
                 Ok(false)
             }
         }
-        Err(e) => {
-            Err(DbError::new(e))
-        }
+        Err(e) => Err(DbError::new(e)),
     }
 }
 

@@ -11,12 +11,8 @@ pub async fn get_user_by_user_id(
         .await
         .map_err(ExpectedToGetButFailed::new)?
     {
-        Some(u) => {
-            Ok(u)
-        }
-        None => {
-            Err(ExpectedToGetButFailed::new(""))
-        }
+        Some(u) => Ok(u),
+        None => Err(ExpectedToGetButFailed::new("")),
     }
 }
 pub async fn find_user_by_user_id(
@@ -36,7 +32,9 @@ pub async fn try_to_create_new_user(
     password: String,
 ) -> Result<Result<User, PublicError>, SomeSortOfError> {
     if username.clone().trim().is_empty() || password.clone().trim().is_empty() {
-        return Ok(Err(PublicError::new("Please enter username and password or the world will be destroyed!".to_string())));
+        return Ok(Err(PublicError::new(
+            "Please enter username and password or the world will be destroyed!".to_string(),
+        )));
     }
 
     let username_available = is_username_available(username.clone(), db_pool.clone())
@@ -44,7 +42,9 @@ pub async fn try_to_create_new_user(
         .map_err(SomeSortOfError::new)?;
 
     if !username_available {
-        return Ok(Err(PublicError::new("The username is... taken alredy!!! 😈".to_string())));
+        return Ok(Err(PublicError::new(
+            "The username is... taken alredy!!! 😈".to_string(),
+        )));
     }
 
     let hash = match password_hashing::hash_password(password) {
@@ -106,9 +106,7 @@ pub async fn get_by_username(
             };
             Ok(Some(user_row))
         }
-        None => {
-            Ok(None)
-        }
+        None => Ok(None),
     }
 }
 
@@ -187,12 +185,8 @@ async fn storage_specific_add_user(
     .execute(&db_pool)
     .await
     {
-        Ok(_) => {
-            Ok(DbSuccess::new("User created"))
-        }
-        Err(e) => {
-            Err(DbError::new(e))
-        }
+        Ok(_) => Ok(DbSuccess::new("User created")),
+        Err(e) => Err(DbError::new(e)),
     }
 }
 
@@ -208,11 +202,7 @@ async fn storage_specific_get_user_by_user_id(
     .fetch_optional(&db_pool)
     .await
     {
-        Ok(opt) => {
-            Ok(opt)
-        }
-        Err(e) => {
-            Err(DbError::new(e))
-        }
+        Ok(opt) => Ok(opt),
+        Err(e) => Err(DbError::new(e)),
     }
 }

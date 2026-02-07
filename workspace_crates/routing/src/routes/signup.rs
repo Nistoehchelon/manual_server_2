@@ -25,7 +25,8 @@ pub async fn get(
             db_pool.clone(),
             SessionNotification {
                 session_id: session.id.clone(),
-                message: "You are already logged in, so signup is unaccessible. Log out first?".to_string(),
+                message: "You are already logged in, so signup is unaccessible. Log out first?"
+                    .to_string(),
                 notification_type: session::SessionNotificationType::Error,
             },
         )

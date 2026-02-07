@@ -82,8 +82,6 @@ fn get_html(
     notifications: Vec<session::SessionNotification>,
     csrf_token: String,
 ) -> String {
-    
-
     html_templating::render(html_template_structs::CreateThreadTemplate {
         main_info: html_template_structs::MainInfo {
             title,

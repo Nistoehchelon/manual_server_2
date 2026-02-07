@@ -134,8 +134,7 @@ pub async fn route(
         };
         match response_data.set_cookie_headers {
             None => {
-                let mut v = vec![];
-                v.push(ch);
+                let v = vec![ch];
                 response_data.set_cookie_headers = Some(v);
             }
             Some(ref mut sch) => {
@@ -198,12 +197,9 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
 }
 
 pub async fn response_to_bytes(response_data: ResponseData) -> Vec<u8> {
-    
     match response(response_data) {
         Ok(rb) => rb,
-        Err(_) => {
-            standalone_response(StatusCode::Code500InternalServerError, "Error".to_string())
-        }
+        Err(_) => standalone_response(StatusCode::Code500InternalServerError, "Error".to_string()),
     }
 }
 pub async fn generate_response_data(
@@ -241,7 +237,6 @@ pub async fn generate_response_data(
     )
     .await
     .unwrap_or(internal_server_error_500());
-    
 
     add_elapsed(response_data, session, request_start, db_pool).await
 }
@@ -266,19 +261,20 @@ pub async fn add_elapsed(
     let elapsed_ms = request_start.elapsed().as_millis();
     if let Some(body) = &mut response_data.body
         && response_data.content_type == ContentType::TextHtml
-            && let Ok(mut html) = String::from_utf8(body.clone()) {
-                let previous_ms = session_data.previous_page_load_time_ms;
+        && let Ok(mut html) = String::from_utf8(body.clone())
+    {
+        let previous_ms = session_data.previous_page_load_time_ms;
 
-                let timing_html = format!(
-                    r#"<div>
+        let timing_html = format!(
+            r#"<div>
 Previous page loading took {previous_ms} ms<br>
 Page loading took {elapsed_ms} ms<br>
 </div>"#
-                );
+        );
 
-                html = html.replace("</body>", &format!("{}\n</body>", timing_html));
-                *body = html.into_bytes();
-            }
+        html = html.replace("</body>", &format!("{}\n</body>", timing_html));
+        *body = html.into_bytes();
+    }
     let elapsed_ms: i64 = match i64::try_from(elapsed_ms) {
         Ok(v) => v,
         Err(_e) => {
@@ -286,7 +282,10 @@ Page loading took {elapsed_ms} ms<br>
             return response_data;
         }
     };
-    if let Err(_) = set_previous_page_load_time_ms(db_pool, session_id, elapsed_ms).await {
+    if set_previous_page_load_time_ms(db_pool, session_id, elapsed_ms)
+        .await
+        .is_err()
+    {
         dbg!("Could not edit previous_page_load_time_ms");
     }
     response_data
@@ -301,7 +300,6 @@ pub fn generate_static_response(request_data: HttpRequestData) -> ResponseData {
     let HttpRequestData { method, path, .. } = request_data;
     assert!(is_requesting_static_resource(path.clone()));
     dbg!(format!("Entering static routing for {method} {path}"));
-    
 
     match (method.as_str(), path.as_str()) {
         // static resources

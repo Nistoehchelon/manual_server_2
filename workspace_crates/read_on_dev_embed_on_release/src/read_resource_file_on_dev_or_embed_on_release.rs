@@ -9,7 +9,8 @@ pub fn read_to_string_on_dev_embed_on_release(file_name: &str) -> String {
     let path = format!("./static_resources/{}", file_name);
     // check if in debug build
     if cfg!(debug_assertions) {
-        fs::read_to_string(path.clone()).expect(format!("Could not find file at {}", path).as_str())
+        fs::read_to_string(path.clone())
+            .unwrap_or_else(|_| panic!("Could not find file at {}", path))
     } else {
         // Embed files at compile time in release
         match file_name {

@@ -12,8 +12,7 @@ pub async fn edit_session(
     session_id: String,
     modified_session: Session,
 ) -> Result<DbSuccess, DbError> {
-    let result = storage_specific_edit_session(db_pool, session_id, modified_session).await;
-    result
+    storage_specific_edit_session(db_pool, session_id, modified_session).await
 }
 
 pub async fn set_previous_page_load_time_ms(
@@ -175,12 +174,8 @@ async fn storage_specific_add_session(
     .execute(&db_pool)
     .await
     {
-        Ok(_) => {
-            Ok(db_manager::DbSuccess::new("Ok"))
-        }
-        Err(e) => {
-            Err(db_manager::DbError::new(e))
-        }
+        Ok(_) => Ok(db_manager::DbSuccess::new("Ok")),
+        Err(e) => Err(db_manager::DbError::new(e)),
     }
 }
 
@@ -247,8 +242,13 @@ async fn storage_specific_read_and_delete_session_notifications(
         session_id,
     )
     .execute(&mut *transaction)
-    .await { return Err(DbError::new(e)) }
-    if let Err(e) = transaction.commit().await { return Err(DbError::new(e)) }
+    .await
+    {
+        return Err(DbError::new(e));
+    }
+    if let Err(e) = transaction.commit().await {
+        return Err(DbError::new(e));
+    }
 
     Ok(notifications)
 }

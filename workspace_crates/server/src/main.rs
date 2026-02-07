@@ -62,8 +62,12 @@ async fn main() -> std::io::Result<()> {
 
     let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone())
         .await
-        .unwrap_or_else(|_| panic!("I expected to bind to address {}",
-            server_config.ip_and_port.clone()));
+        .unwrap_or_else(|_| {
+            panic!(
+                "I expected to bind to address {}",
+                server_config.ip_and_port.clone()
+            )
+        });
     println!(
         "Server listening on https://{}",
         server_config.ip_and_port.clone()
@@ -116,17 +120,17 @@ async fn main() -> std::io::Result<()> {
         let ip_buckets = ip_buckets.clone();
         let db_pool = db_pool.clone();
         let server_config = server_config.clone();
-        let (tcp, peer_ip) =
-            match timeout(common_stream_timeout_duration, listener.accept()).await {
-                Ok(Ok((s, a))) => (s, a),
-                Ok(Err(e)) => {
-                    dbg!("Could not unwrap stream? :( ", e);
-                    continue;
-                }
-                Err(_e) => {
-                    continue;
-                }
-            };
+        let (tcp, peer_ip) = match timeout(common_stream_timeout_duration, listener.accept()).await
+        {
+            Ok(Ok((s, a))) => (s, a),
+            Ok(Err(e)) => {
+                dbg!("Could not unwrap stream? :( ", e);
+                continue;
+            }
+            Err(_e) => {
+                continue;
+            }
+        };
 
         match server_config.environment {
             Environment::Local => {
@@ -228,7 +232,8 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
                 common_stream_timeout_duration,
                 reader.write_all(&error_response),
             )
-            .await {
+            .await
+            {
                 dbg!("stream.write_all after bucket check time out");
             }
             break;
@@ -344,9 +349,10 @@ pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
         KeepAliveOrClose::KeepAlive => {
             close_or_keep_alive = KeepAliveOrClose::KeepAlive;
             if let Some(connection_header) = request_data.headers.get("connection")
-                && connection_header == "close" {
-                    close_or_keep_alive = KeepAliveOrClose::Close;
-                }
+                && connection_header == "close"
+            {
+                close_or_keep_alive = KeepAliveOrClose::Close;
+            }
         }
     }
     let response_bytes = response_to_bytes(response_data).await;
@@ -403,8 +409,10 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
         }
         hm => {
             eprintln!("main error, could not parse request {:?}", hm);
-            let err_response =
-                standalone_response(StatusCode::Code400BadRequest, "400 Bad Request 🙀".to_string());
+            let err_response = standalone_response(
+                StatusCode::Code400BadRequest,
+                "400 Bad Request 🙀".to_string(),
+            );
             let _ = timeout(
                 common_stream_timeout_duration,
                 stream.write_all(&err_response),

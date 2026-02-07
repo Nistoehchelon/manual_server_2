@@ -28,16 +28,18 @@ pub async fn get_or_create_token(
     )
     .await
     {
-        Ok(t_opt) => if let Some(t) = t_opt {
-            token_id = Some(t);
-        },
+        Ok(t_opt) => {
+            if let Some(t) = t_opt {
+                token_id = Some(t);
+            }
+        }
         Err(e) => {
             dbg!(&e);
             return Err(InternalAppError::new("DB error".to_string()));
         }
     }
-    if token_id.is_some() {
-        return Ok(token_id.unwrap());
+    if let Some(ti) = token_id {
+        return Ok(ti);
     }
     const LENGTH: usize = 33;
     let dp: String = designated_purpose.to_string();

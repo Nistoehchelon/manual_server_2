@@ -1,5 +1,4 @@
 use config_reader::read_config;
-use session;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn test_read_write() {
@@ -15,8 +14,8 @@ async fn test_read_write() {
         .await
         .expect("No pool :(");
     let session = session::Session {
-        id: format!("32ed32"),
-        user_id: format!("user_id_1232"),
+        id: "32ed32".to_string(),
+        user_id: "user_id_1232".to_string(),
         logged_in: false,
         previous_page_load_time_ms: 0,
     };

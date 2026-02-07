@@ -20,7 +20,7 @@ fn hashes_and_verifies_how_i_would_expect_it_to() {
     let incorrect_password = String::from("tehee321");
     dbg!(incorrect_password.clone());
     assert!(
-        true != verify_password(incorrect_password, hash)
+        !verify_password(incorrect_password, hash)
             .expect("I expected incorrect_password verification to return Ok(false)")
     );
 }

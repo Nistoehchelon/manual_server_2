@@ -156,9 +156,7 @@ pub fn response(
         for sc in set_cookie_headers.iter() {
             let set_cookie_headers_string = format!(
                 "Set-Cookie: {}={}; Path={}; Secure; HttpOnly; SameSite=Strict\r\n",
-                sc.key,
-                sc.value,
-                sc.path
+                sc.key, sc.value, sc.path
             );
             http_response_string.push_str(&set_cookie_headers_string);
         }
@@ -189,7 +187,8 @@ pub fn response(
 
     http_response_string.push_str(&format!("Content-Length: {body_bytes_length}\r\n"));
 
-    http_response_string.push_str("Strict-Transport-Security: max-age=999999999; includeSubDomains; preload\r\n");
+    http_response_string
+        .push_str("Strict-Transport-Security: max-age=999999999; includeSubDomains; preload\r\n");
     http_response_string.push_str("X-Content-Type-Options: nosniff\r\n");
     http_response_string.push_str("X-Frame-Options: DENY\r\n");
 
@@ -198,13 +197,15 @@ pub fn response(
     http_response_string.push_str("Cross-Origin-Opener-Policy: same-origin\r\n");
     http_response_string.push_str("Cross-Origin-Opener-Policy: same-origin\r\n");
     http_response_string.push_str("Referrer-Policy: no-referrer\r\n");
-    http_response_string.push_str("Permissions-Policy:\
+    http_response_string.push_str(
+        "Permissions-Policy:\
 camera=(),\
 microphone=(),\
 geolocation=(),\
 payment=(),\
 usb=(),\
-bluetooth=()\r\n");
+bluetooth=()\r\n",
+    );
 
     let nonce = "test_make_this_random_later";
     http_response_string.push_str(&format!(
@@ -241,7 +242,6 @@ pub fn redirect_to(page: String) -> ResponseData {
 }
 
 pub fn internal_server_error_500() -> ResponseData {
-    
     ResponseData {
         status_code: StatusCode::Code500InternalServerError,
         content_type: ContentType::TextHtml,
@@ -253,7 +253,6 @@ pub fn internal_server_error_500() -> ResponseData {
     }
 }
 pub fn bad_request_400() -> ResponseData {
-    
     ResponseData {
         status_code: StatusCode::Code400BadRequest,
         content_type: ContentType::TextHtml,

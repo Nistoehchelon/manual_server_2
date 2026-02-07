@@ -48,7 +48,6 @@ pub struct Paginator {
 
 #[derive(Template)]
 #[template(path = "forum_thread.html")]
-
 pub struct ForumThread {
     pub main_info: MainInfo,
     pub thread_messages: Vec<ForumThreadMessageCombinedData>,
@@ -99,14 +98,12 @@ pub struct ForumThreadMessageVersionsTemplate {
 
 #[derive(Template)]
 #[template(path = "index_logged_in.html")]
-
 pub struct IndexLoggedInTemplate {
     pub main_info: MainInfo,
     pub user: User,
 }
 #[derive(Template)]
 #[template(path = "index_not_logged_in.html")]
-
 pub struct IndexNotLoggedInTemplate {
     pub main_info: MainInfo,
 }

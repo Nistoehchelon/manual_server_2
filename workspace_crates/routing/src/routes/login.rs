@@ -153,7 +153,6 @@ pub async fn post(
 }
 
 fn get_html(notifications: Vec<SessionNotification>, csrf_token: String) -> String {
-    
     html_templating::render(html_template_structs::LoginTemplate {
         csrf_token,
         main_info: html_template_structs::MainInfo {

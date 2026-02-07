@@ -109,7 +109,6 @@ fn get_html(
         notifications,
     }: GetHtmlArgs,
 ) -> String {
-    
     html_templating::render(html_template_structs::ForumTemplate {
         main_info: MainInfo {
             title,

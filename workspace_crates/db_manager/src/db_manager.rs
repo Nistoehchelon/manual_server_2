@@ -21,7 +21,7 @@ pub struct DbSuccess {
 impl DbSuccess {
     pub fn new(s: &str) -> Self {
         Self {
-            message: format!("{}", s),
+            message: s.to_string(),
         }
     }
 }

@@ -14,13 +14,13 @@ pub async fn get_token_id_by_session_id_and_designated_purpose(
     .await
     {
         Ok(opt) => match opt {
-            Some(s) => return Ok(Some(s.id)),
+            Some(s) => Ok(Some(s.id)),
             None => {
-                return Ok(None);
+                Ok(None)
             }
         },
         Err(e) => {
-            return Err(DbError::new(e));
+            Err(DbError::new(e))
         }
     }
 }
@@ -63,13 +63,13 @@ pub async fn validate_token(
     {
         Ok(opt) => {
             if opt.is_some() {
-                return Ok(true);
+                Ok(true)
             } else {
-                return Ok(false);
+                Ok(false)
             }
         }
         Err(e) => {
-            return Err(DbError::new(e));
+            Err(DbError::new(e))
         }
     }
 }

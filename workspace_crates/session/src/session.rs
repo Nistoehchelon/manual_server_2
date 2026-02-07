@@ -13,7 +13,7 @@ pub async fn edit_session(
     modified_session: Session,
 ) -> Result<DbSuccess, DbError> {
     let result = storage_specific_edit_session(db_pool, session_id, modified_session).await;
-    return result;
+    result
 }
 
 pub async fn set_previous_page_load_time_ms(
@@ -41,7 +41,7 @@ pub async fn add_session_notification(
         Ok(_) => Ok(()),
         Err(e) => {
             dbg!("Could not create session notification", &e);
-            return Err(e);
+            Err(e)
         }
     }
 }
@@ -63,7 +63,7 @@ pub async fn session_with_specified_id_exists(
     if result.is_some() {
         return Ok(true);
     }
-    return Ok(false);
+    Ok(false)
 }
 
 pub async fn find_session_by_session_id(
@@ -71,7 +71,7 @@ pub async fn find_session_by_session_id(
     db_pool: sqlx::PgPool,
 ) -> Result<Option<Session>, DbError> {
     let sess = storage_specific_get_session_by_session_id(db_pool, session_id).await?;
-    return Ok(sess);
+    Ok(sess)
 }
 pub async fn get_session_by_session_id(
     session_id: String,
@@ -81,7 +81,7 @@ pub async fn get_session_by_session_id(
     if let Some(sess) = sess_opt {
         return Ok(Ok(sess));
     }
-    return Ok(Err(error_structs::ExpectedToGetButFailed::new("")));
+    Ok(Err(error_structs::ExpectedToGetButFailed::new("")))
 }
 
 pub fn generate_session_id() -> String {
@@ -116,9 +116,7 @@ pub async fn get_existing_or_make_new_session(
                 {
                     Ok(answer) => answer,
                     Err(_) => {
-                        return Err(format!(
-                            "Initial id from cookie: Could not check whether session with such id exists due to DB error"
-                        ));
+                        return Err("Initial id from cookie: Could not check whether session with such id exists due to DB error".to_string());
                     }
                 };
                 if !session_exists {
@@ -142,28 +140,24 @@ pub async fn get_existing_or_make_new_session(
         {
             Ok(b) => b,
             Err(_) => {
-                return Err(format!(
-                    "Checking session id to decide whether we will create it or reuse if exists: Could not check whether session was created due to DB Error"
-                ));
+                return Err("Checking session id to decide whether we will create it or reuse if exists: Could not check whether session was created due to DB Error".to_string());
             }
         };
         if session_exists {
             match find_session_by_session_id(session_id.clone(), db_pool.clone()).await {
                 Ok(Some(sess)) => sess,
                 _ => {
-                    return Err(format!(
-                        "Could not get existing session by id due to DB error"
-                    ));
+                    return Err("Could not get existing session by id due to DB error".to_string());
                 }
             }
         } else {
             match create_new_session_with_id(session_id.clone(), db_pool).await {
                 Ok(sess) => sess,
-                Err(_) => return Err(format!("Could not create a session due to DB error")),
+                Err(_) => return Err("Could not create a session due to DB error".to_string()),
             }
         }
     };
-    return Ok((session, created_new_session));
+    Ok((session, created_new_session))
 }
 
 // separation between general functions above and storage specific stuff
@@ -182,10 +176,10 @@ async fn storage_specific_add_session(
     .await
     {
         Ok(_) => {
-            return Ok(db_manager::DbSuccess::new("Ok"));
+            Ok(db_manager::DbSuccess::new("Ok"))
         }
         Err(e) => {
-            return Err(db_manager::DbError::new(e));
+            Err(db_manager::DbError::new(e))
         }
     }
 }
@@ -208,7 +202,7 @@ async fn storage_specific_get_session_by_session_id(
         }
     };
 
-    return Ok(retrieved);
+    Ok(retrieved)
 }
 
 async fn storage_specific_read_and_delete_session_notifications(
@@ -231,7 +225,7 @@ async fn storage_specific_read_and_delete_session_notifications(
         Ok(r) => r,
         Err(e) => return Err(DbError::new(e)),
     };
-    if rows.len() == 0 {
+    if rows.is_empty() {
         return Ok(notifications);
     }
     for row in rows.iter() {
@@ -248,22 +242,15 @@ async fn storage_specific_read_and_delete_session_notifications(
         });
     }
 
-    match sqlx::query!(
+    if let Err(e) = sqlx::query!(
         "DELETE FROM  public.session_notifications WHERE session_id = $1 ",
         session_id,
     )
     .execute(&mut *transaction)
-    .await
-    {
-        Err(e) => return Err(DbError::new(e)),
-        Ok(_) => {}
-    }
-    match transaction.commit().await {
-        Err(e) => return Err(DbError::new(e)),
-        Ok(_) => {}
-    }
+    .await { return Err(DbError::new(e)) }
+    if let Err(e) = transaction.commit().await { return Err(DbError::new(e)) }
 
-    return Ok(notifications);
+    Ok(notifications)
 }
 
 async fn storage_specific_edit_session(
@@ -289,10 +276,10 @@ async fn storage_specific_edit_session(
 
     if rows_modified != 0 {
         return Ok(DbSuccess {
-            message: format!("Success"),
+            message: "Success".to_string(),
         });
     }
-    return Err(DbError::new("No rows modified"));
+    Err(DbError::new("No rows modified"))
 }
 
 async fn storage_specific_add_session_notification(
@@ -301,15 +288,12 @@ async fn storage_specific_add_session_notification(
 ) -> Result<DbSuccess, DbError> {
     let notification_type = session_notification.notification_type.to_string();
 
-    match sqlx::query!(r#"INSERT INTO public.session_notifications (session_id, message, notification_type) VALUES ($1, $2, $3)"#, session_notification.session_id,
+    if let Err(e) = sqlx::query!(r#"INSERT INTO public.session_notifications (session_id, message, notification_type) VALUES ($1, $2, $3)"#, session_notification.session_id,
             session_notification.message,
             notification_type,
     ).execute(&db_pool).await {
-        Err(e) => {
-            dbg!("Could not add session notification");
-            return Err(DbError::new(e));
-        },
-        Ok(_) =>{}
+        dbg!("Could not add session notification");
+        return Err(DbError::new(e));
     };
-    return Ok(DbSuccess::new("okay"));
+    Ok(DbSuccess::new("okay"))
 }

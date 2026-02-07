@@ -27,6 +27,12 @@ Seeing what happens if instead of returning 400 I just continue if byte reading 
 What I will do now:
 I have had no success in solving  this on my own. I suppose it might be time to focus on something else and deal with the random 400's for now. I suppose if nothing will pop up in the mind regarding this, I will ask for help on stackoverflow.com or something.
 
+New thoughts:
+Perhaps the issues lies in buf reader and keep alive implementation. I may consider using the previous simple stream read rather than reader read and using connection close everywhere. What will I do if the problem disappears once I do that? Well, I could go like this: Since neither keep alive nor buf reader are necessary either for security (unlike, say, tls) nor functionality, I can just avoid using them for now. The main reason why I used bufreader is because it seemed that keep alive requires it.
+What if removing keep alive and buf reader does not solve the issue: I don't know what to do to solve this aside from "just work in something else for at least a while" and "ask people for help". In other words, I suppose I could say "I would be back where I started". Well, that's not quite true, is it? I gues another phrasing could go like: I would continue doing other things, maybe ask for help at some point, supposedly some new ideas might occur to this mind.
+
+
+
 How I usually set this up:
 1. Install PostGres:
 On Windows I used the GUI installer.

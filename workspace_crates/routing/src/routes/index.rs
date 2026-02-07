@@ -43,7 +43,7 @@ fn get_html(session: Session, notifications: Vec<SessionNotification>, user: Use
     if session.logged_in {
         let index_template = IndexLoggedInTemplate {
             main_info: MainInfo {
-                title: format!("Welcome back!"),
+                title: "Welcome back!".to_string(),
                 notifications: into_vec(notifications),
             },
             user: html_template_structs::User {
@@ -54,7 +54,7 @@ fn get_html(session: Session, notifications: Vec<SessionNotification>, user: Use
     } else {
         let index_template = IndexNotLoggedInTemplate {
             main_info: MainInfo {
-                title: format!("Welcome!"),
+                title: "Welcome!".to_string(),
                 notifications: into_vec(notifications),
             },
         };

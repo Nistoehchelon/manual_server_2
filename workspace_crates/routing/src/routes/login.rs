@@ -51,7 +51,7 @@ pub async fn post(
             db_pool,
             SessionNotification {
                 session_id: session.id.clone(),
-                message: format!("You are already logged in."),
+                message: "You are already logged in.".to_string(),
                 notification_type: session::SessionNotificationType::Information,
             },
         )
@@ -66,7 +66,7 @@ pub async fn post(
                 add_session_notification(
                     db_pool.clone(),
                     SessionNotification {
-                        message: format!("Could not extract params from body"),
+                        message: "Could not extract params from body".to_string(),
                         session_id: session.id.clone(),
                         notification_type: session::SessionNotificationType::Error,
                     },
@@ -85,7 +85,7 @@ pub async fn post(
                         add_session_notification(
                             db_pool.clone(),
                             SessionNotification {
-                                message: format!("Could not extract params from body"),
+                                message: "Could not extract params from body".to_string(),
                                 session_id: session.id.clone(),
                                 notification_type: session::SessionNotificationType::Error,
                             },
@@ -106,13 +106,13 @@ pub async fn post(
             db_pool.clone(),
             SessionNotification {
                 session_id: session.id.clone(),
-                message: format!("Could not verify CSRF token"),
+                message: "Could not verify CSRF token".to_string(),
                 notification_type: session::SessionNotificationType::Error,
             },
         )
         .await
         .map_err(InternalAppError::new)?;
-        return Ok(redirect_to(format!("/login")));
+        return Ok(redirect_to("/login".to_string()));
     }
     let user_result = find_by_username_and_password(username, password, db_pool.clone())
         .await
@@ -123,7 +123,7 @@ pub async fn post(
             db_pool.clone(),
             SessionNotification {
                 session_id: session.id.clone(),
-                message: format!("Username and/or password incorrect"),
+                message: "Username and/or password incorrect".to_string(),
                 notification_type: session::SessionNotificationType::Error,
             },
         )
@@ -143,7 +143,7 @@ pub async fn post(
         db_pool.clone(),
         SessionNotification {
             session_id: session.clone().id,
-            message: format!("Successfully logged in! Welcome!"),
+            message: "Successfully logged in! Welcome!".to_string(),
             notification_type: session::SessionNotificationType::Success,
         },
     )
@@ -153,12 +153,12 @@ pub async fn post(
 }
 
 fn get_html(notifications: Vec<SessionNotification>, csrf_token: String) -> String {
-    let html = html_templating::render(html_template_structs::LoginTemplate {
+    
+    html_templating::render(html_template_structs::LoginTemplate {
         csrf_token,
         main_info: html_template_structs::MainInfo {
-            title: format!("Login"),
+            title: "Login".to_string(),
             notifications: into_vec(notifications),
         },
-    });
-    return html;
+    })
 }

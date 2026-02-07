@@ -144,12 +144,12 @@ pub async fn route(
         }
     }
 
-    return Ok(response_data);
+    Ok(response_data)
 }
 
 fn check_if_user_can_access_path(session: Session, path: String) -> bool {
     let mut access_level = 0;
-    if session.logged_in == true {
+    if session.logged_in {
         access_level = 1;
     }
 
@@ -194,21 +194,17 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
             unreachable!();
         }
     }
-    if allowed.contains(&path.as_str()) {
-        return true;
-    } else {
-        return false;
-    }
+    allowed.contains(&path.as_str())
 }
 
 pub async fn response_to_bytes(response_data: ResponseData) -> Vec<u8> {
-    let response_bytes = match response(response_data) {
+    
+    match response(response_data) {
         Ok(rb) => rb,
         Err(_) => {
-            return standalone_response(StatusCode::Code500InternalServerError, format!("Error"));
+            return standalone_response(StatusCode::Code500InternalServerError, "Error".to_string());
         }
-    };
-    return response_bytes;
+    }
 }
 pub async fn generate_response_data(
     request_data: HttpRequestData,
@@ -245,9 +241,9 @@ pub async fn generate_response_data(
     )
     .await
     .unwrap_or(internal_server_error_500());
-    let response_data = add_elapsed(response_data, session, request_start, db_pool).await;
+    
 
-    return response_data;
+    add_elapsed(response_data, session, request_start, db_pool).await
 }
 
 pub async fn add_elapsed(
@@ -268,9 +264,9 @@ pub async fn add_elapsed(
         }
     };
     let elapsed_ms = request_start.elapsed().as_millis();
-    if let Some(body) = &mut response_data.body {
-        if response_data.content_type == ContentType::TextHtml {
-            if let Ok(mut html) = String::from_utf8(body.clone()) {
+    if let Some(body) = &mut response_data.body
+        && response_data.content_type == ContentType::TextHtml
+            && let Ok(mut html) = String::from_utf8(body.clone()) {
                 let previous_ms = session_data.previous_page_load_time_ms;
 
                 let timing_html = format!(
@@ -283,8 +279,6 @@ Page loading took {elapsed_ms} ms<br>
                 html = html.replace("</body>", &format!("{}\n</body>", timing_html));
                 *body = html.into_bytes();
             }
-        }
-    }
     let elapsed_ms: i64 = match i64::try_from(elapsed_ms) {
         Ok(v) => v,
         Err(_e) => {
@@ -299,22 +293,22 @@ Page loading took {elapsed_ms} ms<br>
 }
 
 pub fn is_requesting_static_resource(path: String) -> bool {
-    let static_paths = vec!["/stylesheet.css", "/favicon.ico"];
-    return static_paths.contains(&path.as_str());
+    let static_paths = ["/stylesheet.css", "/favicon.ico"];
+    static_paths.contains(&path.as_str())
 }
 
 pub fn generate_static_response(request_data: HttpRequestData) -> ResponseData {
     let HttpRequestData { method, path, .. } = request_data;
     assert!(is_requesting_static_resource(path.clone()));
     dbg!(format!("Entering static routing for {method} {path}"));
-    let response = match (method.as_str(), path.as_str()) {
+    
+
+    match (method.as_str(), path.as_str()) {
         // static resources
         ("GET", "/stylesheet.css") => {
             routes::stylesheet::get().unwrap_or(internal_server_error_500())
         }
         ("GET", "/favicon.ico") => routes::favicon::get().unwrap_or(internal_server_error_500()),
         _ => unreachable!("Should not happen"),
-    };
-
-    return response;
+    }
 }

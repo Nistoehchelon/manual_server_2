@@ -41,12 +41,12 @@ pub async fn get(
         .await
         .map_err(InternalAppError::new)?;
 
-    if !forum.is_some() {
+    if forum.is_none() {
         add_session_notification(
             db_pool.clone(),
             SessionNotification {
                 session_id: session.id.clone(),
-                message: format!("Forum not found"),
+                message: "Forum not found".to_string(),
                 notification_type: session::SessionNotificationType::Error,
             },
         )
@@ -82,16 +82,16 @@ fn get_html(
     notifications: Vec<session::SessionNotification>,
     csrf_token: String,
 ) -> String {
-    let html = html_templating::render(html_template_structs::CreateThreadTemplate {
+    
+
+    html_templating::render(html_template_structs::CreateThreadTemplate {
         main_info: html_template_structs::MainInfo {
             title,
             notifications: into_vec::into_vec(notifications),
         },
         forum: forum.into(),
         csrf_token,
-    });
-
-    return html;
+    })
 }
 
 pub async fn post(
@@ -152,8 +152,8 @@ pub async fn post(
     )
     .await
     .map_err(InternalAppError::new)?;
-    return Ok(redirect_to(format!(
+    Ok(redirect_to(format!(
         "/forum_thread?id={}",
         thread_id.clone()
-    )));
+    )))
 }

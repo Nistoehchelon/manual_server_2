@@ -25,7 +25,7 @@ pub async fn get(
 
     let html = html_templating::render(html_template_structs::DashboardTemplate {
         main_info: MainInfo {
-            title: format!("Your Dashboard"),
+            title: "Your Dashboard".to_string(),
             notifications: into_vec::into_vec(notifications),
         },
         username: user.username.clone(),

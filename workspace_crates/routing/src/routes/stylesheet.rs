@@ -16,7 +16,7 @@ pub fn get() -> Result<ResponseData, error_structs::InternalAppError> {
 }
 
 fn get_stylesheet_css_content() -> String {
-    let stylesheet = read_to_string_on_dev_embed_on_release("stylesheet.css");
+    
 
-    stylesheet
+    read_to_string_on_dev_embed_on_release("stylesheet.css")
 }

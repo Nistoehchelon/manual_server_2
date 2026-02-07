@@ -30,7 +30,7 @@ pub async fn get(
                 db_pool.clone(),
                 SessionNotification {
                     session_id: session.id.clone(),
-                    message: format!("Could not find thread_id in query string"),
+                    message: "Could not find thread_id in query string".to_string(),
                     notification_type: SessionNotificationType::Error,
                 },
             )
@@ -80,13 +80,13 @@ pub async fn get(
                 db_pool.clone(),
                 session::SessionNotification {
                     session_id: session.id.clone(),
-                    message: format!("Could not find message with specified id"),
+                    message: "Could not find message with specified id".to_string(),
                     notification_type: session::SessionNotificationType::Error,
                 },
             )
             .await
             .map_err(InternalAppError::new)?;
-            return Ok(redirect_to(format!("/forum")));
+            return Ok(redirect_to("/forum".to_string()));
         }
     };
 
@@ -99,7 +99,7 @@ pub async fn get(
     let message_versions = forum::get_thread_message_versions(
         db_pool.clone(),
         message_id.clone(),
-        page.clone(),
+        page,
         VERSIONS_PER_PAGE,
     )
     .await
@@ -112,9 +112,9 @@ pub async fn get(
 
     let current_url = Url::new(request_data.path.clone(), request_data.query.clone());
     let pagi = Pagination {
-        records_count: versions_count.clone(),
+        records_count: versions_count,
         records_per_page: VERSIONS_PER_PAGE,
-        current_page: page.clone(),
+        current_page: page,
         current_url: current_url.clone(),
         page_param: "page".to_string(),
     };
@@ -135,7 +135,7 @@ pub async fn get(
         });
     }
 
-    return Ok(ok_html(render(
+    Ok(ok_html(render(
         html_template_structs::ForumThreadMessageVersionsTemplate {
             main_info: html_template_structs::MainInfo {
                 title: "Message versions".to_string(),
@@ -154,5 +154,5 @@ pub async fn get(
                 elements: versions_pagination_elements,
             },
         },
-    )));
+    )))
 }

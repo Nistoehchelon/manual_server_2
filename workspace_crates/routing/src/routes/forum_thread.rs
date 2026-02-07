@@ -33,13 +33,13 @@ pub async fn get(
                 db_pool.clone(),
                 session::SessionNotification {
                     session_id: session.id.clone(),
-                    message: format!("Could not find id in query string"),
+                    message: "Could not find id in query string".to_string(),
                     notification_type: session::SessionNotificationType::Error,
                 },
             )
             .await
             .map_err(InternalAppError::new)?;
-            return Ok(redirect_to(format!("/forum")));
+            return Ok(redirect_to("/forum".to_string()));
         }
     };
     let thread_page = query.get("page");
@@ -64,13 +64,13 @@ pub async fn get(
                 db_pool.clone(),
                 session::SessionNotification {
                     session_id: session.id.clone(),
-                    message: format!("Could not find thread with specified id"),
+                    message: "Could not find thread with specified id".to_string(),
                     notification_type: session::SessionNotificationType::Error,
                 },
             )
             .await
             .map_err(InternalAppError::new)?;
-            return Ok(redirect_to(format!("/forum")));
+            return Ok(redirect_to("/forum".to_string()));
         }
     };
 
@@ -82,8 +82,8 @@ pub async fn get(
     let thread_message_ids = forum::get_thread_message_ids(
         db_pool.clone(),
         thread_id.clone(),
-        thread_page.clone(),
-        limit_per_page.clone(),
+        thread_page,
+        limit_per_page,
     )
     .await
     .map_err(InternalAppError::new)?;
@@ -94,9 +94,9 @@ pub async fn get(
             .map_err(InternalAppError::new)?;
     let current_url = Url::new(request_data.path.clone(), request_data.query.clone());
     let pagi = Pagination {
-        records_count: thread_messages_count.clone(),
-        records_per_page: limit_per_page.clone(),
-        current_page: thread_page.clone(),
+        records_count: thread_messages_count,
+        records_per_page: limit_per_page,
+        current_page: thread_page,
         current_url: current_url.clone(),
         page_param: "page".to_string(),
     };
@@ -150,7 +150,7 @@ pub async fn get(
 
     let html = html_templating::render(html_template_structs::ForumThread {
         main_info: html_template_structs::MainInfo {
-            title: format!(""),
+            title: String::new(),
             notifications: into_vec(
                 read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
                     .await
@@ -164,7 +164,7 @@ pub async fn get(
         forum_id: thread.forum_id,
         csrf_token,
         thread_paginator: Paginator {
-            name: format!("thread_paginator"),
+            name: "thread_paginator".to_string(),
             elements: thread_pagination_elements,
         },
         user_can_add_message: abac::can_add_forum_thread_message(session.clone())
@@ -213,7 +213,7 @@ pub async fn post(
             db_pool,
             session::SessionNotification {
                 session_id: session.id.clone(),
-                message: format!("Insufficient permissions to send forum thread message"),
+                message: "Insufficient permissions to send forum thread message".to_string(),
                 notification_type: session::SessionNotificationType::Error,
             },
         )
@@ -233,13 +233,13 @@ pub async fn post(
                 db_pool,
                 session::SessionNotification {
                     session_id: session.id.clone(),
-                    message: format!("Could not find thread with specified id"),
+                    message: "Could not find thread with specified id".to_string(),
                     notification_type: session::SessionNotificationType::Error,
                 },
             )
             .await
             .map_err(InternalAppError::new)?;
-            return Ok(redirect_to(format!("/forum")));
+            return Ok(redirect_to("/forum".to_string()));
         }
     }
 

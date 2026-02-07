@@ -109,7 +109,8 @@ fn get_html(
         notifications,
     }: GetHtmlArgs,
 ) -> String {
-    let html = html_templating::render(html_template_structs::ForumTemplate {
+    
+    html_templating::render(html_template_structs::ForumTemplate {
         main_info: MainInfo {
             title,
             notifications: into_vec(notifications),
@@ -120,6 +121,5 @@ fn get_html(
         subforums: into_vec(subforums),
         forum_threads: into_vec(forum_threads),
         forum_threads_pagination: vec![],
-    });
-    return html;
+    })
 }

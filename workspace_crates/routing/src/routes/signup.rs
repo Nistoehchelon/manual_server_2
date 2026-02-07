@@ -25,9 +25,7 @@ pub async fn get(
             db_pool.clone(),
             SessionNotification {
                 session_id: session.id.clone(),
-                message: format!(
-                    "You are already logged in, so signup is unaccessible. Log out first?"
-                ),
+                message: "You are already logged in, so signup is unaccessible. Log out first?".to_string(),
                 notification_type: session::SessionNotificationType::Error,
             },
         )
@@ -51,13 +49,13 @@ pub async fn get(
 }
 
 fn get_signup_html(notifications: Vec<session::SessionNotification>, csrf_token: String) -> String {
-    return html_templating::render(html_template_structs::SignupTemplate {
+    html_templating::render(html_template_structs::SignupTemplate {
         main_info: MainInfo {
-            title: format!("Signup"),
+            title: "Signup".to_string(),
             notifications: into_vec(notifications),
         },
         csrf_token,
-    });
+    })
 }
 
 pub async fn post(
@@ -78,7 +76,7 @@ pub async fn post(
                 add_session_notification(
                     db_pool.clone(),
                     SessionNotification {
-                        message: format!("Invalid body"),
+                        message: "Invalid body".to_string(),
                         session_id: session.id.clone(),
                         notification_type: session::SessionNotificationType::Error,
                     },
@@ -97,7 +95,7 @@ pub async fn post(
             add_session_notification(
                 db_pool.clone(),
                 SessionNotification {
-                    message: format!("Invalid body"),
+                    message: "Invalid body".to_string(),
                     session_id: session.id.clone(),
                     notification_type: session::SessionNotificationType::Error,
                 },
@@ -116,7 +114,7 @@ pub async fn post(
         add_session_notification(
             db_pool.clone(),
             SessionNotification {
-                message: format!("csrf_token validation error"),
+                message: "csrf_token validation error".to_string(),
                 session_id: session.id.clone(),
                 notification_type: session::SessionNotificationType::Error,
             },

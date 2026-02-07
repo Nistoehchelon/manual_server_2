@@ -28,11 +28,8 @@ pub async fn get_or_create_token(
     )
     .await
     {
-        Ok(t_opt) => match t_opt {
-            Some(t) => {
-                token_id = Some(t);
-            }
-            None => {}
+        Ok(t_opt) => if let Some(t) = t_opt {
+            token_id = Some(t);
         },
         Err(e) => {
             dbg!(&e);
@@ -59,7 +56,7 @@ pub async fn get_or_create_token(
         }
     };
 
-    return Ok(token_id);
+    Ok(token_id)
 }
 
 pub async fn validate_token(
@@ -67,7 +64,7 @@ pub async fn validate_token(
     session_id: String,
     token_id: String,
 ) -> Result<bool, InternalAppError> {
-    return db_manager::sql_queries::validate_token(executor, session_id, token_id)
+    db_manager::sql_queries::validate_token(executor, session_id, token_id)
         .await
-        .map_err(InternalAppError::new);
+        .map_err(InternalAppError::new)
 }

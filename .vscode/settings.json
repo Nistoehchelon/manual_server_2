@@ -1,5 +1,6 @@
 {
   "rust-analyzer.cargo.extraEnv": {
     "DATABASE_URL": "postgres://user123:password123@localhost/database123"
-  }
+  },
+  "rust-analyzer.check.command": "clippy"
 }

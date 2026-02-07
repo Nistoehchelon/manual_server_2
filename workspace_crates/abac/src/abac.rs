@@ -4,7 +4,7 @@ use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;
 
 pub async fn can_add_forum_thread_message(session: Session) -> Result<bool, SomeSortOfError> {
-    return Ok(session.logged_in);
+    Ok(session.logged_in)
 }
 
 #[derive(Debug)]
@@ -46,17 +46,14 @@ pub async fn can_create_forum(
     .fetch_optional(&db_pool)
     .await
     {
-        Ok(opt) => match opt {
-            Some(_) => true,
-            None => false,
-        },
+        Ok(opt) => opt.is_some(),
         Err(e) => return Err(SomeSortOfError::new(e)),
     };
     if is_superuser {
         return Ok(true);
     }
 
-    let b = match sqlx::query!(
+    let b = sqlx::query!(
         "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
         "user",
         user_id,
@@ -64,12 +61,8 @@ pub async fn can_create_forum(
     )
     .fetch_optional(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?
-    {
-        Some(_) => true,
-        None => false,
-    };
-    return Ok(b);
+    .map_err(SomeSortOfError::new)?.is_some();
+    Ok(b)
 }
 
 pub struct CanCreateThreadInput {

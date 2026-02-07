@@ -34,6 +34,9 @@ New thoughts 2:
 I noticed it seems to happen somewhat randomly. I tested by just reloading pages, not only login/logout, and it triggers every 6-7-8 reloads at times but can also trigger at every other reload, etc. I think this might be caused somehow by keep alive and buf reader. I might wanna try this: Rollback my code to NOT use keep alive, just close after every request and 2) Use the old way of reading stream, maybe even with left over bytes.
 Of course, it is possible that the issue lies simply in TLS setup somehow? Could it lie in the fact that I am using local setup somehow?.. 
 
+New thoughts 3:
+After reinstalling the whole app (without modifications) I noticed none of the 400 errors yet. I don't get why.  
+
 
 How I usually set this up:
 1. Install PostGres:

@@ -8,9 +8,9 @@ pub const MAX_VALID_SALT_BYTES_LENGTH: usize = 48;
 pub const SALT_BYTES_LENGTH: usize = MAX_VALID_SALT_BYTES_LENGTH;
 
 fn strong_argon2() -> Result<Argon2<'static>, String> {
-    let m_cost = 64 * 1024;
-    let t_cost = 3;
-    let p_cost = 1;
+    let m_cost = 32 * 1024;
+    let t_cost = 2;
+    let p_cost = 2;
     let params = Params::new(m_cost, t_cost, p_cost, None).map_err(|e| {
         dbg!("Error on argo2 params::new", e.to_string());
         return e.to_string();

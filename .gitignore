@@ -1,3 +1,4 @@
+**/target/
 .env
 # I think ** will match even if I ever (perhaps accidentally) move these folders outside the ./ of this .gitignore.
 # because I do not want to bother running git-filter-repo again if I accidentally change the locations somehow. 

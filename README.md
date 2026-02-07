@@ -4,7 +4,7 @@ This document has the following parts:
 
 Issues I would like to solve
 
-There is an issue that can be observer when the following happens: Often, but not always, when I do this: login, logout, I see a 400 error (remember, the web server is written by me, so it returns this because I made it do that). 
+There is an issue that can be observed when the following happens: Often, but not always, when I do this: login, logout, I see a 400 error (remember, the web server is written by me, so it returns this because I made it do that). 
 I am not sure what causes this unclear issue.
 Several possibilities:
 1. Problem is in logic encoded in the code.
@@ -30,7 +30,9 @@ I have had no success in solving  this on my own. I suppose it might be time to 
 New thoughts:
 Perhaps the issues lies in buf reader and keep alive implementation. I may consider using the previous simple stream read rather than reader read and using connection close everywhere. What will I do if the problem disappears once I do that? Well, I could go like this: Since neither keep alive nor buf reader are necessary either for security (unlike, say, tls) nor functionality, I can just avoid using them for now. The main reason why I used bufreader is because it seemed that keep alive requires it.
 What if removing keep alive and buf reader does not solve the issue: I don't know what to do to solve this aside from "just work in something else for at least a while" and "ask people for help". In other words, I suppose I could say "I would be back where I started". Well, that's not quite true, is it? I gues another phrasing could go like: I would continue doing other things, maybe ask for help at some point, supposedly some new ideas might occur to this mind.
-
+New thoughts 2:
+I noticed it seems to happen somewhat randomly. I tested by just reloading pages, not only login/logout, and it triggers every 6-7-8 reloads at times but can also trigger at every other reload, etc. I think this might be caused somehow by keep alive and buf reader. I might wanna try this: Rollback my code to NOT use keep alive, just close after every request and 2) Use the old way of reading stream, maybe even with left over bytes.
+Of course, it is possible that the issue lies simply in TLS setup somehow? Could it lie in the fact that I am using local setup somehow?.. 
 
 
 How I usually set this up:
@@ -57,9 +59,9 @@ Then setup db and user:
 
 
 
-2. Configure .env file
+2. Configure .env file based on .env_example. On fresh set up I can copy the example and modify as needed.
 3. I guess pg_backups/.pgpass if needed, but I usually use default password123 etc for dev and pg pass is only for dev, right? I dunno, by the way, how production import/export would look like.
 4. Use pg_backups's pull and push scripts...
-5. Ah, and the local (for dev) self-signed cert generation inside local_ssl
+5. Ah, and the local (for dev) self-signed cert generation/TLS intrusctions is inside local_ssl/README.md
 6. This seems to be about it
 

@@ -4,10 +4,14 @@ use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{
-        Charset, ContentType, ResponseData, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to, response, standalone_response
+        Charset, ContentType, ResponseData, SetCookieHeader, StatusCode, internal_server_error_500,
+        redirect_to, response, standalone_response,
     },
 };
-use session::{self, Session, SessionNotification, add_session_notification, get_session_by_session_id, set_previous_page_load_time_ms};
+use session::{
+    self, Session, SessionNotification, add_session_notification, get_session_by_session_id,
+    set_previous_page_load_time_ms,
+};
 use user::{self, get_user_by_user_id};
 
 use crate::routes;
@@ -199,14 +203,17 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
 
 pub async fn response_to_bytes(response_data: ResponseData) -> Vec<u8> {
     let response_bytes = match response(response_data) {
-            Ok(rb) => rb,
-            Err(_) => {
-                return standalone_response(StatusCode::Code500InternalServerError, format!("Error"));
-            }
-        };
+        Ok(rb) => rb,
+        Err(_) => {
+            return standalone_response(StatusCode::Code500InternalServerError, format!("Error"));
+        }
+    };
     return response_bytes;
 }
-pub async fn generate_response_data(request_data: HttpRequestData, db_pool: sqlx::PgPool) -> ResponseData {
+pub async fn generate_response_data(
+    request_data: HttpRequestData,
+    db_pool: sqlx::PgPool,
+) -> ResponseData {
     if is_requesting_static_resource(request_data.path.clone()) {
         let response_data = generate_static_response(request_data);
         return response_data;
@@ -218,60 +225,77 @@ pub async fn generate_response_data(request_data: HttpRequestData, db_pool: sqlx
         match session::get_existing_or_make_new_session(db_pool.clone(), cookies).await {
             Ok((s, cns)) => (s, cns),
             Err(_) => {
-                return ResponseData { status_code: StatusCode::Code500InternalServerError, content_type: http_stuff::http_response::ContentType::TextPlain, charset: Some(Charset::Utf8), body: Some(b"500".to_vec()), set_cookie_headers: None, location: None, connection: http_stuff::http_response::KeepAliveOrClose::KeepAlive };
-        }
-    };
+                return ResponseData {
+                    status_code: StatusCode::Code500InternalServerError,
+                    content_type: http_stuff::http_response::ContentType::TextPlain,
+                    charset: Some(Charset::Utf8),
+                    body: Some(b"500".to_vec()),
+                    set_cookie_headers: None,
+                    location: None,
+                    connection: http_stuff::http_response::KeepAliveOrClose::KeepAlive,
+                };
+            }
+        };
     // Route handling
-    let response_data = route(db_pool.clone(), session.clone(), created_new_session, request_data)
-        .await
-        .unwrap_or(internal_server_error_500());
+    let response_data = route(
+        db_pool.clone(),
+        session.clone(),
+        created_new_session,
+        request_data,
+    )
+    .await
+    .unwrap_or(internal_server_error_500());
     let response_data = add_elapsed(response_data, session, request_start, db_pool).await;
 
     return response_data;
 }
 
-pub async fn add_elapsed(mut response_data: ResponseData, Session { id: session_id, .. }: Session, request_start: Instant, db_pool: sqlx::PgPool) -> ResponseData {
- let session_data = match get_session_by_session_id(session_id.clone(), db_pool.clone()).await {
-    Ok(Ok(session_data)) => session_data,
-    Ok(Err(e)) => {
-        dbg!("Could not get session, returning as is", e);
-        return response_data;
-    }
-    Err(_e) => {
-        dbg!("Could not get session, returning as is", _e);
-        return response_data;
-    },
+pub async fn add_elapsed(
+    mut response_data: ResponseData,
+    Session { id: session_id, .. }: Session,
+    request_start: Instant,
+    db_pool: sqlx::PgPool,
+) -> ResponseData {
+    let session_data = match get_session_by_session_id(session_id.clone(), db_pool.clone()).await {
+        Ok(Ok(session_data)) => session_data,
+        Ok(Err(e)) => {
+            dbg!("Could not get session, returning as is", e);
+            return response_data;
+        }
+        Err(_e) => {
+            dbg!("Could not get session, returning as is", _e);
+            return response_data;
+        }
     };
     let elapsed_ms = request_start.elapsed().as_millis();
-if let Some(body) = &mut response_data.body {
-    if response_data.content_type == ContentType::TextHtml {
-        if let Ok(mut html) = String::from_utf8(body.clone()) {
+    if let Some(body) = &mut response_data.body {
+        if response_data.content_type == ContentType::TextHtml {
+            if let Ok(mut html) = String::from_utf8(body.clone()) {
+                let previous_ms = session_data.previous_page_load_time_ms;
 
-            let previous_ms = session_data.previous_page_load_time_ms;
-
-            let timing_html = format!(
-                r#"<div>
+                let timing_html = format!(
+                    r#"<div>
 Previous page loading took {previous_ms} ms<br>
 Page loading took {elapsed_ms} ms<br>
 </div>"#
-            );
+                );
 
-            html = html.replace("</body>", &format!("{}\n</body>", timing_html));
-            *body = html.into_bytes();
+                html = html.replace("</body>", &format!("{}\n</body>", timing_html));
+                *body = html.into_bytes();
+            }
         }
     }
-}
     let elapsed_ms: i64 = match i64::try_from(elapsed_ms) {
         Ok(v) => v,
         Err(_e) => {
             dbg!("Try_from failed, could not convert u128 into i64", _e);
             return response_data;
-        },
+        }
     };
     if let Err(_) = set_previous_page_load_time_ms(db_pool, session_id, elapsed_ms).await {
         dbg!("Could not edit previous_page_load_time_ms");
     }
-response_data
+    response_data
 }
 
 pub fn is_requesting_static_resource(path: String) -> bool {

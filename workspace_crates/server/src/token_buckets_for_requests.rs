@@ -4,7 +4,6 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
-
 pub struct TokenAndTimeBuckets {
     pub token_bucket: TokenBucket,
     pub time_bucket: TimeBucket,
@@ -15,10 +14,8 @@ pub struct TokenAndTimeBucketsAndLastSeen {
     pub last_seen: Instant,
 }
 
-
 pub type GlobalBuckets = Arc<Mutex<TokenAndTimeBuckets>>;
 pub type IpBuckets = Arc<Mutex<HashMap<IpAddr, TokenAndTimeBucketsAndLastSeen>>>;
-
 
 #[derive(Debug)]
 pub struct TokenBucket {
@@ -27,7 +24,6 @@ pub struct TokenBucket {
     pub tokens_refill_rate_per_millis: f64,
 
     pub last_refill: Instant,
-
 }
 
 impl TokenBucket {
@@ -44,7 +40,8 @@ impl TokenBucket {
         let now = Instant::now();
         let amount: f64 = 1.0;
         let elapsed_ms = now.duration_since(self.last_refill).as_millis() as f64;
-        self.tokens = (self.tokens + elapsed_ms * self.tokens_refill_rate_per_millis).min(self.tokens_capacity);
+        self.tokens = (self.tokens + elapsed_ms * self.tokens_refill_rate_per_millis)
+            .min(self.tokens_capacity);
         self.last_refill = now;
 
         if self.tokens >= amount {
@@ -54,28 +51,27 @@ impl TokenBucket {
             false
         }
     }
-
 }
 
 #[derive(Debug)]
 pub struct TimeBucket {
-
     pub time_credits: Duration,
     pub time_credits_capacity: Duration,
     pub time_credits_refill_rate_per_millis: Duration,
     pub last_refill: Instant,
 }
 
-
 impl TimeBucket {
-    pub fn new(time_credits_capacity: Duration, time_credits_refill_rate_per_millis: Duration) -> Self {
+    pub fn new(
+        time_credits_capacity: Duration,
+        time_credits_refill_rate_per_millis: Duration,
+    ) -> Self {
         Self {
             last_refill: Instant::now(),
 
             time_credits: time_credits_capacity,
             time_credits_capacity,
             time_credits_refill_rate_per_millis,
-
         }
     }
 
@@ -83,7 +79,7 @@ impl TimeBucket {
         self.refill();
         self.time_credits = self.time_credits.saturating_sub(t);
     }
-    fn refill(&mut self)  {
+    fn refill(&mut self) {
         let now = Instant::now();
         let elapsed = now.duration_since(self.last_refill);
 
@@ -97,7 +93,6 @@ impl TimeBucket {
                 dbg!(e);
                 return;
             }
-
         };
 
         let refill_amount = self.time_credits_refill_rate_per_millis * millis;

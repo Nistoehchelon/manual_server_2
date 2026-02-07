@@ -17,32 +17,32 @@ pub async fn check_and_consume_buckets(
     global_bucket: &GlobalBuckets,
     ip_buckets: &IpBuckets,
     Config {
-    per_ip_token_bucket_capacity,
-    per_ip_token_bucket_refill_rate_per_millis,
-    per_ip_time_credits_capacity,
-    per_ip_time_credits_refill_rate_per_millis,
-    ..
+        per_ip_token_bucket_capacity,
+        per_ip_token_bucket_refill_rate_per_millis,
+        per_ip_time_credits_capacity,
+        per_ip_time_credits_refill_rate_per_millis,
+        ..
     }: Config,
 ) -> Result<(), Vec<u8>> {
     let mut ip_buckets = ip_buckets.lock().await;
     // I guess it makes sense to remove old entries.... ?
     if ip_buckets.len() > 1000 {
         let cutoff = now - Duration::from_secs(150);
-        ip_buckets.retain(|_, entry| {
-
-            entry.last_seen >= cutoff
-        });
+        ip_buckets.retain(|_, entry| entry.last_seen >= cutoff);
     }
-    let ip_bucket = ip_buckets.entry(*peer_ip).or_insert_with(|| {
-        TokenAndTimeBucketsAndLastSeen {
-            token_bucket:  TokenBucket::new(
-            per_ip_token_bucket_capacity,
-            per_ip_token_bucket_refill_rate_per_millis,
-        ),
-            time_bucket: TimeBucket::new(per_ip_time_credits_capacity, per_ip_time_credits_refill_rate_per_millis),
+    let ip_bucket = ip_buckets
+        .entry(*peer_ip)
+        .or_insert_with(|| TokenAndTimeBucketsAndLastSeen {
+            token_bucket: TokenBucket::new(
+                per_ip_token_bucket_capacity,
+                per_ip_token_bucket_refill_rate_per_millis,
+            ),
+            time_bucket: TimeBucket::new(
+                per_ip_time_credits_capacity,
+                per_ip_time_credits_refill_rate_per_millis,
+            ),
             last_seen: Instant::now(),
-        }
-    });
+        });
 
     ip_bucket.last_seen = now;
 
@@ -63,13 +63,12 @@ pub async fn check_and_consume_buckets(
         return Err(response);
     }
 
-
     let mut global_bucket = global_bucket.lock().await;
     let mut reject = false;
     if !global_bucket.token_bucket.try_to_consume_one_token() {
         reject = true;
         dbg!("Out of global tokens");
-    } 
+    }
     if !global_bucket.time_bucket.has_time() {
         reject = true;
         dbg!("Out of global time");
@@ -81,8 +80,6 @@ pub async fn check_and_consume_buckets(
         );
         return Err(response);
     }
-
-
 
     Ok(())
 }

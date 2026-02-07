@@ -159,19 +159,23 @@ async fn read_line_bounded<R: AsyncRead + Unpin>(
     reader: &mut BufReader<R>,
     max_line_len: usize,
     timeout_dur: Duration,
-    header_bytes_so_far: Vec<u8>
+    header_bytes_so_far: Vec<u8>,
 ) -> Result<Vec<u8>, HttpRequestParsingError> {
     let mut line = Vec::with_capacity(128);
 
     loop {
         let byte = timeout(timeout_dur, reader.read_u8())
             .await
-            .map_err(|elapsed|{ 
+            .map_err(|elapsed| {
                 dbg!("header byte reading timed out", elapsed);
                 HttpRequestParsingError::HeadersStreamReadTimeout
             })?
             .map_err(|e| {
-                dbg!("header byte reading failed", e, header_bytes_so_far.to_ascii_lowercase());
+                dbg!(
+                    "header byte reading failed",
+                    e,
+                    header_bytes_so_far.to_ascii_lowercase()
+                );
                 HttpRequestParsingError::SomeSortOfStreamError
             })?;
 
@@ -203,11 +207,14 @@ async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
     let mut read_total_bytes = 0;
 
     loop {
-        let line = read_line_bounded(reader, max_line_len, common_stream_timeout_duration, header_bytes.clone())
-            .await
-            .map_err(|_| {
-                HttpRequestParsingError::SomeSortOfStreamError
-            })?;
+        let line = read_line_bounded(
+            reader,
+            max_line_len,
+            common_stream_timeout_duration,
+            header_bytes.clone(),
+        )
+        .await
+        .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
         read_total_bytes += line.len();
 
         if read_total_bytes > MAX_HEADER_BYTES {

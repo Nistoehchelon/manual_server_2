@@ -16,8 +16,19 @@ pub async fn edit_session(
     return result;
 }
 
-pub async fn set_previous_page_load_time_ms(db_pool: sqlx::PgPool, session_id: String, new_value: i64) -> Result<(), DbError> {
-    match sqlx::query!("UPDATE sessions SET previous_page_load_time_ms = $1 WHERE id = $2", new_value, session_id).execute(&db_pool).await {
+pub async fn set_previous_page_load_time_ms(
+    db_pool: sqlx::PgPool,
+    session_id: String,
+    new_value: i64,
+) -> Result<(), DbError> {
+    match sqlx::query!(
+        "UPDATE sessions SET previous_page_load_time_ms = $1 WHERE id = $2",
+        new_value,
+        session_id
+    )
+    .execute(&db_pool)
+    .await
+    {
         Ok(_) => Ok(()),
         Err(e) => Err(DbError::new(e)),
     }
@@ -159,7 +170,7 @@ pub async fn get_existing_or_make_new_session(
 
 async fn storage_specific_add_session(
     session: Session,
-    db_pool: sqlx::PgPool, 
+    db_pool: sqlx::PgPool,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
     match sqlx::query!(
         r#"INSERT INTO public.sessions (id, user_id, logged_in) VALUES ($1, $2, $3)"#,
@@ -177,7 +188,7 @@ async fn storage_specific_add_session(
             return Err(db_manager::DbError::new(e));
         }
     }
-}  
+}
 
 async fn storage_specific_get_session_by_session_id(
     db_pool: sqlx::PgPool,

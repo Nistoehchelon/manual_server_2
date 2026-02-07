@@ -381,8 +381,10 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
 ) {
     match e {
         HttpRequestParsingError::UriTooLong => {
-            let err_response =
-                standalone_response(StatusCode::Code414UriTooLong, format!("414 Uri Too Long ☺️"));
+            let err_response = standalone_response(
+                StatusCode::Code414UriTooLong,
+                format!("414 Uri Too Long ☺️"),
+            );
             let _ = timeout(
                 common_stream_timeout_duration.clone(),
                 stream.write_all(&err_response),
@@ -410,7 +412,7 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
                 stream.write_all(&err_response),
             )
             .await;
-        }   
+        }
         hm => {
             eprintln!("main error, could not parse request {:?}", hm);
             let err_response =
@@ -421,8 +423,7 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             )
             .await;
         }
-        
     };
-    let _ =    stream.flush().await;
+    let _ = stream.flush().await;
     let _ = stream.shutdown().await;
 }

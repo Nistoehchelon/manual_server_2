@@ -14,7 +14,7 @@ pub async fn http_to_https_redirect(
     ip_buckets: IpBuckets,
     common_stream_timeout_duration: Duration,
 ) -> tokio::io::Result<()> {
-        let Config {
+    let Config {
         domain_name: domain,
         ip,
         ..
@@ -69,8 +69,6 @@ pub async fn http_to_https_redirect(
             continue;
         }
         tokio::spawn(async move {
-
-
             let mut location = String::from("https://");
             location.push_str(domain.as_str());
             location.push_str("/");

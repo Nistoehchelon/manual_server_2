@@ -75,11 +75,12 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut max_request_path_length: Option<usize> = None;
     let mut max_cookies_count: Option<usize> = None;
     let mut max_requests_per_keep_alive_connection: Option<u64> = None;
-    let mut max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis: Option<u64> = None;
+    let mut max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis: Option<u64> =
+        None;
 
     let mut server_time_credits_capacity_millis: Option<u64> = None;
     let mut server_time_credits_refill_rate_millis_per_millis: Option<u64> = None;
-    
+
     let mut per_ip_time_credits_capacity_millis: Option<u64> = None;
     let mut per_ip_time_credits_refill_rate_millis: Option<u64> = None;
 
@@ -99,12 +100,25 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         let value = value.trim().to_string();
 
         match key {
-            "PER_IP_TIME_CREDITS_CAPACITY_MILLIS" => per_ip_time_credits_capacity_millis = Some(value.parse().unwrap()), 
-            "PER_IP_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS" => per_ip_time_credits_refill_rate_millis = Some(value.parse().unwrap()), 
-            "SERVER_TIME_CREDITS_CAPACITY_MILLIS" => server_time_credits_capacity_millis = Some(value.parse().unwrap()),
-            "SERVER_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS" => server_time_credits_refill_rate_millis_per_millis = Some(value.parse().unwrap()),
-            "MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUESTS_ON_KEEP_ALIVE_CONNECTION_MILLIS" => max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis = Some(value.parse().unwrap()),
-            "MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION" => max_requests_per_keep_alive_connection = Some(value.parse().unwrap()),
+            "PER_IP_TIME_CREDITS_CAPACITY_MILLIS" => {
+                per_ip_time_credits_capacity_millis = Some(value.parse().unwrap())
+            }
+            "PER_IP_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS" => {
+                per_ip_time_credits_refill_rate_millis = Some(value.parse().unwrap())
+            }
+            "SERVER_TIME_CREDITS_CAPACITY_MILLIS" => {
+                server_time_credits_capacity_millis = Some(value.parse().unwrap())
+            }
+            "SERVER_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS" => {
+                server_time_credits_refill_rate_millis_per_millis = Some(value.parse().unwrap())
+            }
+            "MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUESTS_ON_KEEP_ALIVE_CONNECTION_MILLIS" => {
+                max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis =
+                    Some(value.parse().unwrap())
+            }
+            "MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION" => {
+                max_requests_per_keep_alive_connection = Some(value.parse().unwrap())
+            }
             "IP" => ip = Some(value),
             "PORT" => port = Some(value.parse().unwrap()),
             "DATABASE_URL" => db_url = Some(value),
@@ -190,14 +204,13 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
                     .parse::<usize>()
                     .expect(&format!("Expected usize parsing of {value}  to work out"));
                 max_cookies_count = Some(value)
-            },
-
+            }
 
             // ...
-            unk_key => { 
+            unk_key => {
                 unk_keys_count += 1;
-                println!("Unknown key {unk_key}") 
-        },
+                println!("Unknown key {unk_key}")
+            }
         }
     }
 
@@ -205,13 +218,26 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         panic!("Panicking due to {unk_keys_count} unknown keys.");
     }
 
-    let server_time_credits_capacity  = Duration::from_millis(server_time_credits_capacity_millis.expect("Missing SERVER_TIME_CREDITS_CAPACITY_MILLIS in env file"));
-    let server_time_credits_refill_rate_per_millis  = Duration::from_millis(server_time_credits_refill_rate_millis_per_millis.expect("Missing SERVER_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS in env file"));
+    let server_time_credits_capacity = Duration::from_millis(
+        server_time_credits_capacity_millis
+            .expect("Missing SERVER_TIME_CREDITS_CAPACITY_MILLIS in env file"),
+    );
+    let server_time_credits_refill_rate_per_millis = Duration::from_millis(
+        server_time_credits_refill_rate_millis_per_millis
+            .expect("Missing SERVER_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS in env file"),
+    );
 
-    let per_ip_time_credits_capacity  = Duration::from_millis(per_ip_time_credits_capacity_millis.expect("Missing PER_IP_TIME_CREDITS_CAPACITY_MILLIS in env file"));
-    let per_ip_time_credits_refill_rate_per_millis  = Duration::from_millis(per_ip_time_credits_refill_rate_millis.expect("Missing PER_IP_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS in env file"));
+    let per_ip_time_credits_capacity = Duration::from_millis(
+        per_ip_time_credits_capacity_millis
+            .expect("Missing PER_IP_TIME_CREDITS_CAPACITY_MILLIS in env file"),
+    );
+    let per_ip_time_credits_refill_rate_per_millis = Duration::from_millis(
+        per_ip_time_credits_refill_rate_millis
+            .expect("Missing PER_IP_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS in env file"),
+    );
 
-    let max_requests_per_keep_alive_connection = max_requests_per_keep_alive_connection.expect("Missing MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION in file");
+    let max_requests_per_keep_alive_connection = max_requests_per_keep_alive_connection
+        .expect("Missing MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION in file");
     let max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis = max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis.expect("Missing MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUESTS_ON_KEEP_ALIVE_CONNECTION_MILLIS in file");
     let ip = ip.expect("Missing IP in env file");
     let port = port.expect("Missing PORT in env file");
@@ -277,6 +303,5 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         server_time_credits_refill_rate_per_millis,
         per_ip_time_credits_capacity,
         per_ip_time_credits_refill_rate_per_millis,
-    
     }
 }

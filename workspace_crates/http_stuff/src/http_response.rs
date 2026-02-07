@@ -192,28 +192,14 @@ pub fn response(
     http_response_string.push_str(&format!(
         "Strict-Transport-Security: max-age=999999999; includeSubDomains; preload\r\n"
     ));
-    http_response_string.push_str(&format!(
-        "X-Content-Type-Options: nosniff\r\n"
-    ));
-    http_response_string.push_str(&format!(
-        "X-Frame-Options: DENY\r\n"
-    ));    
+    http_response_string.push_str(&format!("X-Content-Type-Options: nosniff\r\n"));
+    http_response_string.push_str(&format!("X-Frame-Options: DENY\r\n"));
 
-    http_response_string.push_str(&format!(
-        "Cross-Origin-Embedder-Policy: require-corp\r\n"
-    ));
-    http_response_string.push_str(&format!(
-        "Cross-Origin-Resource-Policy: same-origin\r\n"
-    ));
-    http_response_string.push_str(&format!(
-        "Cross-Origin-Opener-Policy: same-origin\r\n"
-    ));
-    http_response_string.push_str(&format!(
-        "Cross-Origin-Opener-Policy: same-origin\r\n"
-    ));
-    http_response_string.push_str(&format!(
-        "Referrer-Policy: no-referrer\r\n"
-    ));
+    http_response_string.push_str(&format!("Cross-Origin-Embedder-Policy: require-corp\r\n"));
+    http_response_string.push_str(&format!("Cross-Origin-Resource-Policy: same-origin\r\n"));
+    http_response_string.push_str(&format!("Cross-Origin-Opener-Policy: same-origin\r\n"));
+    http_response_string.push_str(&format!("Cross-Origin-Opener-Policy: same-origin\r\n"));
+    http_response_string.push_str(&format!("Referrer-Policy: no-referrer\r\n"));
     http_response_string.push_str(&format!(
         "Permissions-Policy:\
 camera=(),\
@@ -228,7 +214,6 @@ bluetooth=()\r\n"
     http_response_string.push_str(&format!(
         "Content-Security-Policy: default-src 'none'; script-src 'nonce-{nonce}' 'strict-dynamic'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; img-src 'self'; style-src 'self'; connect-src 'self'; font-src 'self'; form-action 'self';"
     ));
-
 
     http_response_string.push_str("\r\n\r\n");
 

@@ -15,11 +15,11 @@ pub struct Session {
 impl Session {
     pub fn default_with_id(id: String) -> Self {
         Self {
-        id: id,
-        user_id: String::new(),
-        logged_in: false,
-        previous_page_load_time_ms: 0,
-    }
+            id: id,
+            user_id: String::new(),
+            logged_in: false,
+            previous_page_load_time_ms: 0,
+        }
     }
 }
 

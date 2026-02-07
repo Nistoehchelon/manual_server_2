@@ -1,16 +1,29 @@
-1.
-Generate the (self-signed) cert using the command:
-    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config localhost.config
+So, I am using this to allow connecting to https when I am on localhost (for example, developing) for both site and db.
+Steps are basically: generate certs for site and for db, add them to 
+(On PC Chrome: chrome://certificate-manager/localcerts/usercerts for site and at wherever the db is located in postges.conf for postgers cert). OR to get to the cert menu manually: Chrome Settings -> Search for "certificate" -> Security -> Manage Certificates -> Custom (Installed by you) -> Trusted Certificates Import
 
-    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout postgres.key -out postgres.crt -config postgres.config 
+
+And on Android phone: Somewhere in settings. If when file browsing you see no files in the system picker, you might wanna first enter system picker outside the context of certificate installation (might appear in recent apps or just find it somewhere in app list) and then go to a folder where the cert is located. Then return to settings -> cert installation and the picker should show this folder. At least, this happened on the phone I used. 
+
+
+1.
+Generate the (self-signed) cert for visiting the local website at https://127.0.0.1:{port} using the command:
     
-    the only difference between the localhost and postgres is that v3_req section for localhost has basicConstraints=CA:TRUE (Android requires it, apparently...)
+    ```openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config localhost.config```
+
+
+2. 
+And this one is for postgres, to be used like this: both set the path in postgres config and in app config using database url:
+    
+    ```openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout postgres.key -out postgres.crt -config postgres.config``` 
+    
+The only difference between the localhost and postgres is that v3_req section for localhost has basicConstraints=CA:TRUE (Android requires it, apparently... Because without it, it fails to load the cert)
     while Postgres does not work with it.
     
 
-2. So, that's it... The Rust app will now pull the key and use it when in developing mode (set in the "config" file in root)
+2. So, that's it... The Rust app will now pull the key at localhost.key and localhost.cert and use it when in ENVIRONMENT=local mode (set in the ".env")
 
-3. For convenience (i.e., to avoid having to constantly click "skip warning" about untrusted cert in, say, Chrome), the localhost.crt may be added into, say, Chrome's custom certificate store (Chrome Settings -> Search for "certificate" -> Security -> Manage Certificates -> Custom (Installed by you) -> Trusted Certificates Import)
+
 
 For Postgres:
 
@@ -27,6 +40,7 @@ hostssl all all 127.0.0.1/32 scram-sha-256
 hostssl all all ::1/128      scram-sha-256
 
 4. Restart postgers:
- pg_ctl restart -D "C:\Program Files\PostgreSQL\18\data"
+``` pg_ctl  -D "C:\Program Files\PostgreSQL\18\data" stop
+ pg_ctl  -D "C:\Program Files\PostgreSQL\18\data" start```
 
- 5. Remember to edit the sslrootcert file path if needed: postgres://user:password@localhost/dbname?sslmode=verify-full&sslrootcert=localhost.crt
+ 5. Remember to edit the sslrootcert file path if needed: postgres://user:password@localhost/dbname?sslmode=verify-full&sslrootcert=path/to/repo_folder/local_ssl/localhost.crt

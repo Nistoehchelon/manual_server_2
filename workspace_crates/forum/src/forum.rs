@@ -22,7 +22,7 @@ pub async fn get_count_thread_pages(
     messages_per_page: u64,
 ) -> Result<u64, SomeSortOfError> {
     let msgs_count = get_count_thread_messages(db_pool.clone(), thread_id.clone()).await?;
-    let pages_count = (msgs_count + messages_per_page - 1) / messages_per_page;
+    let pages_count = msgs_count.div_ceil(messages_per_page);
     Ok(pages_count)
 }
 
@@ -39,7 +39,7 @@ pub async fn get_thread_message_versions(
     let offset = (page - 1) * limit;
     let msg_vers = sqlx::query_as!(ForumThreadMessageVersion, "SELECT primary_key, id, user_id, message_id, content, created_at FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY primary_key DESC LIMIT $2 OFFSET $3", message_id, limit, offset).fetch_all(&db_pool).await.map_err(SomeSortOfError::new)?;
 
-    return Ok(msg_vers);
+    Ok(msg_vers)
 }
 
 pub async fn get_count_thread_message_versions(
@@ -57,7 +57,7 @@ pub async fn get_count_thread_message_versions(
         let as_u64 = u64::try_from(c).map_err(SomeSortOfError::new)?;
         return Ok(as_u64);
     }
-    return Err(SomeSortOfError::new("Error getting message versions count"));
+    Err(SomeSortOfError::new("Error getting message versions count"))
 }
 
 pub async fn find_thread_message(
@@ -72,7 +72,7 @@ pub async fn find_thread_message(
     .fetch_optional(&db_pool)
     .await
     .map_err(SomeSortOfError::new)?;
-    return Ok(result);
+    Ok(result)
 }
 
 pub async fn get_count_thread_messages(
@@ -90,7 +90,7 @@ pub async fn get_count_thread_messages(
         let as_u64 = u64::try_from(c).map_err(SomeSortOfError::new)?;
         return Ok(as_u64);
     }
-    return Err(SomeSortOfError::new("Error getting thread messages count"));
+    Err(SomeSortOfError::new("Error getting thread messages count"))
 }
 pub async fn get_forum_threads(
     db_pool: sqlx::PgPool,
@@ -125,7 +125,7 @@ pub async fn get_forum_threads(
             forum_id: "".to_string(),
         });
     }
-    return Ok(threads);
+    Ok(threads)
 }
 
 pub async fn get_subforums(db_pool: sqlx::PgPool, forum_id: String) -> Result<Vec<Forum>, DbError> {
@@ -158,7 +158,7 @@ pub async fn get_subforums(db_pool: sqlx::PgPool, forum_id: String) -> Result<Ve
             parent_id: "".to_string(),
         });
     }
-    return Ok(subforums);
+    Ok(subforums)
 }
 
 pub async fn find_thread(
@@ -173,7 +173,7 @@ pub async fn find_thread(
     .fetch_optional(&db_pool)
     .await
     .map_err(DbError::new)?;
-    return Ok(result);
+    Ok(result)
 }
 
 pub async fn get_thread(
@@ -189,7 +189,7 @@ pub async fn get_thread(
             return Err(ExpectedToGetButFailed::new("..."));
         }
     };
-    return Ok(thread);
+    Ok(thread)
 }
 
 pub async fn get_latest_message_version(
@@ -220,7 +220,7 @@ pub async fn add_message(
     let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), message, message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
 
     tx.commit().await.map_err(DbError::new)?;
-    return Ok(());
+    Ok(())
 }
 pub async fn get_modifications_count(
     db_pool: sqlx::PgPool,
@@ -234,9 +234,9 @@ pub async fn get_modifications_count(
     .await
     .map_err(SomeSortOfError::new)?;
     if let Some(c) = result {
-        return Ok(c);
+        Ok(c)
     } else {
-        return Err(SomeSortOfError::new("Could not get modifications count"));
+        Err(SomeSortOfError::new("Could not get modifications count"))
     }
 }
 pub async fn get_thread_message_ids(
@@ -261,7 +261,7 @@ pub async fn get_thread_message_ids(
     for r in result {
         vec_string.push(r.id.clone());
     }
-    return Ok(vec_string);
+    Ok(vec_string)
 }
 pub async fn create_thread(
     db_pool: sqlx::PgPool,
@@ -270,7 +270,7 @@ pub async fn create_thread(
     user_id: String,
     forum_id: String,
 ) -> Result<String, DbError> {
-    return storage_specific_create_thread(db_pool, name, content, user_id, forum_id).await;
+    storage_specific_create_thread(db_pool, name, content, user_id, forum_id).await
 }
 
 async fn storage_specific_create_thread(
@@ -289,7 +289,7 @@ async fn storage_specific_create_thread(
     let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), content, message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
 
     tx.commit().await.map_err(DbError::new)?;
-    return Ok(thread_id_result.id.clone());
+    Ok(thread_id_result.id.clone())
 }
 
 async fn storage_specific_get_forum_by_id(
@@ -315,5 +315,5 @@ async fn storage_specific_get_forum_by_id(
             return Err(DbError::new(e));
         }
     };
-    return Ok(forum);
+    Ok(forum)
 }

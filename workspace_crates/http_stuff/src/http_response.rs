@@ -147,7 +147,7 @@ pub fn response(
 ) -> Result<HttpResponse, HttpResponseError> {
     let mut http_response_string: String = String::new();
     http_response_string.push_str("HTTP/1.1");
-    http_response_string.push_str(" ");
+    http_response_string.push(' ');
     let status_code_string = status_code.to_string();
     http_response_string.push_str(&status_code_string);
     http_response_string.push_str("\r\n");
@@ -156,15 +156,15 @@ pub fn response(
         for sc in set_cookie_headers.iter() {
             let set_cookie_headers_string = format!(
                 "Set-Cookie: {}={}; Path={}; Secure; HttpOnly; SameSite=Strict\r\n",
-                sc.key.to_string(),
-                sc.value.to_string(),
-                sc.path.to_string()
+                sc.key,
+                sc.value,
+                sc.path
             );
             http_response_string.push_str(&set_cookie_headers_string);
         }
     }
 
-    http_response_string.push_str(&format!("Connection: {}\r\n", connection.to_string()));
+    http_response_string.push_str(&format!("Connection: {}\r\n", connection));
 
     let content_type_string = content_type.to_string();
     http_response_string.push_str(&format!("Content-Type: {content_type_string}"));
@@ -189,26 +189,22 @@ pub fn response(
 
     http_response_string.push_str(&format!("Content-Length: {body_bytes_length}\r\n"));
 
-    http_response_string.push_str(&format!(
-        "Strict-Transport-Security: max-age=999999999; includeSubDomains; preload\r\n"
-    ));
-    http_response_string.push_str(&format!("X-Content-Type-Options: nosniff\r\n"));
-    http_response_string.push_str(&format!("X-Frame-Options: DENY\r\n"));
+    http_response_string.push_str(&"Strict-Transport-Security: max-age=999999999; includeSubDomains; preload\r\n".to_string());
+    http_response_string.push_str(&"X-Content-Type-Options: nosniff\r\n".to_string());
+    http_response_string.push_str(&"X-Frame-Options: DENY\r\n".to_string());
 
-    http_response_string.push_str(&format!("Cross-Origin-Embedder-Policy: require-corp\r\n"));
-    http_response_string.push_str(&format!("Cross-Origin-Resource-Policy: same-origin\r\n"));
-    http_response_string.push_str(&format!("Cross-Origin-Opener-Policy: same-origin\r\n"));
-    http_response_string.push_str(&format!("Cross-Origin-Opener-Policy: same-origin\r\n"));
-    http_response_string.push_str(&format!("Referrer-Policy: no-referrer\r\n"));
-    http_response_string.push_str(&format!(
-        "Permissions-Policy:\
+    http_response_string.push_str(&"Cross-Origin-Embedder-Policy: require-corp\r\n".to_string());
+    http_response_string.push_str(&"Cross-Origin-Resource-Policy: same-origin\r\n".to_string());
+    http_response_string.push_str(&"Cross-Origin-Opener-Policy: same-origin\r\n".to_string());
+    http_response_string.push_str(&"Cross-Origin-Opener-Policy: same-origin\r\n".to_string());
+    http_response_string.push_str(&"Referrer-Policy: no-referrer\r\n".to_string());
+    http_response_string.push_str(&"Permissions-Policy:\
 camera=(),\
 microphone=(),\
 geolocation=(),\
 payment=(),\
 usb=(),\
-bluetooth=()\r\n"
-    ));
+bluetooth=()\r\n".to_string());
 
     let nonce = "test_make_this_random_later";
     http_response_string.push_str(&format!(
@@ -218,7 +214,7 @@ bluetooth=()\r\n"
     http_response_string.push_str("\r\n\r\n");
 
     if !http_response_string.is_ascii() {
-        let err = format!("http_response_string contains non-ascii bytes, not allowed");
+        let err = "http_response_string contains non-ascii bytes, not allowed".to_string();
         dbg!(&err);
         return Err(HttpResponseError::new(err));
     }
@@ -229,14 +225,14 @@ bluetooth=()\r\n"
         http_response_bytes.extend_from_slice(&body_bytes);
     }
 
-    return Ok(http_response_bytes);
+    Ok(http_response_bytes)
 }
 
 pub fn redirect_to(page: String) -> ResponseData {
     ResponseData {
         status_code: StatusCode::Code302Found,
         content_type: ContentType::TextHtml,
-        location: Some(format!("{page}")),
+        location: Some(page.to_string()),
         charset: None,
         body: None,
         set_cookie_headers: None,
@@ -254,7 +250,7 @@ pub fn internal_server_error_500() -> ResponseData {
         location: None,
         connection: KeepAliveOrClose::KeepAlive,
     };
-    return resp;
+    resp
 }
 pub fn bad_request_400() -> ResponseData {
     let resp = ResponseData {
@@ -266,7 +262,7 @@ pub fn bad_request_400() -> ResponseData {
         location: None,
         connection: KeepAliveOrClose::KeepAlive,
     };
-    return resp;
+    resp
 }
 
 /// I mainly use this at main.rs when if an error occurs where is nothing else to be done and the
@@ -288,5 +284,5 @@ Content-Length: {body_bytes_length}\r\n\r\n
     );
     let mut resp = resp.into_bytes();
     resp.extend_from_slice(&body_bytes);
-    return resp;
+    resp
 }

@@ -30,7 +30,7 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
     common_stream_timeout_duration: Duration,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
     let ParsedHeaderStream { headers } =
-        parse_headers_from_stream(reader, max_line_len, common_stream_timeout_duration.clone())
+        parse_headers_from_stream(reader, max_line_len, common_stream_timeout_duration)
             .await?;
     let headers_string = String::from_utf8_lossy(&headers).to_string();
     let headers_count = count_occurences_of_rn(&headers_string);
@@ -110,7 +110,7 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
 
     let content_length = match headers
         .get("content-length")
-        .unwrap_or(&"0".to_string())
+        .unwrap_or("0")
         .parse::<usize>()
     {
         Err(e) => {
@@ -122,8 +122,8 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
     if content_length > MAX_BODY_BYTES {
         dbg!(content_length, "exceeds", MAX_BODY_BYTES);
         return Err(HttpRequestParsingError::ContentTooLarge);
-    } else if method == "POST" {
-        if content_length > 0 {
+    } else if method == "POST"
+        && content_length > 0 {
             let mut body_bytes_exact = vec![0; content_length];
             match timeout(
                 common_stream_timeout_duration,
@@ -142,12 +142,11 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
             }
             body.extend(body_bytes_exact);
         }
-    }
 
     Ok(HttpRequestData {
-        method: method,
+        method,
         path,
-        path_and_query: path_and_query,
+        path_and_query,
         query,
         body_bytes: body,
         cookies,
@@ -239,9 +238,9 @@ async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
             break;
         }
     }
-    return Ok(ParsedHeaderStream {
+    Ok(ParsedHeaderStream {
         headers: header_bytes,
-    });
+    })
 }
 
 /// Holds all the parsed information from an HTTP request.
@@ -309,7 +308,7 @@ pub fn parse_body_into_string_form_input_params(
             Some((k, v)) => (k, v),
             None => {
                 dbg!("Could not split post param");
-                return Err(format!("Could not split by = in post"));
+                return Err("Could not split by = in post".to_string());
             }
         };
 
@@ -329,7 +328,7 @@ pub fn parse_body_into_string_form_input_params(
 
         params.insert(key.to_string(), value.to_string());
     }
-    return Ok(params);
+    Ok(params)
 }
 
 fn parse_path_and_query(path_with_query: String) -> (String, Query) {

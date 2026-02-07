@@ -91,7 +91,7 @@ async fn main() -> std::io::Result<()> {
         Duration::from_millis(server_config.common_stream_timeout_millis.clone());
 
     // redirect from http  to https
-    // but only if the port is 443, since if it isn't then there is no point
+    // but only if the main port is 443, since if it isn't then there is no point, I think? Not sure
     if server_config.port == 443 {
         let server_config_for_task = server_config.clone();
         let global_bucket = global_bucket.clone();

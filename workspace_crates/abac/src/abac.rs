@@ -102,17 +102,14 @@ pub async fn can_create_thread(
     .fetch_optional(&db_pool)
     .await
     {
-        Ok(opt) => match opt {
-            Some(_) => true,
-            None => false,
-        },
+        Ok(opt) => opt.is_some(),
         Err(e) => return Err(SomeSortOfError::new(e)),
     };
     if is_superuser {
         return Ok(true);
     }
 
-    let b = match sqlx::query!(
+    let b = sqlx::query!(
         "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
         "user",
         user_id,
@@ -120,10 +117,6 @@ pub async fn can_create_thread(
     )
     .fetch_optional(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?
-    {
-        Some(_) => true,
-        None => false,
-    };
-    return Ok(b);
+    .map_err(SomeSortOfError::new)?.is_some();
+    Ok(b)
 }

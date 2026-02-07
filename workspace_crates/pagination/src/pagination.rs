@@ -16,50 +16,50 @@ pub struct Pagination {
 
 impl Pagination {
     pub fn get_pagination_elements(&self) -> Vec<PaginationElement> {
-        let records_count = self.records_count.clone();
-        let records_per_page = self.records_per_page.clone();
-        let current_page = self.current_page.clone();
+        let records_count = self.records_count;
+        let records_per_page = self.records_per_page;
+        let current_page = self.current_page;
         let current_url = self.current_url.clone();
         let page_param = self.page_param.clone();
 
-        let pages_count = (records_count + records_per_page - 1) / records_per_page;
+        let pages_count = records_count.div_ceil(records_per_page);
         let mut pages: Vec<PaginationElement> = vec![];
 
-        if current_page - 1 >= 1 {
+        if current_page > 1 {
             let mut prev_page_url = current_url.clone();
             prev_page_url
                 .query
                 .insert(page_param.clone(), format!("{}", current_page - 1));
             pages.push(PaginationElement {
                 linked: true,
-                link_url: format!("{}", prev_page_url.to_string()),
-                name: format!("<-"),
+                link_url: prev_page_url.to_string(),
+                name: "<-".to_string(),
             });
         }
 
         pages.push(PaginationElement {
             linked: false,
-            link_url: format!(""),
+            link_url: String::new(),
             name: format!("{}", current_page),
         });
 
-        if current_page + 1 <= pages_count {
+        if current_page < pages_count {
             let mut next_page_url = current_url.clone();
             next_page_url
                 .query
                 .insert(page_param.clone(), format!("{}", current_page + 1));
             pages.push(PaginationElement {
                 linked: true,
-                link_url: format!("{}", next_page_url.to_string()),
-                name: format!("->"),
+                link_url: next_page_url.to_string(),
+                name: "->".to_string(),
             });
         }
 
         if current_page < pages_count {
             pages.push(PaginationElement {
                 linked: false,
-                link_url: format!(""),
-                name: format!(".."),
+                link_url: String::new(),
+                name: "..".to_string(),
             });
             let mut last_page_url = current_url.clone();
             last_page_url
@@ -67,7 +67,7 @@ impl Pagination {
                 .insert(page_param.clone(), format!("{}", pages_count));
             pages.push(PaginationElement {
                 linked: true,
-                link_url: format!("{}", last_page_url.to_string()),
+                link_url: last_page_url.to_string(),
                 name: format!("{}", pages_count),
             });
         }

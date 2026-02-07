@@ -65,3 +65,19 @@ Then setup db and user:
 5. Ah, and the local (for dev) self-signed cert generation/TLS intrusctions is inside local_ssl/README.md
 6. This seems to be about it
 
+Regarding pgsql_backups:
+I have two scripts there: push.sh and pull.sh
+When I want to backup contents of db I use (--full backups data and --schema only the empty tables. Both can be used, they are stored separately):
+```
+bash pull.sh --full
+bash pull.sh --schema
+```
+
+And when I want to import I do (again, --full or --schema depending on what I want):
+```
+bash push.sh --full
+bash push.sh --schema
+```
+
+TODO?: git-filter-repo out and add to .gitignore the public_full_*.sql files because I am not sure if I really should store them here. It makes sense to store schema and maybe I will add a special script to pull/push tables that have to be initialized if I will have them. Currently I do not have a need for initializing db with data, so schema imports work fine unless I feel too lazy to re-sign up test accounts and re-make test forum threads, etc.
+

@@ -12,10 +12,10 @@ pub async fn get_user_by_user_id(
         .map_err(ExpectedToGetButFailed::new)?
     {
         Some(u) => {
-            return Ok(u);
+            Ok(u)
         }
         None => {
-            return Err(ExpectedToGetButFailed::new(""));
+            Err(ExpectedToGetButFailed::new(""))
         }
     }
 }
@@ -24,7 +24,7 @@ pub async fn find_user_by_user_id(
     db_pool: sqlx::PgPool,
 ) -> Result<Option<User>, DbError> {
     let user_opt = storage_specific_get_user_by_user_id(user_id, db_pool).await?;
-    return Ok(user_opt);
+    Ok(user_opt)
 }
 
 pub struct CheckingError {
@@ -36,9 +36,7 @@ pub async fn try_to_create_new_user(
     password: String,
 ) -> Result<Result<User, PublicError>, SomeSortOfError> {
     if username.clone().trim().is_empty() || password.clone().trim().is_empty() {
-        return Ok(Err(PublicError::new(format!(
-            "Please enter username and password or the world will be destroyed!"
-        ))));
+        return Ok(Err(PublicError::new("Please enter username and password or the world will be destroyed!".to_string())));
     }
 
     let username_available = is_username_available(username.clone(), db_pool.clone())
@@ -46,9 +44,7 @@ pub async fn try_to_create_new_user(
         .map_err(SomeSortOfError::new)?;
 
     if !username_available {
-        return Ok(Err(PublicError::new(format!(
-            "The username is... taken alredy!!! 😈"
-        ))));
+        return Ok(Err(PublicError::new("The username is... taken alredy!!! 😈".to_string())));
     }
 
     let hash = match password_hashing::hash_password(password) {
@@ -62,7 +58,7 @@ pub async fn try_to_create_new_user(
         id: generate_user_id(),
         username,
         password_hash: hash,
-        bio: format!("Default bio"),
+        bio: "Default bio".to_string(),
     };
     let user = storage_specific_create_new_user(db_pool, new_user)
         .await
@@ -111,9 +107,9 @@ pub async fn get_by_username(
             return Ok(Some(user_row));
         }
         None => {
-            return Ok(None);
+            Ok(None)
         }
-    };
+    }
 }
 
 pub async fn find_by_username_and_password(
@@ -128,9 +124,8 @@ pub async fn find_by_username_and_password(
         Some(u) => u,
         None => return Ok(None),
     };
-    if password_hashing::verify_password(password.clone(), user.password_hash.clone())
+    if !password_hashing::verify_password(password.clone(), user.password_hash.clone())
         .map_err(SomeSortOfError::new)?
-        != true
     {
         dbg!("Failed password hash verification");
         dbg!(password.clone());
@@ -193,10 +188,10 @@ async fn storage_specific_add_user(
     .await
     {
         Ok(_) => {
-            return Ok(DbSuccess::new("User created"));
+            Ok(DbSuccess::new("User created"))
         }
         Err(e) => {
-            return Err(DbError::new(e));
+            Err(DbError::new(e))
         }
     }
 }
@@ -214,10 +209,10 @@ async fn storage_specific_get_user_by_user_id(
     .await
     {
         Ok(opt) => {
-            return Ok(opt);
+            Ok(opt)
         }
         Err(e) => {
-            return Err(DbError::new(e));
+            Err(DbError::new(e))
         }
     }
 }

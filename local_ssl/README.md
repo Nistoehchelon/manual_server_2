@@ -34,8 +34,8 @@ For Postgres:
 1. Edit file C:\Program Files\PostgreSQL\18\data\postgresql.conf:
 	```text
  	ssl = on
-	ssl_cert_file = 'path/to/repo/local_ssl/localhost.crt'
-	ssl_key_file = 'path/to/repo/local_ssl/localhost.key'
+	ssl_cert_file = 'path/to/repo/local_ssl/postgres.crt'
+	ssl_key_file = 'path/to/repo/local_ssl/postgres.key'
 	ssl_min_protocol_version = 'TLSv1.2'
  	```
 

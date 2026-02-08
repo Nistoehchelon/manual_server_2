@@ -46,19 +46,45 @@ I guess for convenience I will just put the commands here? But they might change
 I guess I will also put the commands here...
 From https://www.postgresql.org/download/linux/ubuntu/:
 
-1.1. sudo apt install -y postgresql-common
-1.2. sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+1.1. 
+```bash
+sudo apt install -y postgresql-common
+```
+
+1.2. 
+```bash
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+```
 
 ^ The above 1 and 2 pull postgres's up to date repo. Typically, a fresh Ubuntu VPS will have an outdated Postgres  like 16 (current latest is 18, at the moment I write this)
 Then, of course, the latest postgres is available (replace 18 with needed version):
-1.3. sudo apt install postgresql-18
+1.3. 
+```bash
+sudo apt install postgresql-18
+```
 
 Then setup db and user:
-1.4. sudo -u postgres psql <- login as postgres user
-1.5. CREATE USER user123 WITH PASSWORD 'password123';
-1.6. CREATE DATABASE database123 OWNER user123;
-1.7. GPT suggested this, but probably not necessary: ALTER ROLE user123 WITH LOGIN;
-1.8. test it works by: psql -U user123 -d database123 -h localhost -W (will ask for password123)
+1.4. 
+```bash
+sudo -u postgres psql <- login as postgres user
+```
+1.5. 
+```bash
+CREATE USER user123 WITH PASSWORD 'password123';
+```
+1.6. 
+```bash
+CREATE DATABASE database123 OWNER user123;
+```
+1.7. GPT suggested this, but probably not necessary: 
+```bash
+ALTER ROLE user123 WITH LOGIN;
+```
+1.8. test it works by: 
+```bash
+psql -U user123 -d database123 -h localhost -W
+```
+(will ask for password123)
 
 
 
@@ -71,16 +97,18 @@ Then setup db and user:
 Regarding pgsql_backups:
 I have two scripts there: push.sh and pull.sh
 When I want to backup contents of db I use (--full backups data and --schema only the empty tables. Both can be used, they are stored separately):
-```
+```bash
 bash pull.sh --full
+```
+```bash
 bash pull.sh --schema
 ```
 
 And when I want to import I do (again, --full or --schema depending on what I want):
-```
+```bash
 bash push.sh --full
+```
+```bash
 bash push.sh --schema
 ```
-
-TODO?: git-filter-repo out and add to .gitignore the public_full_*.sql files because I am not sure if I really should store them here. It makes sense to store schema and maybe I will add a special script to pull/push tables that have to be initialized if I will have them. Currently I do not have a need for initializing db with data, so schema imports work fine unless I feel too lazy to re-sign up test accounts and re-make test forum threads, etc.
 

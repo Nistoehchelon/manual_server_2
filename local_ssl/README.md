@@ -34,8 +34,8 @@ For Postgres:
 1. Edit file C:\Program Files\PostgreSQL\18\data\postgresql.conf:
 	```text
  	ssl = on
-	ssl_cert_file = 'C:/Users/User/rust/manual_server_with_workspaces/local_ssl/localhost.crt'
-	ssl_key_file = 'C:/Users/User/rust/manual_server_with_workspaces/local_ssl/localhost.key'
+	ssl_cert_file = 'path/to/repo/local_ssl/localhost.crt'
+	ssl_key_file = 'path/to/repo/local_ssl/localhost.key'
 	ssl_min_protocol_version = 'TLSv1.2'
  	```
 
@@ -45,8 +45,8 @@ For Postgres:
 
 3. Edit C:\Program Files\PostgreSQL\18\data\pg_hba.conf:
 ```text
-hostssl all all 127.0.0.1/32 scram-sha-256
-hostssl all all ::1/128      scram-sha-256
+hostssl all 		all 		127.0.0.1/32 		scram-sha-256
+hostssl all 		all 		::1/128      		scram-sha-256
 ```
 
 4. Restart postgers:

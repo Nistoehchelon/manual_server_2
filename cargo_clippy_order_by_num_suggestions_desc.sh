@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+
+# I used this when I was running cargo clippy --fix on 258 warnings. 
+# I suppose if cargo clippy is used in the same way as check, this script
+# is not all that useful.
+
 awk '
 /cargo clippy --fix/ {
     if (match($0, /apply ([0-9]+) suggestions?/, m) &&

@@ -93,19 +93,7 @@ psql -U user123 -d database123 -h localhost -W
 How I created DB on Windows:
 
 ```bash
-initdb \
-  --encoding=UTF8 \
-  --locale-provider=icu \
-  --icu-locale=und-x-icu \
-  --lc-collate='und-x-icu' \
-  --lc-ctype='und-x-icu' \
-  --lc-messages='und-x-icu' \
-  --lc-monetary='und-x-icu' \
-  --lc-numeric='und-x-icu' \
-  --lc-time='und-x-icu' \
-  --data-checksums \
-  -D pgdb/
-
+initdb --encoding=UTF8 --locale-provider=icu --icu-locale=und-x-icu  --lc-collate='und-x-icu' --lc-ctype='und-x-icu' --lc-messages='und-x-icu' --lc-monetary='und-x-icu' --lc-numeric='und-x-icu' --lc-time='und-x-icu' --data-checksums -D pgdb/
 ```
 This has full-text search warning about und-x-icu not having fts something so it sets it to simple  mode. Available mode are simple, english, french, etc. I guess it does not matter?
 

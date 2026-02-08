@@ -9,7 +9,9 @@ And on Android phone: Somewhere in settings. If when file browsing you see no fi
 1.
 Generate the (self-signed) cert for visiting the local website at https://127.0.0.1:{port} using the command:
 
- ```openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config localhost.config```
+ ```bash
+ openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config localhost.config
+```
 
 
 2. 

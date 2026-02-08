@@ -17,7 +17,9 @@ Generate the (self-signed) cert for visiting the local website at https://127.0.
 2. 
 And this one is for postgres, to be used like this: both set the path in postgres config and in app config using database url:
 
-```openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout postgres.key -out postgres.crt -config postgres.config``` 
+```bash
+openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout postgres.key -out postgres.crt -config postgres.config
+``` 
     
 The only difference between the localhost and postgres is that v3_req section for localhost has basicConstraints=CA:TRUE (Android requires it, apparently... Because without it, it fails to load the cert)
     while Postgres does not work with it.
@@ -30,19 +32,31 @@ The only difference between the localhost and postgres is that v3_req section fo
 For Postgres:
 
 1. Edit file C:\Program Files\PostgreSQL\18\data\postgresql.conf:
-	```ssl = on```
-	```ssl_cert_file = 'C:/Users/User/rust/manual_server_with_workspaces/local_ssl/localhost.crt'```
-	```ssl_key_file = 'C:/Users/User/rust/manual_server_with_workspaces/local_ssl/localhost.key'```
-	```ssl_min_protocol_version = 'TLSv1.2'```
+	```text
+ 	ssl = on
+	ssl_cert_file = 'C:/Users/User/rust/manual_server_with_workspaces/local_ssl/localhost.crt'
+	ssl_key_file = 'C:/Users/User/rust/manual_server_with_workspaces/local_ssl/localhost.key'
+	ssl_min_protocol_version = 'TLSv1.2'
+ 	```
 
-2. chmod 600 localhost.key
+2. ```bash
+   chmod 600 localhost.key
+   ```
 
 3. Edit C:\Program Files\PostgreSQL\18\data\pg_hba.conf:
-```hostssl all all 127.0.0.1/32 scram-sha-256```
-```hostssl all all ::1/128      scram-sha-256```
+```text
+hostssl all all 127.0.0.1/32 scram-sha-256
+hostssl all all ::1/128      scram-sha-256
+```
 
 4. Restart postgers:
-``` pg_ctl  -D "C:\Program Files\PostgreSQL\18\data" stop```
-``` pg_ctl  -D "C:\Program Files\PostgreSQL\18\data" start```
+```bash
+ pg_ctl  -D "path/to/pgdb" stop
+```
+```bash
+ pg_ctl  -D "path/to/pgdb" start
+```
 
- 5. Remember to edit the sslrootcert file path if needed: postgres://user:password@localhost/dbname?sslmode=verify-full&sslrootcert=path/to/repo_folder/local_ssl/localhost.crt
+ 6. Remember to edit the sslrootcert file path if needed:
+```text
+postgres://user:password@localhost/dbname?sslmode=verify-full&sslrootcert=path/to/repo_folder/local_ssl/localhost.crt```

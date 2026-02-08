@@ -59,4 +59,5 @@ hostssl all 		all 		::1/128      		scram-sha-256
 
  6. Remember to edit the sslrootcert file path if needed:
 ```text
-postgres://user:password@localhost/dbname?sslmode=verify-full&sslrootcert=path/to/repo_folder/local_ssl/localhost.crt```
+postgres://user:password@localhost/dbname?sslmode=verify-full&sslrootcert=path/to/repo_folder/local_ssl/localhost.crt
+```

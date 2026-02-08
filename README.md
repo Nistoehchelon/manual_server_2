@@ -40,10 +40,13 @@ After reinstalling the whole app (without modifications) I noticed none of the 4
 
 How I usually set this up:
 1. Install PostGres:
-On Windows I used the GUI installer.
+On Windows I download zip and copy/unpack it where I want.
 On Linux (say, on VPS) I followed the typical PostGres set up from the website and then some commands to create the typical db name and user with password (I usually name them database123, user123, password123).
 I guess for convenience I will just put the commands here? But they might change... Maybe it is fine to just Google the postgres site like I usually do...
-I guess I will also put the commands here...
+Note: There are discrepancies between linux vps and windows steps.
+Next time I setup it on linux, I will update the steps... Because windows steps are more up to date in   terms of icu set up
+On Linux:
+
 From https://www.postgresql.org/download/linux/ubuntu/:
 
 1.1. 
@@ -56,7 +59,7 @@ sudo apt install -y postgresql-common
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 ```
 
-^ The above 1 and 2 pull postgres's up to date repo. Typically, a fresh Ubuntu VPS will have an outdated Postgres  like 16 (current latest is 18, at the moment I write this)
+^ The above 1.1 and 1.2 pull postgres's up to date repo. Typically, a fresh Ubuntu VPS will have an outdated Postgres  like 16 (current latest is 18, at the moment I write this)
 Then, of course, the latest postgres is available (replace 18 with needed version):
 1.3. 
 ```bash
@@ -69,15 +72,15 @@ Then setup db and user:
 sudo -u postgres psql <- login as postgres user
 ```
 1.5. 
-```bash
+```sql
 CREATE USER user123 WITH PASSWORD 'password123';
 ```
 1.6. 
-```bash
+```sql
 CREATE DATABASE database123 OWNER user123;
 ```
 1.7. GPT suggested this, but probably not necessary: 
-```bash
+```sql
 ALTER ROLE user123 WITH LOGIN;
 ```
 1.8. test it works by: 
@@ -87,12 +90,51 @@ psql -U user123 -d database123 -h localhost -W
 (will ask for password123)
 
 
+How I created DB on Windows:
 
-2. Configure .env file based on .env_example. On fresh set up I can copy the example and modify as needed.
-3. I guess pg_backups/.pgpass if needed, but I usually use default password123 etc for dev and pg pass is only for dev, right? I dunno, by the way, how production import/export would look like.
-4. Use pg_backups's pull and push scripts...
-5. Ah, and the local (for dev) self-signed cert generation/TLS intrusctions is inside local_ssl/README.md
-6. This seems to be about it
+```bash
+initdb \
+  --encoding=UTF8 \
+  --locale-provider=icu \
+  --icu-locale=und-x-icu \
+  --lc-collate='und-x-icu' \
+  --lc-ctype='und-x-icu' \
+  --lc-messages='und-x-icu' \
+  --lc-monetary='und-x-icu' \
+  --lc-numeric='und-x-icu' \
+  --lc-time='und-x-icu' \
+  --data-checksums \
+  -D pgdb/
+
+```
+This has full-text search warning about und-x-icu not having fts something so it sets it to simple  mode. Available mode are simple, english, french, etc. I guess it does not matter?
+
+```bash
+createuser --superuser --pwprompt user123
+```
+Enter password123
+
+```bash
+psql postgres
+```
+
+```sql
+CREATE DATABASE database123
+    WITH 
+    OWNER = user123
+    TEMPLATE = template0
+    ENCODING = 'UTF8'
+    LC_COLLATE = 'und-x-icu'
+    LC_CTYPE = 'und-x-icu';
+```
+
+
+
+1. Configure .env file based on .env_example. On fresh set up I can copy the example and modify as needed.
+2. I guess pg_backups/.pgpass if needed, but I usually use default password123 etc for dev and pg pass is only for dev, right? I dunno, by the way, how production import/export would look like.
+3. Use pg_backups's pull and push scripts...
+4. Ah, and the local (for dev) self-signed cert generation/TLS intrusctions is inside local_ssl/README.md
+5. This seems to be about it
 
 Regarding pgsql_backups:
 I have two scripts there: push.sh and pull.sh

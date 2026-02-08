@@ -110,16 +110,9 @@ createuser --superuser --pwprompt user123
 ```
 Enter password123
 
-```bash
-psql postgres
-```
 
-```sql
-CREATE DATABASE database123
-    WITH 
-    OWNER = user123
-    TEMPLATE = template0
-    ENCODING = 'UTF8'
+```bash
+createdb database123 --owner=user123 --template=template0 --encoding=UTF8
 ```
 
 

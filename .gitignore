@@ -11,5 +11,5 @@
 
 
 # do not include sql data backups, maybe? I suppose I can store them elsewhere... rather than in repo.
-!pgsql_backups/backups/*_full_*.sql
+pgsql_backups/backups/*_full_*.sql
 

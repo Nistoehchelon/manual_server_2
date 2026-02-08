@@ -95,10 +95,15 @@ How I created DB on Windows:
 ```bash
 initdb --encoding=UTF8 --locale-provider=icu --icu-locale=und-x-icu  --lc-collate='und-x-icu' --lc-ctype='und-x-icu' --lc-messages='und-x-icu' --lc-monetary='und-x-icu' --lc-numeric='und-x-icu' --lc-time='und-x-icu' --data-checksums -D pgdb/
 ```
-
-On Termux the above command does not work unless I remove all the --lc_* options and set --icu_locale to root. 
-
 This has full-text search warning about und-x-icu not having fts something so it sets it to simple  mode. Available mode are simple, english, french, etc. I guess it does not matter?
+
+
+On Termux:
+
+```bash
+ibitdb --encoding=UTF8 --locale-provider=icu --icu-locale='und-x-icu --data-checksums -D pgdb/'
+```
+
 
 ```bash
 createuser --superuser --pwprompt user123

@@ -1,6 +1,10 @@
 So, I am using this to allow connecting to https when I am on localhost (for example, developing) for both site and db.
 Steps are basically: generate certs for site and for db, add them to 
-(On PC Chrome: chrome://certificate-manager/localcerts/usercerts for site and at wherever the db is located in postges.conf for postgers cert). OR to get to the cert menu manually: Chrome Settings -> Search for "certificate" -> Security -> Manage Certificates -> Custom (Installed by you) -> Trusted Certificates Import
+(On PC Chrome: 
+```text 
+chrome://certificate-manager/localcerts/usercerts
+```
+for site and at wherever the db is located in postges.conf for postgers cert). OR to get to the cert menu manually: Chrome Settings -> Search for "certificate" -> Security -> Manage Certificates -> Custom (Installed by you) -> Trusted Certificates Import
 
 
 And on Android phone: Somewhere in settings. If when file browsing you see no files in the system picker, you might wanna first enter system picker outside the context of certificate installation (might appear in recent apps or just find it somewhere in app list) and then go to a folder where the cert is located. Then return to settings -> cert installation and the picker should show this folder. At least, this happened on the phone I used. 

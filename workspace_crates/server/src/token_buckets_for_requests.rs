@@ -1,3 +1,4 @@
+use config_reader::Config;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -12,6 +13,21 @@ pub struct TokenAndTimeBucketsAndLastSeen {
     pub token_bucket: TokenBucket,
     pub time_bucket: TimeBucket,
     pub last_seen: Instant,
+}
+impl TokenAndTimeBucketsAndLastSeen {
+    pub fn default_with_settings(server_config: Config) -> Self {
+        Self {
+            token_bucket: TokenBucket::new(
+                server_config.per_ip_token_bucket_capacity,
+                server_config.per_ip_token_bucket_refill_rate_per_millis,
+            ),
+            time_bucket: TimeBucket::new(
+                server_config.per_ip_time_credits_capacity,
+                server_config.per_ip_time_credits_refill_rate_per_millis,
+            ),
+            last_seen: Instant::now(),
+        }
+    }
 }
 
 pub type GlobalBuckets = Arc<Mutex<TokenAndTimeBuckets>>;

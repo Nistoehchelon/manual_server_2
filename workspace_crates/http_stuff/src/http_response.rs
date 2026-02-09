@@ -15,7 +15,7 @@ impl HttpResponseError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum StatusCode {
     Code200Ok,
     Code302Found,
@@ -23,6 +23,7 @@ pub enum StatusCode {
     Code500InternalServerError,
     Code503ServiceUnavailable,
     Code400BadRequest,
+    Code408RequestTimeout,
     Code429TooManyRequests,
     Code413ContentTooLarge,
     Code414UriTooLong,
@@ -33,29 +34,30 @@ pub enum StatusCode {
 impl Display for StatusCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let c = match self {
-            Self::Code500InternalServerError => "500 Internal Server Error",
-            Self::Code503ServiceUnavailable => "503 Service Unavailable",
             Self::Code200Ok => "200 OK",
             Self::Code302Found => "302 Found",
             Self::Code303SeeOther => "303 See Other",
-            Self::Code413ContentTooLarge => "413 Content Too Large",
             Self::Code400BadRequest => "400 Bad Request",
-            Self::Code429TooManyRequests => "429 Too Many Requests",
+            Self::Code408RequestTimeout => "408 Request Timeout",
+            Self::Code413ContentTooLarge => "413 Content Too Large",
             Self::Code414UriTooLong => "414 Uri Too Long",
-            Self::Code505HttpVersionNotSupported => "505 HTTP Version Not Supported",
+            Self::Code429TooManyRequests => "429 Too Many Requests",
             Self::Code431RequestHeaderFieldsTooLarge => "431 Request Header Fields Too Large",
+            Self::Code500InternalServerError => "500 Internal Server Error",
+            Self::Code503ServiceUnavailable => "503 Service Unavailable",
+            Self::Code505HttpVersionNotSupported => "505 HTTP Version Not Supported",
         };
         write!(f, "{}", c)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SetCookieHeader {
     pub key: String,
     pub value: String,
     pub path: String,
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ContentType {
     TextHtml,
     TextCss,
@@ -74,7 +76,7 @@ impl Display for ContentType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Charset {
     Utf8,
 }
@@ -88,7 +90,7 @@ impl Display for Charset {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 
 pub enum KeepAliveOrClose {
     KeepAlive,
@@ -103,13 +105,17 @@ impl Display for KeepAliveOrClose {
         }
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ResponseData {
+    pub body: Option<Vec<u8>>,
+    pub headers: Headers,
+}
+#[derive(Debug, Clone)]
+pub struct Headers {
     pub status_code: StatusCode,
     pub content_type: ContentType,
     pub charset: Option<Charset>,
-    pub body: Option<Vec<u8>>,
-    pub set_cookie_headers: Option<Vec<SetCookieHeader>>,
+    pub set_cookie: Option<Vec<SetCookieHeader>>,
     pub location: Option<String>,
     pub connection: KeepAliveOrClose,
 }
@@ -124,25 +130,30 @@ pub fn ok_html(content: String) -> ResponseData {
 
 pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>) -> ResponseData {
     ResponseData {
-        status_code: StatusCode::Code200Ok,
-        content_type,
         body: Some(content),
-        charset,
-        set_cookie_headers: None,
-        location: None,
-        connection: KeepAliveOrClose::KeepAlive,
+        headers: Headers {
+            status_code: StatusCode::Code200Ok,
+            content_type,
+            charset,
+            set_cookie: None,
+            location: None,
+            connection: KeepAliveOrClose::KeepAlive,
+        },
     }
 }
 
 pub fn response(
     ResponseData {
-        status_code,
-        set_cookie_headers,
         body,
-        content_type,
-        charset,
-        location,
-        connection,
+        headers:
+            Headers {
+                status_code,
+                set_cookie,
+                content_type,
+                charset,
+                location,
+                connection,
+            },
     }: ResponseData,
 ) -> Result<HttpResponse, HttpResponseError> {
     let mut http_response_string: String = String::new();
@@ -152,13 +163,13 @@ pub fn response(
     http_response_string.push_str(&status_code_string);
     http_response_string.push_str("\r\n");
 
-    if let Some(set_cookie_headers) = set_cookie_headers {
-        for sc in set_cookie_headers.iter() {
-            let set_cookie_headers_string = format!(
+    if let Some(set_cookie) = set_cookie {
+        for sc in set_cookie.iter() {
+            let set_cookie_string = format!(
                 "Set-Cookie: {}={}; Path={}; Secure; HttpOnly; SameSite=Strict\r\n",
                 sc.key, sc.value, sc.path
             );
-            http_response_string.push_str(&set_cookie_headers_string);
+            http_response_string.push_str(&set_cookie_string);
         }
     }
 
@@ -195,7 +206,6 @@ pub fn response(
     http_response_string.push_str("Cross-Origin-Embedder-Policy: require-corp\r\n");
     http_response_string.push_str("Cross-Origin-Resource-Policy: same-origin\r\n");
     http_response_string.push_str("Cross-Origin-Opener-Policy: same-origin\r\n");
-    http_response_string.push_str("Cross-Origin-Opener-Policy: same-origin\r\n");
     http_response_string.push_str("Referrer-Policy: no-referrer\r\n");
     http_response_string.push_str(
         "Permissions-Policy:\
@@ -231,36 +241,44 @@ bluetooth=()\r\n",
 
 pub fn redirect_to(page: String) -> ResponseData {
     ResponseData {
-        status_code: StatusCode::Code302Found,
-        content_type: ContentType::TextHtml,
-        location: Some(page.to_string()),
-        charset: None,
         body: None,
-        set_cookie_headers: None,
-        connection: KeepAliveOrClose::KeepAlive,
+        headers: Headers {
+            status_code: StatusCode::Code302Found,
+            content_type: ContentType::TextHtml,
+            location: Some(page.to_string()),
+            charset: None,
+
+            set_cookie: None,
+            connection: KeepAliveOrClose::KeepAlive,
+        },
     }
 }
 
 pub fn internal_server_error_500() -> ResponseData {
     ResponseData {
-        status_code: StatusCode::Code500InternalServerError,
-        content_type: ContentType::TextHtml,
-        charset: Some(Charset::Utf8),
         body: None,
-        set_cookie_headers: None,
-        location: None,
-        connection: KeepAliveOrClose::KeepAlive,
+        headers: Headers {
+            status_code: StatusCode::Code500InternalServerError,
+            content_type: ContentType::TextHtml,
+            charset: Some(Charset::Utf8),
+            set_cookie: None,
+            location: None,
+            connection: KeepAliveOrClose::KeepAlive,
+        },
     }
 }
 pub fn bad_request_400() -> ResponseData {
     ResponseData {
-        status_code: StatusCode::Code400BadRequest,
-        content_type: ContentType::TextHtml,
-        charset: Some(Charset::Utf8),
         body: None,
-        set_cookie_headers: None,
-        location: None,
-        connection: KeepAliveOrClose::KeepAlive,
+        headers: Headers {
+            status_code: StatusCode::Code400BadRequest,
+            content_type: ContentType::TextHtml,
+            charset: Some(Charset::Utf8),
+
+            set_cookie: None,
+            location: None,
+            connection: KeepAliveOrClose::KeepAlive,
+        },
     }
 }
 
@@ -268,20 +286,30 @@ pub fn bad_request_400() -> ResponseData {
 /// more sophisticated response mechanisms above, like response() might have been a part of the error.
 /// I do not actually know whether response is or not at any given case, but I do not want to have to care
 pub fn standalone_response(status_code: StatusCode, msg: String) -> HttpResponse {
-    let status_code_string = status_code.to_string();
-    let body_string = format!(
+    let body = format!(
         r##"<!DOCTYPE html><html lang = "en"><head><title>{msg}</title><style> body {{ text-align: center; }}</style></head><body><div>{msg}</div></body></html>"##
-    );
-    let body_bytes = body_string.into_bytes();
-    let body_bytes_length = body_bytes.len();
-    let resp = format!(
-        "HTTP/1.1 {status_code_string}\r\n\
-Content-Type: text/html; charset=utf-8\r\n\
-Connection: close\r\n\
-Content-Length: {body_bytes_length}\r\n\r\n
-"
-    );
-    let mut resp = resp.into_bytes();
-    resp.extend_from_slice(&body_bytes);
-    resp
+    ).into_bytes();
+    let response_data = ResponseData {
+        body: Some(body),
+        headers: Headers {
+            status_code: status_code.clone(),
+            content_type: ContentType::TextHtml,
+            charset: Some(Charset::Utf8),
+            set_cookie: None,
+            location: None,
+            connection: KeepAliveOrClose::Close,
+        },
+    };
+    response(response_data).unwrap_or_else(|_| {
+        let msg = format!("Some Error occured {msg} {}", status_code);
+        format!(
+            "HTTP/1.1 {}\n\
+Connection: Close\r\n\
+Content-Type: text/plain\r\n\
+Content-Length:\r\n\r\n\
+{msg}",
+            status_code
+        )
+        .into_bytes()
+    })
 }

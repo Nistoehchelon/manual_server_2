@@ -11,18 +11,18 @@ pub struct Config {
     pub server_global_requests_token_bucket_refill_rate_per_millis: f64,
     pub per_ip_token_bucket_capacity: f64,
     pub per_ip_token_bucket_refill_rate_per_millis: f64,
-    pub max_requests_per_keep_alive_connection: u64,
-    pub max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis: u64,
+    pub keep_alive_idle_timeout: Duration,
+    pub keep_alive_max_requests_per_connection: u64,
 
-    pub common_stream_timeout_millis: u64,
+    pub common_stream_timeout: Duration,
 
-    pub max_total_headers_size_bytes: usize,
-    pub max_headers_count: usize,
-    pub max_header_name_len: usize,
-    pub max_header_value_len: usize,
-    pub max_total_body_size_bytes: usize,
-    pub max_request_path_length: usize,
-    pub max_cookies_count: usize,
+    pub max_total_headers_size_bytes: u64,
+    pub max_headers_count: u64,
+    pub max_header_name_len: u64,
+    pub max_header_value_len: u64,
+    pub max_total_body_size_bytes: u64,
+    pub max_request_path_length: u64,
+    pub max_cookies_count: u64,
     pub environment: Environment,
     pub lets_encrypt_production: bool,
     pub lets_encrypt_contact_email: String,
@@ -67,16 +67,15 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
 
     let mut common_stream_timeout_millis: Option<u64> = None;
 
-    let mut max_total_headers_size_bytes: Option<usize> = None;
-    let mut max_headers_count: Option<usize> = None;
-    let mut max_header_name_length: Option<usize> = None;
-    let mut max_header_value_length: Option<usize> = None;
-    let mut max_total_body_size_bytes: Option<usize> = None;
-    let mut max_request_path_length: Option<usize> = None;
-    let mut max_cookies_count: Option<usize> = None;
-    let mut max_requests_per_keep_alive_connection: Option<u64> = None;
-    let mut max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis: Option<u64> =
-        None;
+    let mut max_total_headers_size_bytes: Option<u64> = None;
+    let mut max_headers_count: Option<u64> = None;
+    let mut max_header_name_length: Option<u64> = None;
+    let mut max_header_value_length: Option<u64> = None;
+    let mut max_total_body_size_bytes: Option<u64> = None;
+    let mut max_request_path_length: Option<u64> = None;
+    let mut max_cookies_count: Option<u64> = None;
+    let mut keep_alive_idle_timeout_millis: Option<u64> = None;
+    let mut keep_alive_max_requests_per_connection: Option<u64> = None;
 
     let mut server_time_credits_capacity_millis: Option<u64> = None;
     let mut server_time_credits_refill_rate_millis_per_millis: Option<u64> = None;
@@ -84,7 +83,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut per_ip_time_credits_capacity_millis: Option<u64> = None;
     let mut per_ip_time_credits_refill_rate_millis: Option<u64> = None;
 
-    let mut unk_keys_count = 0;
+    let mut unk_keys: Vec<&str> = Vec::new();
 
     for line in contents
         .lines()
@@ -112,12 +111,11 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             "SERVER_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS" => {
                 server_time_credits_refill_rate_millis_per_millis = Some(value.parse().unwrap())
             }
-            "MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUESTS_ON_KEEP_ALIVE_CONNECTION_MILLIS" => {
-                max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis =
-                    Some(value.parse().unwrap())
+            "KEEP_ALIVE_MAX_REQUESTS_PER_CONNECTION" => {
+                keep_alive_max_requests_per_connection = Some(value.parse().unwrap())
             }
-            "MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION" => {
-                max_requests_per_keep_alive_connection = Some(value.parse().unwrap())
+            "KEEP_ALIVE_IDLE_TIMEOUT_MILLIS" => {
+                keep_alive_idle_timeout_millis = Some(value.parse().unwrap())
             }
             "IP" => ip = Some(value),
             "PORT" => port = Some(value.parse().unwrap()),
@@ -161,61 +159,63 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             // ...
             "MAX_TOTAL_HEADERS_SIZE_BYTES" => {
                 let value = value
-                    .parse::<usize>()
-                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
+                    .parse::<u64>()
+                    .unwrap_or_else(|_| panic!("Expected u64 parsing of {value}  to work out"));
                 max_total_headers_size_bytes = Some(value)
             }
             "MAX_HEADERS_COUNT" => {
                 let value = value
-                    .parse::<usize>()
-                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
+                    .parse::<u64>()
+                    .unwrap_or_else(|_| panic!("Expected u64 parsing of {value}  to work out"));
                 max_headers_count = Some(value)
             }
 
             "MAX_HEADER_NAME_LENGTH" => {
                 let value = value
-                    .parse::<usize>()
-                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
+                    .parse::<u64>()
+                    .unwrap_or_else(|_| panic!("Expected u64 parsing of {value}  to work out"));
                 max_header_name_length = Some(value)
             }
             "MAX_HEADER_VALUE_LENGTH" => {
                 let value = value
-                    .parse::<usize>()
-                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
+                    .parse::<u64>()
+                    .unwrap_or_else(|_| panic!("Expected u64 parsing of {value}  to work out"));
                 max_header_value_length = Some(value)
             }
 
             "MAX_TOTAL_BODY_SIZE_BYTES" => {
                 let value = value
-                    .parse::<usize>()
-                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
+                    .parse::<u64>()
+                    .unwrap_or_else(|_| panic!("Expected u64 parsing of {value}  to work out"));
                 max_total_body_size_bytes = Some(value)
             }
 
             "MAX_REQUEST_PATH_LENGTH" => {
                 let value = value
-                    .parse::<usize>()
-                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
+                    .parse::<u64>()
+                    .unwrap_or_else(|_| panic!("Expected u64 parsing of {value}  to work out"));
                 max_request_path_length = Some(value)
             }
 
             "MAX_COOKIES_COUNT" => {
                 let value = value
-                    .parse::<usize>()
-                    .unwrap_or_else(|_| panic!("Expected usize parsing of {value}  to work out"));
+                    .parse::<u64>()
+                    .unwrap_or_else(|_| panic!("Expected u64 parsing of {value}  to work out"));
                 max_cookies_count = Some(value)
             }
 
             // ...
             unk_key => {
-                unk_keys_count += 1;
-                println!("Unknown key {unk_key}")
+                unk_keys.push(unk_key);
             }
         }
     }
 
-    if unk_keys_count > 0 {
-        panic!("Panicking due to {unk_keys_count} unknown keys.");
+    if !unk_keys.is_empty() {
+        panic!(
+            "Panicking due to {} unknown keys: {unk_keys:#?}",
+            unk_keys.len(),
+        );
     }
 
     let server_time_credits_capacity = Duration::from_millis(
@@ -236,9 +236,11 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             .expect("Missing PER_IP_TIME_CREDITS_REFILL_RATE_MILLIS_PER_MILLIS in env file"),
     );
 
-    let max_requests_per_keep_alive_connection = max_requests_per_keep_alive_connection
-        .expect("Missing MAX_REQUESTS_PER_KEEP_ALIVE_CONNECTION in file");
-    let max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis = max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis.expect("Missing MAX_TOTAL_TIME_ALLOWED_FOR_ALL_REQUESTS_ON_KEEP_ALIVE_CONNECTION_MILLIS in file");
+    let keep_alive_idle_timeout = Duration::from_millis(
+        keep_alive_idle_timeout_millis.expect("Missing KEEP_ALIVE_IDLE_TIMEOUT_MILLIS in file"),
+    );
+    let keep_alive_max_requests_per_connection = keep_alive_max_requests_per_connection
+        .expect("Missing KEEP_ALIVE_MAX_REQUESTS_PER_CONNECTION in file");
     let ip = ip.expect("Missing IP in env file");
     let port = port.expect("Missing PORT in env file");
     let db_url = db_url.expect("Missing DATABASE_URL in env file");
@@ -252,8 +254,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let per_ip_token_bucket_refill_rate = per_ip_token_bucket_refill_rate
         .expect("Missing PER_IP_TOKEN_BUCKET_REFILL_RATE_PER_MILLIS in env file");
 
-    let common_stream_timeout_millis =
-        common_stream_timeout_millis.expect("Missing COMMON_STREAM_TIMEOUT_MILLIS in env file");
+    let common_stream_timeout = Duration::from_millis(
+        common_stream_timeout_millis.expect("Missing COMMON_STREAM_TIMEOUT_MILLIS in env file"),
+    );
 
     let max_total_headers_size_bytes =
         max_total_headers_size_bytes.expect("Missing MAX_TOTAL_HEADERS_SIZE_BYTES in env file");
@@ -286,7 +289,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         server_global_requests_token_bucket_refill_rate_per_millis: server_token_bucket_refill_rate,
         per_ip_token_bucket_capacity,
         per_ip_token_bucket_refill_rate_per_millis: per_ip_token_bucket_refill_rate,
-        common_stream_timeout_millis,
+        common_stream_timeout,
         max_cookies_count,
         max_header_name_len: max_header_name_length,
         max_total_body_size_bytes,
@@ -297,8 +300,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         environment,
         lets_encrypt_production,
         lets_encrypt_contact_email,
-        max_requests_per_keep_alive_connection,
-        max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis,
+        keep_alive_idle_timeout,
+        keep_alive_max_requests_per_connection,
         server_time_credits_capacity,
         server_time_credits_refill_rate_per_millis,
         per_ip_time_credits_capacity,

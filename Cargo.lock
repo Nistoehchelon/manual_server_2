@@ -926,6 +926,7 @@ dependencies = [
 name = "http_stuff"
 version = "0.1.0"
 dependencies = [
+ "config_reader",
  "encoding",
  "indexmap",
  "tokio",

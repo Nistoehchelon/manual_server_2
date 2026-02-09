@@ -12,25 +12,34 @@ use tokio::{
 };
 use url::Query;
 
-pub const MAX_HEADER_BYTES: usize = 8 * 1024; // 8 KB
-pub const MAX_HEADERS_COUNT: usize = 50; // 8 KB
+pub const MAX_HEADER_BYTES: u64 = 8 * 1024; // 8 KB
+pub const MAX_HEADERS_COUNT: u64 = 50; // 8 KB
 
-pub const MAX_HEADER_NAME_LEN: usize = 100;
-pub const MAX_HEADER_VALUE_LEN: usize = 2048;
+pub const MAX_HEADER_NAME_LEN: u64 = 100;
+pub const MAX_HEADER_VALUE_LEN: u64 = 2048;
 
-pub const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
+pub const MAX_BODY_BYTES: u64 = 10 * 1024 * 1024; // 10 MB
 
-pub const MAX_REQUEST_TARGET_LENGTH: usize = 150;
+pub const MAX_REQUEST_TARGET_LENGTH: u64 = 150;
 
-pub const MAX_COOKIES_PER_REQUEST: usize = 50;
+pub const MAX_COOKIES_PER_REQUEST: u64 = 50;
+
+#[derive(Debug, Clone)]
+pub struct HttpParserConfig {
+    pub read_timeout: Duration,
+    pub max_header_line_len: u64,
+}
 
 pub async fn parse_http_request<S: AsyncRead + Unpin>(
     reader: &mut BufReader<S>,
-    max_line_len: usize,
-    common_stream_timeout_duration: Duration,
+    parser_config: HttpParserConfig,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
-    let ParsedHeaderStream { headers } =
-        parse_headers_from_stream(reader, max_line_len, common_stream_timeout_duration).await?;
+    let ParsedHeaderStream { headers } = parse_headers_from_stream(
+        reader,
+        parser_config.max_header_line_len,
+        parser_config.read_timeout,
+    )
+    .await?;
     let headers_string = String::from_utf8_lossy(&headers).to_string();
     let headers_count = count_occurences_of_rn(&headers_string);
 
@@ -58,10 +67,10 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
                 return Err(HttpRequestParsingError::BadRequest);
             }
         };
-        if key.len() > MAX_HEADER_NAME_LEN {
+        if key.len() as u64 > MAX_HEADER_NAME_LEN {
             return Err(HttpRequestParsingError::HeaderNameTooLong);
         }
-        if value.len() > MAX_HEADER_VALUE_LEN {
+        if value.len() as u64 > MAX_HEADER_VALUE_LEN {
             return Err(HttpRequestParsingError::HeaderValueTooLong);
         }
         if !all_characters_in_header_name_are_valid(key) {
@@ -93,7 +102,7 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
         return Err(HttpRequestParsingError::HttpVersionNotSupported);
     }
 
-    if path_and_query.len() > MAX_REQUEST_TARGET_LENGTH {
+    if path_and_query.len() as u64 > MAX_REQUEST_TARGET_LENGTH {
         return Err(HttpRequestParsingError::UriTooLong);
     }
     if !request_target_characters_are_valid(&path_and_query) {
@@ -107,11 +116,7 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
 
     let mut body: Vec<u8> = vec![];
 
-    let content_length = match headers
-        .get("content-length")
-        .unwrap_or("0")
-        .parse::<usize>()
-    {
+    let content_length = match headers.get("content-length").unwrap_or("0").parse::<u64>() {
         Err(e) => {
             dbg!("Parse error", e);
             return Err(HttpRequestParsingError::BadRequest);
@@ -122,9 +127,9 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
         dbg!(content_length, "exceeds", MAX_BODY_BYTES);
         return Err(HttpRequestParsingError::ContentTooLarge);
     } else if method == "POST" && content_length > 0 {
-        let mut body_bytes_exact = vec![0; content_length];
+        let mut body_bytes_exact = vec![0; content_length.try_into().unwrap()];
         match timeout(
-            common_stream_timeout_duration,
+            parser_config.read_timeout,
             reader.read_exact(&mut body_bytes_exact),
         )
         .await
@@ -154,11 +159,11 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
 
 async fn read_line_bounded<R: AsyncRead + Unpin>(
     reader: &mut BufReader<R>,
-    max_line_len: usize,
+    max_line_len: u64,
     timeout_dur: Duration,
     header_bytes_so_far: Vec<u8>,
 ) -> Result<Vec<u8>, HttpRequestParsingError> {
-    let mut line = Vec::with_capacity(128);
+    let mut line = Vec::new();
 
     loop {
         let byte = timeout(timeout_dur, reader.read_u8())
@@ -178,7 +183,7 @@ async fn read_line_bounded<R: AsyncRead + Unpin>(
 
         line.push(byte);
 
-        if line.len() > max_line_len {
+        if line.len() as u64 > max_line_len {
             dbg!(
                 "Header line parsing: line exceeded max_line_len, rejecting request",
                 line.len(),
@@ -197,24 +202,19 @@ async fn read_line_bounded<R: AsyncRead + Unpin>(
 
 async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
     reader: &mut BufReader<S>,
-    max_line_len: usize,
-    common_stream_timeout_duration: Duration,
+    max_line_len: u64,
+    read_timeout: Duration,
 ) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
     let mut header_bytes = Vec::new();
     let mut read_total_bytes = 0;
 
     loop {
-        let line = read_line_bounded(
-            reader,
-            max_line_len,
-            common_stream_timeout_duration,
-            header_bytes.clone(),
-        )
-        .await
-        .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+        let line = read_line_bounded(reader, max_line_len, read_timeout, header_bytes.clone())
+            .await
+            .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
         read_total_bytes += line.len();
 
-        if read_total_bytes > MAX_HEADER_BYTES {
+        if read_total_bytes as u64 > MAX_HEADER_BYTES {
             dbg!(
                 "Header size exceeded max allowed",
                 read_total_bytes,
@@ -259,6 +259,7 @@ pub enum HttpRequestParsingError {
     TooManyCookies,
     HttpVersionNotSupported,
     UriTooLong,
+    StreamTimeoutError,
     SomeSortOfStreamError,
     ContentTooLarge,
     BadRequest,
@@ -274,6 +275,7 @@ impl Display for HttpRequestParsingError {
             Self::BadRequest => "Bad Request",
             Self::ContentTooLarge => "Content Too Large",
             Self::SomeSortOfStreamError => "Some Sort Of Stream Error",
+            Self::StreamTimeoutError => "Stream Timeout Error",
             Self::UnexpectedEof => "Unexpected End Of File",
             Self::UriTooLong => "Uri Too Long",
             Self::HttpVersionNotSupported => "HTTP Version Not Supported",
@@ -349,7 +351,7 @@ fn parse_path_and_query(path_with_query: String) -> (String, Query) {
 fn parse_cookies(headers: Headers) -> Result<HashMap<String, String>, HttpRequestParsingError> {
     if let Some(cookie_header) = headers.get("cookie") {
         let cookies_count = cookie_header.matches(";").count();
-        if cookies_count > MAX_COOKIES_PER_REQUEST {
+        if cookies_count as u64 > MAX_COOKIES_PER_REQUEST {
             return Err(HttpRequestParsingError::TooManyCookies);
         }
 
@@ -476,8 +478,8 @@ impl Headers {
     }
 }
 
-pub fn count_occurences_of_rn(s: &str) -> usize {
-    s.match_indices("\r\n").count()
+pub fn count_occurences_of_rn(s: &str) -> u64 {
+    s.match_indices("\r\n").count() as u64
 }
 
 pub fn all_characters_in_header_name_are_valid(name: &str) -> bool {

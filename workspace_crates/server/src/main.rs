@@ -1,7 +1,9 @@
 use config_reader::{Config, config_reader::Environment};
 use http_stuff::{
-    http_request_parsing::{HttpRequestParsingError, parse_http_request},
-    http_response::{KeepAliveOrClose, StatusCode, standalone_response},
+    http_request_parsing::{
+        HttpParserConfig, HttpRequestData, HttpRequestParsingError, parse_http_request,
+    },
+    http_response::{KeepAliveOrClose, ResponseData, StatusCode, standalone_response},
 };
 
 use routing::router::response_to_bytes;
@@ -91,8 +93,6 @@ async fn main() -> std::io::Result<()> {
     let db_pool = sqlx::PgPool::connect(&server_config.database_str)
         .await
         .expect("I expected pool construction to succeed :)");
-    let common_stream_timeout_duration =
-        Duration::from_millis(server_config.common_stream_timeout_millis);
 
     // redirect from http  to https
     // but only if the main port is 443, since if it isn't then there is no point, I think? Not sure
@@ -105,7 +105,7 @@ async fn main() -> std::io::Result<()> {
                 server_config_for_task.clone(),
                 global_bucket,
                 ip_buckets,
-                Duration::from_millis(server_config_for_task.common_stream_timeout_millis),
+                server_config_for_task.common_stream_timeout,
             )
             .await
             {
@@ -122,17 +122,17 @@ async fn main() -> std::io::Result<()> {
         let ip_buckets = ip_buckets.clone();
         let db_pool = db_pool.clone();
         let server_config = server_config.clone();
-        let (tcp, peer_ip) = match timeout(common_stream_timeout_duration, listener.accept()).await
-        {
-            Ok(Ok((s, a))) => (s, a),
-            Ok(Err(e)) => {
-                dbg!("Could not unwrap stream? :( ", e);
-                continue;
-            }
-            Err(_e) => {
-                continue;
-            }
-        };
+        let (tcp, peer_ip) =
+            match timeout(server_config.common_stream_timeout, listener.accept()).await {
+                Ok(Ok((s, a))) => (s, a),
+                Ok(Err(e)) => {
+                    dbg!("Could not unwrap stream? :( ", e);
+                    continue;
+                }
+                Err(_e) => {
+                    continue;
+                }
+            };
 
         match server_config.environment {
             Environment::Local => {
@@ -209,18 +209,11 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     ip_buckets: IpBuckets,
     server_config: Config,
 ) {
-    let common_stream_timeout_duration =
-        Duration::from_millis(server_config.common_stream_timeout_millis);
-    let max_requests_per_keep_alive_connection =
-        server_config.max_requests_per_keep_alive_connection;
-    let max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis =
-        server_config.max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis;
-    let max_time_dur = Duration::from_millis(
-        max_total_time_allowed_for_all_requests_on_keep_alive_connection_millis,
-    );
+    let keep_alive_max_requests_per_connection =
+        server_config.keep_alive_max_requests_per_connection;
     let mut requests_count = 0;
-    let mut time_spent_on_serving_all_requests_up_to_now = Duration::ZERO;
     loop {
+        dbg!("Peer with IP ", peer_ip, "just issued a request");
         if let Err(error_response) = check_and_consume_buckets(
             Instant::now(),
             &peer_ip,
@@ -231,7 +224,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         .await
         {
             if let Err(_e) = timeout(
-                common_stream_timeout_duration,
+                server_config.common_stream_timeout,
                 reader.write_all(&error_response),
             )
             .await
@@ -242,132 +235,116 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         }
 
         let start = Instant::now();
-        let keep_alive_or_close = match generate_and_write_response(
-            reader,
-            db_pool.clone(),
-            peer_ip,
-            server_config.clone(),
+        let request_data = match timeout(
+            server_config.common_stream_timeout,
+            parse_http_request(
+                reader,
+                HttpParserConfig {
+                    read_timeout: server_config.keep_alive_idle_timeout,
+                    max_header_line_len: server_config.max_header_name_len
+                        + server_config.max_header_value_len,
+                },
+            ),
         )
         .await
         {
-            Ok(kaoc) => kaoc,
+            Ok(Ok(data)) => data,
+            Ok(Err(e)) => {
+                dbg!(e.clone());
+                write_http_parsing_error(e, reader, server_config.common_stream_timeout).await;
+                break;
+            }
             Err(e) => {
-                dbg!(e);
-                let _ = timeout(common_stream_timeout_duration, reader.flush()).await;
-                let _ = timeout(common_stream_timeout_duration, reader.shutdown()).await;
-                return;
+                dbg!("main.rs parse_http_request timed out", e);
+                write_http_parsing_error(
+                    HttpRequestParsingError::StreamTimeoutError,
+                    reader,
+                    server_config.common_stream_timeout,
+                )
+                .await;
+                break;
             }
         };
-        let f = timeout(common_stream_timeout_duration, reader.flush()).await;
-        if f.is_err() {
-            dbg!("main.rs flush timeout");
-            return;
-        }
-
-        let time_elapsed = start.elapsed();
-        {
-            let mut ip_buckets = ip_buckets.lock().await;
-            let ip_bucket =
-                ip_buckets
-                    .entry(peer_ip)
-                    .or_insert_with(|| TokenAndTimeBucketsAndLastSeen {
-                        token_bucket: TokenBucket::new(
-                            server_config.per_ip_token_bucket_capacity,
-                            server_config.per_ip_token_bucket_refill_rate_per_millis,
-                        ),
-                        time_bucket: TimeBucket::new(
-                            server_config.per_ip_time_credits_capacity,
-                            server_config.per_ip_time_credits_refill_rate_per_millis,
-                        ),
-                        last_seen: Instant::now(),
-                    });
-            ip_bucket.time_bucket.consume_time(time_elapsed);
-        }
-        time_spent_on_serving_all_requests_up_to_now += time_elapsed;
         requests_count += 1;
-
-        if keep_alive_or_close == KeepAliveOrClose::Close
-            || requests_count > max_requests_per_keep_alive_connection
-            || time_spent_on_serving_all_requests_up_to_now > max_time_dur
+        let response_data = generate_response(
+            request_data,
+            db_pool.clone(),
+            requests_count >= keep_alive_max_requests_per_connection,
+        )
+        .await;
+        let response_bytes = response_to_bytes(response_data.clone()).await;
+        if let Err(e) =
+            write_response(reader, response_bytes, server_config.common_stream_timeout).await
         {
-            dbg!(
-                "Closing connection",
-                keep_alive_or_close,
-                requests_count,
-                max_requests_per_keep_alive_connection,
-                time_spent_on_serving_all_requests_up_to_now.as_millis(),
-                max_time_dur.as_millis()
-            );
+            dbg!("Write response returned", e);
+            break;
+        }
+
+        consume_time_spent_from_time_credits_bucket(
+            start,
+            peer_ip,
+            ip_buckets.clone(),
+            server_config.clone(),
+        )
+        .await;
+
+        if response_data.headers.connection == KeepAliveOrClose::Close {
+            dbg!("generate_and_write_response told me to close, closing",);
             break;
         }
     }
-    let _ = timeout(common_stream_timeout_duration, reader.flush()).await;
-    let _ = timeout(common_stream_timeout_duration, reader.shutdown()).await;
+    let _ = timeout(server_config.common_stream_timeout, reader.shutdown()).await;
 }
 
-pub async fn generate_and_write_response<S: AsyncRead + AsyncWrite + Unpin>(
-    reader: &mut BufReader<S>,
-    db_pool: sqlx::PgPool,
+pub async fn consume_time_spent_from_time_credits_bucket(
+    start: Instant,
     peer_ip: IpAddr,
+    ip_buckets: IpBuckets,
     server_config: Config,
-) -> std::io::Result<KeepAliveOrClose> {
-    let mut close_or_keep_alive = KeepAliveOrClose::Close;
-    dbg!("Peer with IP ", peer_ip, "just issued a request");
-    let Config {
-        common_stream_timeout_millis,
-        max_header_name_len,
-        max_header_value_len,
-        ..
-    } = server_config.clone();
-    let common_stream_timeout_duration = Duration::from_millis(common_stream_timeout_millis);
-
-    let request_data = match timeout(
-        common_stream_timeout_duration,
-        parse_http_request(
-            reader,
-            max_header_name_len + max_header_value_len,
-            common_stream_timeout_duration,
-        ),
-    )
-    .await
-    {
-        Ok(Ok(data)) => data,
-        Ok(Err(e)) => {
-            dbg!(e.clone());
-            write_http_parsing_error(e, reader, common_stream_timeout_duration).await;
-            return Ok(close_or_keep_alive);
-        }
-        Err(e) => {
-            dbg!("main.rs parse_http_request timed out", e);
-            return Ok(close_or_keep_alive);
-        }
-    };
-
-    let response_data = routing::generate_response_data(request_data.clone(), db_pool).await;
-    match response_data.connection {
-        KeepAliveOrClose::Close => {
-            close_or_keep_alive = KeepAliveOrClose::Close;
-        }
-        KeepAliveOrClose::KeepAlive => {
-            close_or_keep_alive = KeepAliveOrClose::KeepAlive;
-            if let Some(connection_header) = request_data.headers.get("connection")
-                && connection_header == "close"
-            {
-                close_or_keep_alive = KeepAliveOrClose::Close;
+) {
+    let time_elapsed = start.elapsed();
+    let mut ip_buckets = ip_buckets.lock().await;
+    let ip_bucket = ip_buckets.entry(peer_ip).or_insert_with(|| {
+        TokenAndTimeBucketsAndLastSeen::default_with_settings(server_config.clone())
+    });
+    ip_bucket.time_bucket.consume_time(time_elapsed);
+}
+pub async fn generate_response(
+    request_data: HttpRequestData,
+    db_pool: sqlx::PgPool,
+    keep_alive_max_requests_reached: bool,
+) -> ResponseData {
+    let mut response_data = routing::generate_response_data(request_data.clone(), db_pool).await;
+    let close_or_keep_alive = if keep_alive_max_requests_reached {
+        KeepAliveOrClose::Close
+    } else {
+        match response_data.headers.connection {
+            KeepAliveOrClose::Close => KeepAliveOrClose::Close,
+            KeepAliveOrClose::KeepAlive => {
+                if let Some(connection_header) = request_data.headers.get("connection")
+                    && connection_header == "close"
+                {
+                    KeepAliveOrClose::Close
+                } else {
+                    KeepAliveOrClose::KeepAlive
+                }
             }
         }
-    }
-    let response_bytes = response_to_bytes(response_data).await;
-    if let Err(_e) = timeout(
-        common_stream_timeout_duration,
-        reader.write_all(&response_bytes),
-    )
-    .await
-    {
+    };
+    response_data.headers.connection = close_or_keep_alive;
+    response_data
+}
+pub async fn write_response<S: AsyncRead + AsyncWrite + Unpin>(
+    reader: &mut BufReader<S>,
+    response_bytes: Vec<u8>,
+    common_stream_timeout: Duration,
+) -> Result<(), ()> {
+    if let Err(_e) = timeout(common_stream_timeout, reader.write_all(&response_bytes)).await {
         dbg!("main.rs response write timeout");
+        return Err(());
     }
 
-    Ok(close_or_keep_alive)
+    Ok(())
 }
 
 async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
@@ -409,6 +386,18 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             )
             .await;
         }
+
+        HttpRequestParsingError::StreamTimeoutError => {
+            let err_response = standalone_response(
+                StatusCode::Code400BadRequest,
+                "400 Bad Request 🙀".to_string(),
+            );
+            let _ = timeout(
+                common_stream_timeout_duration,
+                stream.write_all(&err_response),
+            )
+            .await;
+        }
         hm => {
             eprintln!("main error, could not parse request {:?}", hm);
             let err_response = standalone_response(
@@ -422,6 +411,4 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             .await;
         }
     };
-    let _ = stream.flush().await;
-    let _ = stream.shutdown().await;
 }

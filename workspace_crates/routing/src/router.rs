@@ -4,8 +4,8 @@ use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{
-        Charset, ContentType, ResponseData, SetCookieHeader, StatusCode, internal_server_error_500,
-        redirect_to, response, standalone_response,
+        Charset, ContentType, Headers, ResponseData, SetCookieHeader, StatusCode,
+        internal_server_error_500, redirect_to, response, standalone_response,
     },
 };
 use session::{
@@ -132,10 +132,10 @@ pub async fn route(
             value: session.id.clone(),
             path: "/".to_string(),
         };
-        match response_data.set_cookie_headers {
+        match response_data.headers.set_cookie {
             None => {
                 let v = vec![ch];
-                response_data.set_cookie_headers = Some(v);
+                response_data.headers.set_cookie = Some(v);
             }
             Some(ref mut sch) => {
                 sch.push(ch);
@@ -218,13 +218,16 @@ pub async fn generate_response_data(
             Ok((s, cns)) => (s, cns),
             Err(_) => {
                 return ResponseData {
-                    status_code: StatusCode::Code500InternalServerError,
-                    content_type: http_stuff::http_response::ContentType::TextPlain,
-                    charset: Some(Charset::Utf8),
                     body: Some(b"500".to_vec()),
-                    set_cookie_headers: None,
-                    location: None,
-                    connection: http_stuff::http_response::KeepAliveOrClose::KeepAlive,
+                    headers: Headers {
+                        status_code: StatusCode::Code500InternalServerError,
+                        content_type: http_stuff::http_response::ContentType::TextPlain,
+                        charset: Some(Charset::Utf8),
+
+                        set_cookie: None,
+                        location: None,
+                        connection: http_stuff::http_response::KeepAliveOrClose::KeepAlive,
+                    },
                 };
             }
         };
@@ -260,7 +263,7 @@ pub async fn add_elapsed(
     };
     let elapsed_ms = request_start.elapsed().as_millis();
     if let Some(body) = &mut response_data.body
-        && response_data.content_type == ContentType::TextHtml
+        && response_data.headers.content_type == ContentType::TextHtml
         && let Ok(mut html) = String::from_utf8(body.clone())
     {
         let previous_ms = session_data.previous_page_load_time_ms;

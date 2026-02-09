@@ -19,6 +19,7 @@ async fn test_read_write() {
         logged_in: false,
         previous_page_load_time_ms: 0,
     };
+
     sqlx::query!(
         "INSERT INTO public.sessions (id, user_id, logged_in) VALUES ($1, $2, $3)",
         session.id,

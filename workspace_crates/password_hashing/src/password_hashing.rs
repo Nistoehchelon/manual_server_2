@@ -2,7 +2,7 @@ use argon2::{
     Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version,
     password_hash::SaltString,
 };
-use rand::{TryRngCore, rand_core::OsRng};
+use rand::{TryRng, rngs::SysRng};
 
 pub const MAX_VALID_SALT_BYTES_LENGTH: usize = 48;
 pub const SALT_BYTES_LENGTH: usize = MAX_VALID_SALT_BYTES_LENGTH;
@@ -47,7 +47,7 @@ pub fn verify_password(password: String, stored_hash: String) -> Result<bool, St
 
 pub fn generate_secure_random_bytes(length: usize) -> Result<Vec<u8>, String> {
     let mut bytes = vec![0u8; length];
-    match OsRng.try_fill_bytes(&mut bytes) {
+    match SysRng.try_fill_bytes(&mut bytes) {
         Ok(_) => {}
         Err(e) => {
             return Err(e.to_string());

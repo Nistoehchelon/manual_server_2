@@ -106,7 +106,7 @@ impl TimeBucket {
         let millis: u32 = match elapsed.as_millis().try_into() {
             Ok(num) => num,
             Err(e) => {
-                dbg!(e);
+                dbg!("TimeBucket refill: Failed due to failure of try_into", e);
                 return;
             }
         };

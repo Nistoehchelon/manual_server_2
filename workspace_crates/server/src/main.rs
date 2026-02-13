@@ -237,14 +237,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         let start = Instant::now();
         let request_data = match timeout(
             server_config.common_stream_timeout,
-            parse_http_request(
-                reader,
-                HttpParserConfig {
-                    read_timeout: server_config.keep_alive_idle_timeout,
-                    max_header_line_len: server_config.max_header_name_len
-                        + server_config.max_header_value_len,
-                },
-            ),
+            parse_http_request(reader, HttpParserConfig::from(server_config.clone())),
         )
         .await
         {

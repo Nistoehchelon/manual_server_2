@@ -1,3 +1,4 @@
+use config_reader::Config;
 use encoding::decode_request_string;
 use indexmap::IndexMap;
 use std::{
@@ -12,38 +13,42 @@ use tokio::{
 };
 use url::Query;
 
-pub const MAX_HEADER_BYTES: u64 = 8 * 1024; // 8 KB
-pub const MAX_HEADERS_COUNT: u64 = 50; // 8 KB
-
-pub const MAX_HEADER_NAME_LEN: u64 = 100;
-pub const MAX_HEADER_VALUE_LEN: u64 = 2048;
-
-pub const MAX_BODY_BYTES: u64 = 10 * 1024 * 1024; // 10 MB
-
-pub const MAX_REQUEST_TARGET_LENGTH: u64 = 150;
-
-pub const MAX_COOKIES_PER_REQUEST: u64 = 50;
-
 #[derive(Debug, Clone)]
 pub struct HttpParserConfig {
     pub read_timeout: Duration,
-    pub max_header_line_len: u64,
+    pub max_headers_len: u64,
+    pub max_header_lines_count: u64,
+    pub max_header_name_len: u64,
+    pub max_header_value_len: u64,
+    pub max_body_len: u64,
+    pub max_request_target_length: u64,
+    pub max_cookies_per_request_count: u64,
+}
+impl From<Config> for HttpParserConfig {
+    fn from(server_config: Config) -> Self {
+        Self {
+            read_timeout: server_config.common_stream_timeout,
+            max_headers_len: server_config.max_total_headers_size_bytes,
+            max_header_lines_count: server_config.max_headers_count,
+            max_header_name_len: server_config.max_header_name_len,
+            max_header_value_len: server_config.max_header_value_len,
+            max_body_len: server_config.max_total_body_size_bytes,
+            max_request_target_length: server_config.max_request_path_length,
+            max_cookies_per_request_count: server_config.max_cookies_count,
+        }
+    }
 }
 
 pub async fn parse_http_request<S: AsyncRead + Unpin>(
     reader: &mut BufReader<S>,
     parser_config: HttpParserConfig,
 ) -> Result<HttpRequestData, HttpRequestParsingError> {
-    let ParsedHeaderStream { headers } = parse_headers_from_stream(
-        reader,
-        parser_config.max_header_line_len,
-        parser_config.read_timeout,
-    )
-    .await?;
+    let ParsedHeaderStream { headers } =
+        parse_headers_from_stream(reader, parser_config.clone()).await?;
     let headers_string = String::from_utf8_lossy(&headers).to_string();
     let headers_count = count_occurences_of_rn(&headers_string);
 
-    if headers_count > MAX_HEADERS_COUNT {
+    if headers_count > parser_config.max_header_lines_count {
         return Err(HttpRequestParsingError::TooManyHeaders);
     }
 
@@ -67,10 +72,10 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
                 return Err(HttpRequestParsingError::BadRequest);
             }
         };
-        if key.len() as u64 > MAX_HEADER_NAME_LEN {
+        if key.len() as u64 > parser_config.max_header_name_len {
             return Err(HttpRequestParsingError::HeaderNameTooLong);
         }
-        if value.len() as u64 > MAX_HEADER_VALUE_LEN {
+        if value.len() as u64 > parser_config.max_header_value_len {
             return Err(HttpRequestParsingError::HeaderValueTooLong);
         }
         if !all_characters_in_header_name_are_valid(key) {
@@ -102,7 +107,7 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
         return Err(HttpRequestParsingError::HttpVersionNotSupported);
     }
 
-    if path_and_query.len() as u64 > MAX_REQUEST_TARGET_LENGTH {
+    if path_and_query.len() as u64 > parser_config.max_request_target_length {
         return Err(HttpRequestParsingError::UriTooLong);
     }
     if !request_target_characters_are_valid(&path_and_query) {
@@ -112,7 +117,7 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
     let (path, query) = parse_path_and_query(path_and_query.clone());
 
     // --- Parse cookies ---
-    let cookies = parse_cookies(headers.clone())?;
+    let cookies = parse_cookies(headers.clone(), parser_config.max_cookies_per_request_count)?;
 
     let mut body: Vec<u8> = vec![];
 
@@ -123,8 +128,8 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
         }
         Ok(v) => v,
     };
-    if content_length > MAX_BODY_BYTES {
-        dbg!(content_length, "exceeds", MAX_BODY_BYTES);
+    if content_length > parser_config.max_body_len {
+        dbg!(content_length, "exceeds", parser_config.max_body_len);
         return Err(HttpRequestParsingError::ContentTooLarge);
     } else if method == "POST" && content_length > 0 {
         let mut body_bytes_exact = vec![0; content_length.try_into().unwrap()];
@@ -202,23 +207,27 @@ async fn read_line_bounded<R: AsyncRead + Unpin>(
 
 async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
     reader: &mut BufReader<S>,
-    max_line_len: u64,
-    read_timeout: Duration,
+    parser_config: HttpParserConfig,
 ) -> Result<ParsedHeaderStream, HttpRequestParsingError> {
     let mut header_bytes = Vec::new();
     let mut read_total_bytes = 0;
 
     loop {
-        let line = read_line_bounded(reader, max_line_len, read_timeout, header_bytes.clone())
-            .await
-            .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+        let line = read_line_bounded(
+            reader,
+            parser_config.max_header_name_len + parser_config.max_header_value_len,
+            parser_config.read_timeout,
+            header_bytes.clone(),
+        )
+        .await
+        .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
         read_total_bytes += line.len();
 
-        if read_total_bytes as u64 > MAX_HEADER_BYTES {
+        if read_total_bytes as u64 > parser_config.max_headers_len {
             dbg!(
                 "Header size exceeded max allowed",
                 read_total_bytes,
-                MAX_HEADER_BYTES
+                parser_config.max_headers_len
             );
             return Err(HttpRequestParsingError::ContentTooLarge);
         }
@@ -348,10 +357,13 @@ fn parse_path_and_query(path_with_query: String) -> (String, Query) {
     (path, query)
 }
 
-fn parse_cookies(headers: Headers) -> Result<HashMap<String, String>, HttpRequestParsingError> {
+fn parse_cookies(
+    headers: Headers,
+    max_cookies_per_request_count: u64,
+) -> Result<HashMap<String, String>, HttpRequestParsingError> {
     if let Some(cookie_header) = headers.get("cookie") {
         let cookies_count = cookie_header.matches(";").count();
-        if cookies_count as u64 > MAX_COOKIES_PER_REQUEST {
+        if cookies_count as u64 > max_cookies_per_request_count {
             return Err(HttpRequestParsingError::TooManyCookies);
         }
 

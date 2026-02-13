@@ -12,7 +12,7 @@ use server::{
     check_and_consume_buckets::check_and_consume_buckets,
     http_to_https_redirect::http_to_https_redirect,
     load_local_cert::load_local_tls_config,
-    token_buckets_for_requests::{
+    buckets_for_requests::{
         GlobalBuckets, IpBuckets, TimeBucket, TokenAndTimeBuckets, TokenAndTimeBucketsAndLastSeen,
         TokenBucket,
     },

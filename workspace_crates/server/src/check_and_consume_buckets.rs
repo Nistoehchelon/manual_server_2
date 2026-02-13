@@ -4,11 +4,11 @@ use std::net::IpAddr;
 use std::time::Duration;
 use std::time::Instant;
 
-use crate::token_buckets_for_requests::GlobalBuckets;
-use crate::token_buckets_for_requests::IpBuckets;
-use crate::token_buckets_for_requests::TimeBucket;
-use crate::token_buckets_for_requests::TokenAndTimeBucketsAndLastSeen;
-use crate::token_buckets_for_requests::TokenBucket;
+use crate::buckets_for_requests::GlobalBuckets;
+use crate::buckets_for_requests::IpBuckets;
+use crate::buckets_for_requests::TimeBucket;
+use crate::buckets_for_requests::TokenAndTimeBucketsAndLastSeen;
+use crate::buckets_for_requests::TokenBucket;
 use http_stuff::http_response::StatusCode;
 
 pub async fn check_and_consume_buckets(

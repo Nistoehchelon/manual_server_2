@@ -5,7 +5,7 @@ use tokio::{io::AsyncWriteExt, net::TcpListener, time::timeout};
 
 use crate::{
     check_and_consume_buckets::check_and_consume_buckets,
-    token_buckets_for_requests::{GlobalBuckets, IpBuckets},
+    buckets_for_requests::{GlobalBuckets, IpBuckets},
 };
 
 pub async fn http_to_https_redirect(

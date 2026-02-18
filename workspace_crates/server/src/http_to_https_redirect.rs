@@ -4,8 +4,8 @@ use config_reader::Config;
 use tokio::{io::AsyncWriteExt, net::TcpListener, time::timeout};
 
 use crate::{
-    check_and_consume_buckets::check_and_consume_buckets,
     buckets_for_requests::{GlobalBuckets, IpBuckets},
+    check_and_consume_buckets::check_and_consume_buckets,
 };
 
 pub async fn http_to_https_redirect(

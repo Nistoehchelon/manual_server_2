@@ -9,13 +9,13 @@ use http_stuff::{
 use routing::router::response_to_bytes;
 
 use server::{
-    check_and_consume_buckets::check_and_consume_buckets,
-    http_to_https_redirect::http_to_https_redirect,
-    load_local_cert::load_local_tls_config,
     buckets_for_requests::{
         GlobalBuckets, IpBuckets, TimeBucket, TokenAndTimeBuckets, TokenAndTimeBucketsAndLastSeen,
         TokenBucket,
     },
+    check_and_consume_buckets::check_and_consume_buckets,
+    http_to_https_redirect::http_to_https_redirect,
+    load_local_cert::load_local_tls_config,
 };
 
 use tokio_rustls::{LazyConfigAcceptor, TlsAcceptor};
@@ -28,7 +28,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use rustls_acme::{AcmeConfig, caches::DirCache, is_tls_alpn_challenge};
+use rustls_acme::{AcmeConfig, AcmeState, caches::DirCache, is_tls_alpn_challenge};
 use tokio::{
     io::{AsyncRead, AsyncWrite, AsyncWriteExt, BufReader},
     sync::Mutex,
@@ -36,34 +36,18 @@ use tokio::{
 };
 use tokio_stream::StreamExt;
 
+use std::io::Error;
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
     let server_config = config_reader::read_config(PathBuf::from(".env"));
 
-    let mut state = AcmeConfig::new([server_config.domain_name.clone()])
-        .contact([format!(
-            "mailto:{}",
-            server_config.lets_encrypt_contact_email.clone()
-        )])
-        .cache_option(Some(DirCache::new("./rustls_acme_cache")))
-        .directory_lets_encrypt(server_config.lets_encrypt_production)
-        .state();
-
+    let state = generate_acme_state(server_config.clone());
     let challenge_rustls_config = state.challenge_rustls_config();
     let default_rustls_config = state.default_rustls_config();
-
     if server_config.environment == Environment::Production {
-        // Spawns... the loop that updates the certs from Let's Encrypt if needed and so on, I think?
-        tokio::spawn(async move {
-            loop {
-                match state.next().await.unwrap() {
-                    Ok(ok) => println!("event: {:#?}", ok),
-                    Err(err) => println!("error: {:#?}", err),
-                }
-            }
-        });
+        cert_auto_renewal(state);
     }
-
     let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone())
         .await
         .unwrap_or_else(|_| {
@@ -404,4 +388,26 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             .await;
         }
     };
+}
+
+pub fn generate_acme_state(server_config: Config) -> AcmeState<Error> {
+    AcmeConfig::new([server_config.domain_name.clone()])
+        .contact([format!(
+            "mailto:{}",
+            server_config.lets_encrypt_contact_email.clone()
+        )])
+        .cache_option(Some(DirCache::new("./rustls_acme_cache")))
+        .directory_lets_encrypt(server_config.lets_encrypt_production)
+        .state()
+}
+pub fn cert_auto_renewal(mut state: AcmeState<Error>) {
+    // Spawns... the loop that updates the certs from Let's Encrypt if needed and so on, I think?
+    tokio::spawn(async move {
+        loop {
+            match state.next().await.unwrap() {
+                Ok(ok) => println!("event: {:#?}", ok),
+                Err(err) => println!("error: {:#?}", err),
+            }
+        }
+    });
 }

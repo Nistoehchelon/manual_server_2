@@ -7,6 +7,9 @@ pub struct Config {
     pub ip: String,
     pub database_str: String,
     pub domain_name: String,
+
+    pub use_tls: bool,
+
     pub server_global_requests_token_bucket_capacity: f64,
     pub server_global_requests_token_bucket_refill_rate_per_millis: f64,
     pub per_ip_token_bucket_capacity: f64,
@@ -54,6 +57,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut ip: Option<String> = None;
     let mut port: Option<u64> = None;
     let mut db_url: Option<String> = None;
+    let mut use_tls: Option<bool> = None;
 
     let mut domain_name: Option<String> = None;
     let mut environment: Option<Environment> = None;
@@ -120,6 +124,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             "IP" => ip = Some(value),
             "PORT" => port = Some(value.parse().unwrap()),
             "DATABASE_URL" => db_url = Some(value),
+            "USE_TLS" => use_tls = Some(value.parse().unwrap()),
             "DOMAIN_NAME" => domain_name = Some(value),
             "ENVIRONMENT" => environment = Some(value.parse().unwrap()),
             "LETS_ENCRYPT_PRODUCTION" => lets_encrypt_production = Some(value.parse().unwrap()),
@@ -245,6 +250,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let port = port.expect("Missing PORT in env file");
     let db_url = db_url.expect("Missing DATABASE_URL in env file");
     let domain_name = domain_name.expect("Missing DOMAIN_NAME in env file");
+    let use_tls = use_tls.expect("Missing USE_TLS in env file");
     let server_token_bucket_capacity =
         server_token_bucket_capacity.expect("Missing SERVER_TOKEN_BUCKET_CAPACITY in config");
     let server_token_bucket_refill_rate = server_token_bucket_refill_rate
@@ -285,6 +291,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         ip_and_port: format!("{ip}:{port}"),
         database_str: db_url.to_string(),
         domain_name,
+        use_tls,
         server_global_requests_token_bucket_capacity: server_token_bucket_capacity,
         server_global_requests_token_bucket_refill_rate_per_millis: server_token_bucket_refill_rate,
         per_ip_token_bucket_capacity,

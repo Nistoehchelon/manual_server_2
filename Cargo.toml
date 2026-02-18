@@ -1,3 +1,7 @@
+# let's see if this improves compile times...
+[profile.dev]
+debug = "line-tables-only"
+
 [workspace]
 resolver = "3"
 members = ["workspace_crates/*"]

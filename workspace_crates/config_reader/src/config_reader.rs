@@ -285,6 +285,10 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let lets_encrypt_contact_email =
         lets_encrypt_contact_email.expect("Missing LETS_ENCRYPT_CONTACT_EMAIL in env file");
 
+    if use_tls == false && port == 443 {
+        panic!("USE_TLS is set to `false` but port is set to 443. Change port to something else.");
+    }
+
     Config {
         ip: ip.clone(),
         port,

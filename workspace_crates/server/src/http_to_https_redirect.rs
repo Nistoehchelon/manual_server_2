@@ -12,13 +12,13 @@ pub async fn http_to_https_redirect(
     config: Config,
     global_bucket: GlobalBuckets,
     ip_buckets: IpBuckets,
-    common_stream_timeout_duration: Duration,
 ) -> tokio::io::Result<()> {
     let Config {
         domain_name: domain,
         ip,
         ..
     } = config.clone();
+    let common_stream_timeout_duration = config.common_stream_timeout;
     let listener_at = format!("{ip}:80");
     let listener = match TcpListener::bind(&listener_at).await {
         Ok(l) => {

@@ -81,18 +81,11 @@ async fn main() -> std::io::Result<()> {
     // redirect from http  to https
     // but only if the main port is 443, since if it isn't then there is no point, I think? Not sure
     if server_config.port == 443 {
-        let server_config_for_task = server_config.clone();
+        let server_config = server_config.clone();
         let global_bucket = global_bucket.clone();
         let ip_buckets = ip_buckets.clone();
         tokio::spawn(async move {
-            match http_to_https_redirect(
-                server_config_for_task.clone(),
-                global_bucket,
-                ip_buckets,
-                server_config_for_task.common_stream_timeout,
-            )
-            .await
-            {
+            match http_to_https_redirect(server_config, global_bucket, ip_buckets).await {
                 Ok(_) => {}
                 Err(e) => {
                     dbg!(e);
@@ -118,8 +111,8 @@ async fn main() -> std::io::Result<()> {
                 }
             };
 
-        match server_config.environment {
-            Environment::Local => {
+        match (server_config.environment.clone(), server_config.use_tls) {
+            (Environment::Local, true) => {
                 let local_tls_config = load_local_tls_config();
                 let local_tls_acceptor = TlsAcceptor::from(local_tls_config);
 
@@ -144,7 +137,7 @@ async fn main() -> std::io::Result<()> {
                     .await;
                 });
             }
-            Environment::Production => {
+            (Environment::Production, true) => {
                 let challenge_rustls_config = challenge_rustls_config.clone();
                 let default_rustls_config = default_rustls_config.clone();
 
@@ -161,7 +154,6 @@ async fn main() -> std::io::Result<()> {
                             .into_stream(challenge_rustls_config)
                             .await
                             .unwrap();
-                        tls.flush().await.unwrap();
                         tls.shutdown().await.unwrap();
                     } else {
                         let stream = start_handshake
@@ -179,6 +171,22 @@ async fn main() -> std::io::Result<()> {
                         )
                         .await;
                     }
+                });
+            }
+            (_, false) => {
+                tokio::spawn(async move {
+                    let stream = tcp;
+                    let mut reader = BufReader::new(stream);
+
+                    handle_stream(
+                        &mut reader,
+                        db_pool,
+                        peer_ip.ip(),
+                        global_bucket,
+                        ip_buckets,
+                        server_config.clone(),
+                    )
+                    .await;
                 });
             }
         }

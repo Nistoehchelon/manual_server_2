@@ -1646,6 +1646,7 @@ name = "routing"
 version = "0.1.0"
 dependencies = [
  "abac",
+ "config_reader",
  "csrf_stuff",
  "db_manager",
  "error_structs",

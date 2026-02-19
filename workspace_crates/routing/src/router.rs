@@ -1,4 +1,6 @@
 use std::time::Instant;
+use config_reader::Config;
+    use std::collections::HashMap;
 
 use error_structs::InternalAppError;
 use http_stuff::{
@@ -205,6 +207,7 @@ pub async fn response_to_bytes(response_data: HttpResponseData) -> Vec<u8> {
 pub async fn generate_response_data(
     request_data: HttpRequestData,
     db_pool: sqlx::PgPool,
+    server_config: Config,
 ) -> HttpResponseData {
     if is_requesting_static_resource(request_data.path.clone()) {
         let response_data = generate_static_response(request_data);
@@ -242,7 +245,32 @@ pub async fn generate_response_data(
     .await
     .unwrap_or(internal_server_error_500());
 
-    add_elapsed(response_data, session, request_start, db_pool).await
+    let mut response_data = add_elapsed(response_data, session, request_start, db_pool).await;
+
+
+    let hsts_name = String::from("Strict-Transport-Security");
+    let hsts_age_0 = String::from("max-age=0; includeSubDomains; preload");
+    let hsts_age_9999 = String::from("max-age=99999999; includeSubDomains; preload");
+    if server_config.use_tls { 
+         if let Some(ref mut other_headers) = response_data.headers.other_headers {
+            other_headers.insert(hsts_name.clone(), hsts_age_9999.clone());
+        } else {
+            response_data.headers.other_headers = Some(HashMap::new());
+            if let Some(ref mut other_headers) = response_data.headers.other_headers {
+                other_headers.insert(hsts_name.clone(), hsts_age_9999.clone());
+            }
+        }
+    } else {
+        if let Some(ref mut other_headers) = response_data.headers.other_headers {
+            other_headers.insert(hsts_name.clone(), hsts_age_0.clone());
+        } else {
+            response_data.headers.other_headers = Some(HashMap::new());
+            if let Some(ref mut other_headers) = response_data.headers.other_headers {
+                other_headers.insert(hsts_name.clone(), hsts_age_0.clone());
+            }
+        }
+    }
+    response_data
 }
 
 pub async fn add_elapsed(

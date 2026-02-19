@@ -255,6 +255,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             request_data,
             db_pool.clone(),
             requests_count >= keep_alive_max_requests_per_connection,
+            server_config.clone(),
         )
         .await;
         let response_bytes = response_to_bytes(response_data.clone()).await;
@@ -298,8 +299,9 @@ pub async fn generate_response(
     request_data: HttpRequestData,
     db_pool: sqlx::PgPool,
     keep_alive_max_requests_reached: bool,
+    server_config: Config,
 ) -> HttpResponseData {
-    let mut response_data = routing::generate_response_data(request_data.clone(), db_pool).await;
+    let mut response_data = routing::generate_response_data(request_data.clone(), db_pool, server_config).await;
     let close_or_keep_alive = if keep_alive_max_requests_reached {
         KeepAliveOrClose::Close
     } else {

@@ -5,7 +5,7 @@ use forum::{Forum, get_forum_by_id};
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::{self},
-    http_response::{ResponseData, bad_request_400, ok_html, redirect_to},
+    http_response::{HttpResponseData, bad_request_400, ok_html, redirect_to},
 };
 use session::{SessionNotification, add_session_notification};
 
@@ -20,7 +20,7 @@ pub async fn get(
         session,
         request_data,
     }: RouterData,
-) -> Result<ResponseData, error_structs::InternalAppError> {
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();
 
     let can_create_thread = abac::can_create_thread(CanCreateThreadInput {
@@ -98,7 +98,7 @@ pub async fn post(
         session,
         request_data,
     }: RouterData,
-) -> Result<ResponseData, error_structs::InternalAppError> {
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let body_bytes = request_data.body_bytes.clone();
     let can_create_thread = abac::can_create_thread(CanCreateThreadInput {
         db_pool: db_pool.clone(),

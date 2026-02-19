@@ -1,5 +1,5 @@
 use error_structs::InternalAppError;
-use http_stuff::http_response::{ResponseData, redirect_to};
+use http_stuff::http_response::{HttpResponseData, redirect_to};
 use session::edit_session;
 
 use crate::RouterData;
@@ -10,7 +10,7 @@ pub async fn get(
         session,
         request_data: _,
     }: RouterData,
-) -> Result<ResponseData, error_structs::InternalAppError> {
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let mut clone_sess = session.clone();
     clone_sess.logged_in = false;
     clone_sess.user_id = "".to_string();

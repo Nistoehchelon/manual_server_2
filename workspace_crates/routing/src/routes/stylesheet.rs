@@ -1,10 +1,10 @@
 use http_stuff::http_response::*;
 use read_on_dev_embed_on_release::read_to_string_on_dev_embed_on_release;
 
-pub fn get() -> Result<ResponseData, error_structs::InternalAppError> {
+pub fn get() -> Result<HttpResponseData, error_structs::InternalAppError> {
     let stylesheet_bytes = get_stylesheet_css_content().into_bytes();
 
-    Ok(ResponseData {
+    Ok(HttpResponseData {
         body: Some(stylesheet_bytes),
 
         headers: Headers {

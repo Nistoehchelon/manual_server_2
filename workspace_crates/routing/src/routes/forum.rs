@@ -1,7 +1,7 @@
 use error_structs::InternalAppError;
 use forum::{Forum, ForumThread, get_forum_by_id};
 use html_templating::html_template_structs::{self, MainInfo};
-use http_stuff::http_response::{self, ResponseData, redirect_to};
+use http_stuff::http_response::{self, HttpResponseData, redirect_to};
 use into_vec::into_vec;
 use session::{
     SessionNotification, add_session_notification, read_and_delete_session_notifications,
@@ -16,7 +16,7 @@ pub async fn get(
         session,
         request_data,
     }: RouterData,
-) -> Result<ResponseData, error_structs::InternalAppError> {
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();
     let forum_id = query
         .clone()

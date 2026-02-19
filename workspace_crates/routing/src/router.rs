@@ -4,7 +4,7 @@ use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{
-        Charset, ContentType, Headers, ResponseData, SetCookieHeader, StatusCode,
+        Charset, ContentType, Headers, HttpResponseData, SetCookieHeader, StatusCode,
         internal_server_error_500, redirect_to, response, standalone_response,
     },
 };
@@ -28,7 +28,7 @@ pub async fn route(
     session: Session,
     created_new_session: bool,
     request_data: HttpRequestData,
-) -> Result<ResponseData, InternalAppError> {
+) -> Result<HttpResponseData, InternalAppError> {
     let HttpRequestData {
         path_and_query: _path_and_query,
         path,
@@ -38,7 +38,7 @@ pub async fn route(
         ..
     } = request_data.clone();
 
-    let mut response_data: ResponseData = 'response_block: {
+    let mut response_data: HttpResponseData = 'response_block: {
         if !check_if_user_can_access_path(session.clone(), path.clone()) {
             add_session_notification(
                 db_pool,
@@ -196,7 +196,7 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
     allowed.contains(&path.as_str())
 }
 
-pub async fn response_to_bytes(response_data: ResponseData) -> Vec<u8> {
+pub async fn response_to_bytes(response_data: HttpResponseData) -> Vec<u8> {
     match response(response_data) {
         Ok(rb) => rb,
         Err(_) => standalone_response(StatusCode::Code500InternalServerError, "Error".to_string()),
@@ -205,7 +205,7 @@ pub async fn response_to_bytes(response_data: ResponseData) -> Vec<u8> {
 pub async fn generate_response_data(
     request_data: HttpRequestData,
     db_pool: sqlx::PgPool,
-) -> ResponseData {
+) -> HttpResponseData {
     if is_requesting_static_resource(request_data.path.clone()) {
         let response_data = generate_static_response(request_data);
         return response_data;
@@ -217,7 +217,7 @@ pub async fn generate_response_data(
         match session::get_existing_or_make_new_session(db_pool.clone(), cookies).await {
             Ok((s, cns)) => (s, cns),
             Err(_) => {
-                return ResponseData {
+                return HttpResponseData {
                     body: Some(b"500".to_vec()),
                     headers: Headers {
                         status_code: StatusCode::Code500InternalServerError,
@@ -245,11 +245,11 @@ pub async fn generate_response_data(
 }
 
 pub async fn add_elapsed(
-    mut response_data: ResponseData,
+    mut response_data: HttpResponseData,
     Session { id: session_id, .. }: Session,
     request_start: Instant,
     db_pool: sqlx::PgPool,
-) -> ResponseData {
+) -> HttpResponseData {
     let session_data = match get_session_by_session_id(session_id.clone(), db_pool.clone()).await {
         Ok(Ok(session_data)) => session_data,
         Ok(Err(e)) => {
@@ -299,7 +299,7 @@ pub fn is_requesting_static_resource(path: String) -> bool {
     static_paths.contains(&path.as_str())
 }
 
-pub fn generate_static_response(request_data: HttpRequestData) -> ResponseData {
+pub fn generate_static_response(request_data: HttpRequestData) -> HttpResponseData {
     let HttpRequestData { method, path, .. } = request_data;
     assert!(is_requesting_static_resource(path.clone()));
     dbg!(format!("Entering static routing for {method} {path}"));

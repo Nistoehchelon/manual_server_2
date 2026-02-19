@@ -3,7 +3,7 @@ use error_structs::InternalAppError;
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::{self},
-    http_response::{ResponseData, redirect_to},
+    http_response::{HttpResponseData, redirect_to},
 };
 use into_vec::into_vec;
 use session::{
@@ -20,7 +20,7 @@ pub async fn get(
         session,
         request_data: _,
     }: RouterData,
-) -> Result<ResponseData, error_structs::InternalAppError> {
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
     if session.logged_in {
         return Ok(redirect_to("/".to_string()));
     }
@@ -45,7 +45,7 @@ pub async fn post(
         session,
         request_data,
     }: RouterData,
-) -> Result<ResponseData, error_structs::InternalAppError> {
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
     if session.logged_in {
         add_session_notification(
             db_pool,

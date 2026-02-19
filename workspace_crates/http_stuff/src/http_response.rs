@@ -106,10 +106,11 @@ impl Display for KeepAliveOrClose {
     }
 }
 #[derive(Debug, Clone)]
-pub struct ResponseData {
+pub struct HttpResponseData {
     pub body: Option<Vec<u8>>,
     pub headers: Headers,
 }
+
 #[derive(Debug, Clone)]
 pub struct Headers {
     pub status_code: StatusCode,
@@ -120,7 +121,7 @@ pub struct Headers {
     pub connection: KeepAliveOrClose,
 }
 
-pub fn ok_html(content: String) -> ResponseData {
+pub fn ok_html(content: String) -> HttpResponseData {
     ok(
         content.into_bytes(),
         ContentType::TextHtml,
@@ -128,8 +129,8 @@ pub fn ok_html(content: String) -> ResponseData {
     )
 }
 
-pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>) -> ResponseData {
-    ResponseData {
+pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>) -> HttpResponseData {
+    HttpResponseData {
         body: Some(content),
         headers: Headers {
             status_code: StatusCode::Code200Ok,
@@ -143,7 +144,7 @@ pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>)
 }
 
 pub fn response(
-    ResponseData {
+    HttpResponseData {
         body,
         headers:
             Headers {
@@ -154,7 +155,7 @@ pub fn response(
                 location,
                 connection,
             },
-    }: ResponseData,
+    }: HttpResponseData,
 ) -> Result<HttpResponse, HttpResponseError> {
     let mut http_response_string: String = String::new();
     http_response_string.push_str("HTTP/1.1");
@@ -239,8 +240,8 @@ bluetooth=()\r\n",
     Ok(http_response_bytes)
 }
 
-pub fn redirect_to(page: String) -> ResponseData {
-    ResponseData {
+pub fn redirect_to(page: String) -> HttpResponseData {
+    HttpResponseData {
         body: None,
         headers: Headers {
             status_code: StatusCode::Code302Found,
@@ -254,8 +255,8 @@ pub fn redirect_to(page: String) -> ResponseData {
     }
 }
 
-pub fn internal_server_error_500() -> ResponseData {
-    ResponseData {
+pub fn internal_server_error_500() -> HttpResponseData {
+    HttpResponseData {
         body: None,
         headers: Headers {
             status_code: StatusCode::Code500InternalServerError,
@@ -267,8 +268,8 @@ pub fn internal_server_error_500() -> ResponseData {
         },
     }
 }
-pub fn bad_request_400() -> ResponseData {
-    ResponseData {
+pub fn bad_request_400() -> HttpResponseData {
+    HttpResponseData {
         body: None,
         headers: Headers {
             status_code: StatusCode::Code400BadRequest,
@@ -289,7 +290,7 @@ pub fn standalone_response(status_code: StatusCode, msg: String) -> HttpResponse
     let body = format!(
         r##"<!DOCTYPE html><html lang = "en"><head><title>{msg}</title><style> body {{ text-align: center; }}</style></head><body><div>{msg}</div></body></html>"##
     ).into_bytes();
-    let response_data = ResponseData {
+    let response_data = HttpResponseData {
         body: Some(body),
         headers: Headers {
             status_code: status_code.clone(),

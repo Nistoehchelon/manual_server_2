@@ -1,6 +1,6 @@
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, MainInfo};
-use http_stuff::http_response::{ResponseData, redirect_to};
+use http_stuff::http_response::{HttpResponseData, redirect_to};
 use user;
 
 use crate::RouterData;
@@ -11,7 +11,7 @@ pub async fn get(
         session,
         request_data: _,
     }: RouterData,
-) -> Result<ResponseData, error_structs::InternalAppError> {
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
     if !session.logged_in {
         return Ok(redirect_to("/".to_string()));
     }

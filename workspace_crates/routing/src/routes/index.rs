@@ -7,7 +7,7 @@ use into_vec::into_vec;
 use session::{Session, SessionNotification, read_and_delete_session_notifications};
 use user::{User, get_user_by_user_id};
 
-use http_stuff::http_response::ResponseData;
+use http_stuff::http_response::HttpResponseData;
 
 use crate::RouterData;
 
@@ -17,7 +17,7 @@ pub async fn get(
         session,
         request_data: _,
     }: RouterData,
-) -> Result<ResponseData, error_structs::InternalAppError> {
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let notifs = read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
         .await
         .map_err(InternalAppError::new)?;

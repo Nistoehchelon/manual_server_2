@@ -5,7 +5,7 @@ use html_templating::html_template_structs::Paginator;
 use http_stuff::http_request_parsing;
 use http_stuff::http_response::bad_request_400;
 use http_stuff::http_response::ok_html;
-use http_stuff::http_response::{ResponseData, redirect_to};
+use http_stuff::http_response::{HttpResponseData, redirect_to};
 use into_vec::into_vec;
 use pagination::pagination::Pagination;
 use session::add_session_notification;
@@ -23,7 +23,7 @@ pub async fn get(
         session,
         request_data,
     }: RouterData,
-) -> Result<ResponseData, error_structs::InternalAppError> {
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();
     let thread_id = query.get("id").cloned();
     let thread_id = match thread_id {
@@ -181,7 +181,7 @@ pub async fn post(
         session,
         request_data,
     }: RouterData,
-) -> Result<ResponseData, error_structs::InternalAppError> {
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();
     let body_bytes = request_data.body_bytes.clone();
     let current_url = Url::new(request_data.path.clone(), query.clone());

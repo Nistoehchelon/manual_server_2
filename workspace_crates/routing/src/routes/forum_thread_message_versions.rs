@@ -3,7 +3,7 @@ use html_templating::{
     html_template_structs::{self},
     render,
 };
-use http_stuff::http_response::{ResponseData, ok_html, redirect_to};
+use http_stuff::http_response::{HttpResponseData, ok_html, redirect_to};
 use into_vec::into_vec;
 use pagination::Pagination;
 use session::{
@@ -21,7 +21,7 @@ pub async fn get(
         session,
         request_data,
     }: RouterData,
-) -> Result<ResponseData, InternalAppError> {
+) -> Result<HttpResponseData, InternalAppError> {
     let query = request_data.query.clone();
     let message_id = match query.get("message_id").cloned() {
         Some(tid) => tid,

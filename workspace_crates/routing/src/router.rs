@@ -260,14 +260,12 @@ pub async fn generate_response_data(
                 other_headers.insert(hsts_name.clone(), hsts_age_9999.clone());
             }
         }
+    } else if let Some(ref mut other_headers) = response_data.headers.other_headers {
+        other_headers.insert(hsts_name.clone(), hsts_age_0.clone());
     } else {
+        response_data.headers.other_headers = Some(HashMap::new());
         if let Some(ref mut other_headers) = response_data.headers.other_headers {
             other_headers.insert(hsts_name.clone(), hsts_age_0.clone());
-        } else {
-            response_data.headers.other_headers = Some(HashMap::new());
-            if let Some(ref mut other_headers) = response_data.headers.other_headers {
-                other_headers.insert(hsts_name.clone(), hsts_age_0.clone());
-            }
         }
     }
     response_data

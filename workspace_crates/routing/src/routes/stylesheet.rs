@@ -14,6 +14,7 @@ pub fn get() -> Result<HttpResponseData, error_structs::InternalAppError> {
             set_cookie: None,
             location: None,
             connection: KeepAliveOrClose::KeepAlive,
+            other_headers: None,
         },
     })
 }

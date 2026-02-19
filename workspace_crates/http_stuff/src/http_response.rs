@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::fmt::Display;
+use std::collections::HashMap;
 
 pub type HttpResponse = Vec<u8>;
 
@@ -105,6 +106,8 @@ impl Display for KeepAliveOrClose {
         }
     }
 }
+
+
 #[derive(Debug, Clone)]
 pub struct HttpResponseData {
     pub body: Option<Vec<u8>>,
@@ -119,6 +122,7 @@ pub struct Headers {
     pub set_cookie: Option<Vec<SetCookieHeader>>,
     pub location: Option<String>,
     pub connection: KeepAliveOrClose,
+    pub other_headers: Option<HashMap<String, String>>,
 }
 
 pub fn ok_html(content: String) -> HttpResponseData {
@@ -139,6 +143,7 @@ pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>)
             set_cookie: None,
             location: None,
             connection: KeepAliveOrClose::KeepAlive,
+            other_headers: None,
         },
     }
 }
@@ -154,6 +159,7 @@ pub fn response(
                 charset,
                 location,
                 connection,
+                other_headers,
             },
     }: HttpResponseData,
 ) -> Result<HttpResponse, HttpResponseError> {
@@ -199,8 +205,6 @@ pub fn response(
 
     http_response_string.push_str(&format!("Content-Length: {body_bytes_length}\r\n"));
 
-    http_response_string
-        .push_str("Strict-Transport-Security: max-age=999999999; includeSubDomains; preload\r\n");
     http_response_string.push_str("X-Content-Type-Options: nosniff\r\n");
     http_response_string.push_str("X-Frame-Options: DENY\r\n");
 
@@ -217,6 +221,14 @@ payment=(),\
 usb=(),\
 bluetooth=()\r\n",
     );
+
+    if let Some(other_headers) = other_headers {
+        for (name, value) in other_headers.iter() {
+        http_response_string
+        .push_str(&format!("{name}: {value}\r\n"));
+    }
+}
+
 
     let nonce = "test_make_this_random_later";
     http_response_string.push_str(&format!(
@@ -251,6 +263,7 @@ pub fn redirect_to(page: String) -> HttpResponseData {
 
             set_cookie: None,
             connection: KeepAliveOrClose::KeepAlive,
+            other_headers: None,
         },
     }
 }
@@ -265,6 +278,7 @@ pub fn internal_server_error_500() -> HttpResponseData {
             set_cookie: None,
             location: None,
             connection: KeepAliveOrClose::KeepAlive,
+            other_headers: None,
         },
     }
 }
@@ -279,6 +293,7 @@ pub fn bad_request_400() -> HttpResponseData {
             set_cookie: None,
             location: None,
             connection: KeepAliveOrClose::KeepAlive,
+            other_headers: None,
         },
     }
 }
@@ -299,6 +314,7 @@ pub fn standalone_response(status_code: StatusCode, msg: String) -> HttpResponse
             set_cookie: None,
             location: None,
             connection: KeepAliveOrClose::Close,
+            other_headers: None,
         },
     };
     response(response_data).unwrap_or_else(|_| {

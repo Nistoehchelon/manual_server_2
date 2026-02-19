@@ -227,6 +227,7 @@ pub async fn generate_response_data(
                         set_cookie: None,
                         location: None,
                         connection: http_stuff::http_response::KeepAliveOrClose::KeepAlive,
+                        other_headers: None,
                     },
                 };
             }

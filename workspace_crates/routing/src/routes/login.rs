@@ -18,7 +18,7 @@ pub async fn get(
     RouterData {
         db_pool,
         session,
-        request_data: _,
+        http_request_data: _,
     }: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     if session.logged_in {
@@ -43,7 +43,7 @@ pub async fn post(
     RouterData {
         db_pool,
         session,
-        request_data,
+        http_request_data: request_data,
     }: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     if session.logged_in {
@@ -155,7 +155,7 @@ pub async fn post(
 fn get_html(notifications: Vec<SessionNotification>, csrf_token: String) -> String {
     html_templating::render(html_template_structs::LoginTemplate {
         csrf_token,
-        main_info: html_template_structs::MainInfo {
+        main_info: html_template_structs::BaseTemplateData {
             title: "Login".to_string(),
             notifications: into_vec(notifications),
         },

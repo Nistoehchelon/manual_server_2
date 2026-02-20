@@ -8,7 +8,7 @@ pub async fn get(
     RouterData {
         db_pool,
         session,
-        request_data: _,
+        http_request_data: _,
     }: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let mut clone_sess = session.clone();

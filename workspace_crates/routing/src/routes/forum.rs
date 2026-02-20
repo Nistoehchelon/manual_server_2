@@ -1,6 +1,6 @@
 use error_structs::InternalAppError;
 use forum::{Forum, ForumThread, get_forum_by_id};
-use html_templating::html_template_structs::{self, MainInfo};
+use html_templating::html_template_structs::{self, BaseTemplateData};
 use http_stuff::http_response::{self, HttpResponseData, redirect_to};
 use into_vec::into_vec;
 use session::{
@@ -14,7 +14,7 @@ pub async fn get(
     RouterData {
         db_pool,
         session,
-        request_data,
+        http_request_data: request_data,
     }: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();
@@ -110,7 +110,7 @@ fn get_html(
     }: GetHtmlArgs,
 ) -> String {
     html_templating::render(html_template_structs::ForumTemplate {
-        main_info: MainInfo {
+        main_info: BaseTemplateData {
             title,
             notifications: into_vec(notifications),
         },

@@ -19,7 +19,7 @@ pub async fn get(
     RouterData {
         db_pool,
         session,
-        request_data,
+        http_request_data: request_data,
     }: RouterData,
 ) -> Result<HttpResponseData, InternalAppError> {
     let query = request_data.query.clone();
@@ -137,7 +137,7 @@ pub async fn get(
 
     Ok(ok_html(render(
         html_template_structs::ForumThreadMessageVersionsTemplate {
-            main_info: html_template_structs::MainInfo {
+            main_info: html_template_structs::BaseTemplateData {
                 title: "Message versions".to_string(),
                 notifications: into_vec(
                     read_and_delete_session_notifications(db_pool.clone(), session.id.clone())

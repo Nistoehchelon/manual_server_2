@@ -49,7 +49,7 @@ pub struct Paginator {
 #[derive(Template)]
 #[template(path = "forum_thread.html")]
 pub struct ForumThread {
-    pub main_info: MainInfo,
+    pub main_info: BaseTemplateData,
     pub thread_messages: Vec<ForumThreadMessageCombinedData>,
     pub csrf_token: String,
     pub current_url: String,
@@ -60,11 +60,14 @@ pub struct ForumThread {
     pub user_can_add_message: bool,
 }
 
-pub struct MainInfo {
+#[derive(Clone, Debug)]
+pub struct BaseTemplateData {
     pub title: String,
     pub notifications: Vec<SessionNotification>,
+    pub nonce: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct SessionNotification {
     pub message: String,
     pub notification_type: String,
@@ -88,7 +91,7 @@ pub struct ForumThreadMessageVersion {
 #[derive(Template)]
 #[template(path = "forum_thread_message_versions.html")]
 pub struct ForumThreadMessageVersionsTemplate {
-    pub main_info: MainInfo,
+    pub main_info: BaseTemplateData,
     pub message_id: String,
     pub thread_id: String,
     pub thread_page: String,
@@ -99,19 +102,19 @@ pub struct ForumThreadMessageVersionsTemplate {
 #[derive(Template)]
 #[template(path = "index_logged_in.html")]
 pub struct IndexLoggedInTemplate {
-    pub main_info: MainInfo,
+    pub main_info: BaseTemplateData,
     pub user: User,
 }
 #[derive(Template)]
 #[template(path = "index_not_logged_in.html")]
 pub struct IndexNotLoggedInTemplate {
-    pub main_info: MainInfo,
+    pub main_info: BaseTemplateData,
 }
 
 #[derive(Template)]
 #[template(path = "signup.html")]
 pub struct SignupTemplate {
-    pub main_info: MainInfo,
+    pub main_info: BaseTemplateData,
     pub csrf_token: String,
 }
 
@@ -119,19 +122,19 @@ pub struct SignupTemplate {
 #[template(path = "login.html")]
 pub struct LoginTemplate {
     pub csrf_token: String,
-    pub main_info: MainInfo,
+    pub main_info: BaseTemplateData,
 }
 #[derive(Template)]
 #[template(path = "dashboard.html")]
 pub struct DashboardTemplate {
-    pub main_info: MainInfo,
+    pub main_info: BaseTemplateData,
     pub username: String,
 }
 
 #[derive(Template)]
 #[template(path = "forum.html")]
 pub struct ForumTemplate {
-    pub main_info: MainInfo,
+    pub main_info: BaseTemplateData,
     pub user_can_create_forum: bool,
     pub user_can_create_thread: bool,
     pub forum: Forum,
@@ -143,7 +146,7 @@ pub struct ForumTemplate {
 #[derive(Template)]
 #[template(path = "create_thread.html")]
 pub struct CreateThreadTemplate {
-    pub main_info: MainInfo,
+    pub main_info: BaseTemplateData,
     pub forum: Forum,
     pub csrf_token: String,
 }

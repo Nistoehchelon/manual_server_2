@@ -21,7 +21,7 @@ pub async fn get(
     RouterData {
         db_pool,
         session,
-        request_data,
+        http_request_data: request_data,
     }: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();
@@ -149,7 +149,7 @@ pub async fn get(
     .map_err(InternalAppError::new)?;
 
     let html = html_templating::render(html_template_structs::ForumThread {
-        main_info: html_template_structs::MainInfo {
+        main_info: html_template_structs::BaseTemplateData {
             title: String::new(),
             notifications: into_vec(
                 read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
@@ -179,7 +179,7 @@ pub async fn post(
     RouterData {
         db_pool,
         session,
-        request_data,
+        http_request_data: request_data,
     }: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let query = request_data.query.clone();

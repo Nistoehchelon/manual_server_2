@@ -1,5 +1,6 @@
 use std::time::Instant;
 use config_reader::Config;
+use html_templating::html_template_structs::BaseTemplateData;
     use std::collections::HashMap;
 
 use error_structs::InternalAppError;
@@ -22,7 +23,8 @@ use crate::routes;
 pub struct RouterData {
     pub db_pool: sqlx::PgPool,
     pub session: Session,
-    pub request_data: HttpRequestData,
+    pub http_request_data: HttpRequestData,
+    pub base_template_data: BaseTemplateData,
 }
 
 pub async fn route(
@@ -76,10 +78,17 @@ pub async fn route(
                 break 'response_block redirect_to("/".to_string());
             }
         }
+        let nonce = "123".to_string();
+        let base_template_data = html_templating::html_template_structs::BaseTemplateData {
+            title: "".to_string(),
+            notifications: Vec::new(),
+            nonce,
+        };
         let router_data = RouterData {
             db_pool: db_pool.clone(),
             session: session.clone(),
-            request_data: request_data.clone(),
+            http_request_data: request_data.clone(),
+            base_template_data,
         };
         dbg!(format!("Entering routing for {method} {path}"));
         match (method.as_str(), path.as_str()) {

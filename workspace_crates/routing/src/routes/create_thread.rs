@@ -12,16 +12,11 @@ use session::{SessionNotification, add_session_notification};
 use crate::RouterData;
 
 pub async fn get(
-    // session: Session,
-    // query: Query,
-    // db_pool: sqlx::PgPool,
-    RouterData {
-        db_pool,
-        session,
-        request_data,
-    }: RouterData,
+   mut router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
-    let query = request_data.query.clone();
+    let query = router_data.http_request_data.query.clone();
+    let db_pool = router_data.db_pool.clone();
+    let session = router_data.session.clone();
 
     let can_create_thread = abac::can_create_thread(CanCreateThreadInput {
         db_pool: db_pool.clone(),
@@ -55,7 +50,7 @@ pub async fn get(
         return Ok(redirect_to("/forum".to_string()));
     }
     let forum = forum.unwrap();
-    let notifs =
+    let notifications =
         session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
             .await
             .map_err(InternalAppError::new)?;
@@ -68,35 +63,24 @@ pub async fn get(
     .await
     .map_err(InternalAppError::new)?;
 
-    Ok(ok_html(get_html(
-        format!(r##"Create a thread in forum {}"##, forum.name.clone()),
-        forum.clone(),
-        notifs,
-        csrf_token,
-    )))
-}
+    let title = format!(r##"Create a thread in forum {}"##, forum.name.clone());
+    router_data.base_template_data.notifications = into_vec::into_vec(notifications);
+    router_data.base_template_data.title = title;
 
-fn get_html(
-    title: String,
-    forum: Forum,
-    notifications: Vec<session::SessionNotification>,
-    csrf_token: String,
-) -> String {
-    html_templating::render(html_template_structs::CreateThreadTemplate {
-        main_info: html_template_structs::MainInfo {
-            title,
-            notifications: into_vec::into_vec(notifications),
-        },
+    let html = html_templating::render(html_template_structs::CreateThreadTemplate {
+        main_info: router_data.base_template_data,
         forum: forum.into(),
         csrf_token,
-    })
+    });
+    Ok(ok_html(html))
 }
+
 
 pub async fn post(
     RouterData {
         db_pool,
         session,
-        request_data,
+        http_request_data: request_data,
     }: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let body_bytes = request_data.body_bytes.clone();

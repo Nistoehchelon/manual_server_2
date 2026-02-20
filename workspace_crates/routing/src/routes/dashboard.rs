@@ -1,5 +1,5 @@
 use error_structs::InternalAppError;
-use html_templating::html_template_structs::{self, MainInfo};
+use html_templating::html_template_structs::{self, BaseTemplateData};
 use http_stuff::http_response::{HttpResponseData, redirect_to};
 use user;
 
@@ -9,7 +9,7 @@ pub async fn get(
     RouterData {
         db_pool,
         session,
-        request_data: _,
+        http_request_data: _,
     }: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     if !session.logged_in {
@@ -24,7 +24,7 @@ pub async fn get(
             .map_err(InternalAppError::new)?;
 
     let html = html_templating::render(html_template_structs::DashboardTemplate {
-        main_info: MainInfo {
+        main_info: BaseTemplateData {
             title: "Your Dashboard".to_string(),
             notifications: into_vec::into_vec(notifications),
         },

@@ -1,5 +1,5 @@
 use error_structs::InternalAppError;
-use html_templating::html_template_structs::{self, MainInfo};
+use html_templating::html_template_structs::{self, BaseTemplateData};
 use http_stuff::{
     http_request_parsing::{self},
     http_response::{HttpResponseData, ok_html, redirect_to},
@@ -17,7 +17,7 @@ pub async fn get(
     RouterData {
         db_pool,
         session,
-        request_data: _,
+        http_request_data: _,
     }: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     if session.logged_in {
@@ -51,7 +51,7 @@ pub async fn get(
 
 fn get_signup_html(notifications: Vec<session::SessionNotification>, csrf_token: String) -> String {
     html_templating::render(html_template_structs::SignupTemplate {
-        main_info: MainInfo {
+        main_info: BaseTemplateData {
             title: "Signup".to_string(),
             notifications: into_vec(notifications),
         },
@@ -63,7 +63,7 @@ pub async fn post(
     RouterData {
         db_pool,
         session,
-        request_data,
+        http_request_data: request_data,
     }: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     if session.logged_in {

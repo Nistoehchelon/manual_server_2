@@ -59,12 +59,14 @@ pub struct SetCookieHeader {
     pub key: String,
     pub value: String,
     pub path: String,
+    pub secure: bool,
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum ContentType {
     TextHtml,
     TextCss,
     TextPlain,
+    TextJavascript,
     ImageXIcon,
 }
 impl Display for ContentType {
@@ -74,6 +76,7 @@ impl Display for ContentType {
             Self::TextCss => "text/css",
             Self::TextPlain => "text/plain",
             Self::ImageXIcon => "image/x-icon",
+            Self::TextJavascript => "text/javascript",
         };
         write!(f, "{}", t)
     }
@@ -115,6 +118,73 @@ pub struct HttpResponseData {
     pub status_code: StatusCode,
     pub set_cookie: Option<Vec<SetCookieHeader>>,
     pub headers: Headers,
+}
+impl HttpResponseData {
+    pub fn response(&self,
+) -> Result<HttpResponse, HttpResponseError> {
+    let HttpResponseData {
+        body,
+        status_code,
+        headers, set_cookie } = self;
+    let mut http_response_string: String = String::new();
+    http_response_string.push_str("HTTP/1.1");
+    http_response_string.push(' ');
+    let status_code_string = status_code.to_string();
+    http_response_string.push_str(&status_code_string);
+    http_response_string.push_str("\r\n");
+
+    if let Some(set_cookie) = set_cookie {
+        for sc in set_cookie.iter() {
+            dbg!(sc.clone());
+            let secure = 's: {
+                if sc.secure {
+                    break 's "Secure;";
+                }
+                ""
+            }.to_string();
+            let set_cookie_string = format!(
+                "Set-Cookie: {}={}; Path={}; {secure} HttpOnly; SameSite=Strict\r\n",
+                sc.key, sc.value, sc.path
+            );
+            http_response_string.push_str(&set_cookie_string);
+        }
+    }
+
+    let mut body_bytes_length = 0;
+    let body_bytes: Vec<u8> = match body {
+        Some(b) => {
+            body_bytes_length = b.len();
+            b.to_vec()
+        }
+        None => Vec::new(),
+    };
+
+     http_response_string.push_str(&format!("Content-Length: {body_bytes_length}\r\n"));
+
+
+
+        for (name, value) in headers.iter() {
+            http_response_string.push_str(&format!("{name}: {value}\r\n"));
+        }
+    
+
+
+    http_response_string.push_str("\r\n");
+
+    if !http_response_string.is_ascii() {
+        let err = "http_response_string contains non-ascii bytes, not allowed".to_string();
+        dbg!(&err);
+        return Err(HttpResponseError::new(err));
+    }
+
+    let mut http_response_bytes = http_response_string.clone().into_bytes();
+
+    if body_bytes_length > 0 {
+        http_response_bytes.extend_from_slice(&body_bytes);
+    }
+
+    Ok(http_response_bytes)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -226,84 +296,6 @@ pub fn ok(
     }
 }
 
-pub fn response(
-    HttpResponseData {
-        body,
-        status_code,
-        headers, set_cookie }: HttpResponseData,
-) -> Result<HttpResponse, HttpResponseError> {
-    let mut http_response_string: String = String::new();
-    http_response_string.push_str("HTTP/1.1");
-    http_response_string.push(' ');
-    let status_code_string = status_code.to_string();
-    http_response_string.push_str(&status_code_string);
-    http_response_string.push_str("\r\n");
-
-    if let Some(set_cookie) = set_cookie {
-        for sc in set_cookie.iter() {
-            let set_cookie_string = format!(
-                "Set-Cookie: {}={}; Path={}; Secure; HttpOnly; SameSite=Strict\r\n",
-                sc.key, sc.value, sc.path
-            );
-            http_response_string.push_str(&set_cookie_string);
-        }
-    }
-
-    let mut body_bytes_length = 0;
-    let body_bytes: Vec<u8> = match body {
-        Some(b) => {
-            body_bytes_length = b.len();
-            b
-        }
-        None => Vec::new(),
-    };
-
-     http_response_string.push_str(&format!("Content-Length: {body_bytes_length}\r\n"));
-
-//     http_response_string.push_str("X-Content-Type-Options: nosniff\r\n");
-//     http_response_string.push_str("X-Frame-Options: DENY\r\n");
-
-//     http_response_string.push_str("Cross-Origin-Embedder-Policy: require-corp\r\n");
-//     http_response_string.push_str("Cross-Origin-Resource-Policy: same-origin\r\n");
-//     http_response_string.push_str("Cross-Origin-Opener-Policy: same-origin\r\n");
-//     http_response_string.push_str("Referrer-Policy: no-referrer\r\n");
-//     http_response_string.push_str(
-//         "Permissions-Policy:\
-// camera=(),\
-// microphone=(),\
-// geolocation=(),\
-// payment=(),\
-// usb=(),\
-// bluetooth=()\r\n",
-//     );
-//     let nonce = "test_make_this_random_later";
-//     http_response_string.push_str(&format!(
-//         "Content-Security-Policy: default-src 'none'; script-src 'nonce-{nonce}' 'strict-dynamic'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; img-src 'self'; style-src 'self'; connect-src 'self'; font-src 'self'; form-action 'self';"
-//     ));
-
-        for (name, value) in headers.iter() {
-            http_response_string.push_str(&format!("{name}: {value}\r\n"));
-        }
-    
-
-
-    http_response_string.push_str("\r\n\r\n");
-
-    if !http_response_string.is_ascii() {
-        let err = "http_response_string contains non-ascii bytes, not allowed".to_string();
-        dbg!(&err);
-        return Err(HttpResponseError::new(err));
-    }
-
-    let mut http_response_bytes = http_response_string.clone().into_bytes();
-
-    if body_bytes_length > 0 {
-        http_response_bytes.extend_from_slice(&body_bytes);
-    }
-
-    Ok(http_response_bytes)
-}
-
 pub fn redirect_to(page: String) -> HttpResponseData {
     HttpResponseData {
         body: None,
@@ -368,7 +360,7 @@ pub fn standalone_response(status_code: StatusCode, msg: String) -> HttpResponse
         },
         set_cookie: None,
     };
-    response(response_data).unwrap_or_else(|_| {
+    response_data.response().unwrap_or_else(|_| {
         let msg = format!("Some Error occured {msg} {}", status_code);
         format!(
             "HTTP/1.1 {}\n\

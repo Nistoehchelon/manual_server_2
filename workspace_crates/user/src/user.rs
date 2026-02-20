@@ -43,7 +43,7 @@ pub async fn try_to_create_new_user(
 
     if !username_available {
         return Ok(Err(PublicError::new(
-            "The username is... taken alredy!!! 😈".to_string(),
+            "The username is... taken already!!! 😈".to_string(),
         )));
     }
 

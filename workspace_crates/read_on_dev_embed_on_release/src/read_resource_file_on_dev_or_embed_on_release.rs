@@ -16,6 +16,9 @@ pub fn read_to_string_on_dev_embed_on_release(file_name: &str) -> String {
         match file_name {
             "stylesheet.css" => {
                 include_str!("../../../static_resources/stylesheet.css").to_string()
+            },
+            "app.js" => {
+                include_str!("../../../static_resources/app.js").to_string()
             }
             // Add more files as needed
             _ => {

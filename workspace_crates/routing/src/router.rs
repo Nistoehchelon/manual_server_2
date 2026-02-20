@@ -7,7 +7,7 @@ use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{
         self, Charset, ContentType, HttpResponseData, SetCookieHeader, StatusCode,
-        internal_server_error_500, redirect_to, response, standalone_response,
+        internal_server_error_500, redirect_to, standalone_response,
     },
 };
 use session::{
@@ -28,9 +28,11 @@ pub struct RouterData {
 
 pub async fn route(
     db_pool: sqlx::PgPool,
+    server_config: Config,
     session: Session,
     created_new_session: bool,
     request_data: HttpRequestData,
+    base_template_data: BaseTemplateData,
 ) -> Result<HttpResponseData, InternalAppError> {
     let HttpRequestData {
         path_and_query: _path_and_query,
@@ -77,12 +79,7 @@ pub async fn route(
                 break 'response_block redirect_to("/".to_string());
             }
         }
-        let nonce = "123".to_string(); // obviously to replace with real nonce
-        let base_template_data = html_templating::html_template_structs::BaseTemplateData {
-            title: "".to_string(),
-            notifications: Vec::new(),
-            nonce,
-        };
+
         let router_data = RouterData {
             db_pool: db_pool.clone(),
             session: session.clone(),
@@ -141,7 +138,9 @@ pub async fn route(
             key: session::get_name_of_cookie_containing_session_id(),
             value: session.id.clone(),
             path: "/".to_string(),
+            secure: server_config.use_tls
         };
+        dbg!(ch.clone());
         match response_data.set_cookie {
             None => {
                 let v = vec![ch];
@@ -207,7 +206,7 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
 }
 
 pub async fn response_to_bytes(response_data: HttpResponseData) -> Vec<u8> {
-    match response(response_data) {
+    match response_data.response() {
         Ok(rb) => rb,
         Err(_) => standalone_response(StatusCode::Code500InternalServerError, "Error".to_string()),
     }
@@ -248,18 +247,26 @@ pub async fn generate_response_data(
                 };
             }
         };
-    // Route handling
+    let nonce = "123".to_string(); // obviously to replace with real nonce
+    let base_template_data = html_templating::html_template_structs::BaseTemplateData {
+        title: "".to_string(),
+        notifications: Vec::new(),
+        nonce: nonce.clone(),
+    };
     let response_data = route(
         db_pool.clone(),
+        server_config.clone(),
         session.clone(),
         created_new_session,
         request_data,
+        base_template_data,
     )
     .await
     .unwrap_or(internal_server_error_500());
 
     let mut response_data = add_elapsed(response_data, session, request_start, db_pool).await;
 
+    // HSTS
     let hsts_name = String::from("Strict-Transport-Security");
     let hsts_age_0 = String::from("max-age=0; includeSubDomains; preload");
     let hsts_age_9999 = String::from("max-age=99999999; includeSubDomains; preload");
@@ -270,6 +277,42 @@ pub async fn generate_response_data(
     } else {
         response_data.headers.insert(&hsts_name, hsts_age_0);
     }
+
+    // Other sec headers
+
+    response_data
+        .headers
+        .insert("X-Content-Type-Options", "nosniff".to_string());
+    response_data
+        .headers
+        .insert("X-Frame-Options", "DENY".to_string());
+
+    // response_data
+    //     .headers
+    //     .insert("Cross-Origin-Embedder-Policy", "require-corp".to_string());
+    // response_data
+    //     .headers
+    //     .insert("Cross-Origin-Resource-Policy", "same-origin".to_string());
+    // response_data
+    //     .headers
+    //     .insert("Cross-Origin-Opener-Policy", "same-origin".to_string());
+    response_data
+        .headers
+        .insert("Referrer-Policy", "no-referrer".to_string());
+    response_data.headers.insert(
+        "Permissions-Policy",
+        "camera=(),\
+microphone=(),\
+geolocation=(),\
+payment=(),\
+usb=(),\
+bluetooth=()"
+            .to_string(),
+    );
+    response_data.headers.insert("Content-Security-Policy", format!(
+        "default-src 'none'; script-src 'nonce-{}' 'strict-dynamic'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; img-src 'self'; style-src 'self'; connect-src 'self'; font-src 'self'; form-action 'self';"
+    , nonce.clone()));
+
     response_data
 }
 
@@ -292,13 +335,13 @@ pub async fn add_elapsed(
     };
     let elapsed_ms = request_start.elapsed().as_millis();
 
-    let content_type_html =  'show_time: {
+    let content_type_html = 'show_time: {
         if let Some(content_type) = response_data.headers.get("content-type")
-            && content_type == ContentType::TextHtml.to_string() {
-                break 'show_time true;
-            }
+            && content_type == ContentType::TextHtml.to_string()
+        {
+            break 'show_time true;
+        }
         false
-
     };
     if let Some(body) = &mut response_data.body
         && content_type_html
@@ -315,6 +358,8 @@ Page loading took {elapsed_ms} ms<br>
 
         html = html.replace("</body>", &format!("{}\n</body>", timing_html));
         *body = html.into_bytes();
+        // this is to update the content-length since the above modifies body
+        response_data.headers.insert("content-length",(*body).len().to_string());
     }
     let elapsed_ms: i64 = match i64::try_from(elapsed_ms) {
         Ok(v) => v,
@@ -329,11 +374,12 @@ Page loading took {elapsed_ms} ms<br>
     {
         dbg!("Could not edit previous_page_load_time_ms");
     }
+
     response_data
 }
 
 pub fn is_requesting_static_resource(path: String) -> bool {
-    let static_paths = ["/stylesheet.css", "/favicon.ico"];
+    let static_paths = ["/stylesheet.css", "/favicon.ico", "/app.js"];
     static_paths.contains(&path.as_str())
 }
 
@@ -348,6 +394,16 @@ pub fn generate_static_response(request_data: HttpRequestData) -> HttpResponseDa
             routes::stylesheet::get().unwrap_or(internal_server_error_500())
         }
         ("GET", "/favicon.ico") => routes::favicon::get().unwrap_or(internal_server_error_500()),
+        ("GET", "/app.js") => {
+            let appjs =
+                read_on_dev_embed_on_release::read_to_string_on_dev_embed_on_release("app.js");
+
+            http_stuff::http_response::ok(
+                appjs.into_bytes(),
+                http_response::ContentType::TextJavascript,
+                Some(Charset::Utf8),
+            )
+        }
         _ => unreachable!("Should not happen"),
     }
 }

@@ -15,14 +15,12 @@ use user::get_user_by_user_id;
 
 use crate::RouterData;
 
-pub async fn get(
-    RouterData {
-        db_pool,
-        session,
-        http_request_data: request_data,
-    }: RouterData,
-) -> Result<HttpResponseData, InternalAppError> {
+pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, InternalAppError> {
+    let db_pool = router_data.db_pool.clone();
+    let session = router_data.session.clone();
+    let request_data = router_data.http_request_data.clone();
     let query = request_data.query.clone();
+
     let message_id = match query.get("message_id").cloned() {
         Some(tid) => tid,
         None => {
@@ -135,16 +133,15 @@ pub async fn get(
         });
     }
 
+    router_data.base_template_data.title = "Message versions".to_string();
+    router_data.base_template_data.notifications = into_vec(
+        read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
+            .await
+            .map_err(InternalAppError::new)?,
+    );
     Ok(ok_html(render(
         html_template_structs::ForumThreadMessageVersionsTemplate {
-            main_info: html_template_structs::BaseTemplateData {
-                title: "Message versions".to_string(),
-                notifications: into_vec(
-                    read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-                        .await
-                        .map_err(InternalAppError::new)?,
-                ),
-            },
+            main_info: router_data.base_template_data,
             message_id,
             thread_id: thread.id,
             thread_page: thread_page.to_string(),

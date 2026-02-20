@@ -1,7 +1,7 @@
 use abac::CanCreateThreadInput;
 use error_structs::InternalAppError;
 use forum;
-use forum::{Forum, get_forum_by_id};
+use forum::get_forum_by_id;
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::{self},
@@ -12,7 +12,7 @@ use session::{SessionNotification, add_session_notification};
 use crate::RouterData;
 
 pub async fn get(
-   mut router_data: RouterData,
+    mut router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let query = router_data.http_request_data.query.clone();
     let db_pool = router_data.db_pool.clone();
@@ -75,14 +75,12 @@ pub async fn get(
     Ok(ok_html(html))
 }
 
-
 pub async fn post(
-    RouterData {
-        db_pool,
-        session,
-        http_request_data: request_data,
-    }: RouterData,
+    router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
+    let db_pool = router_data.db_pool.clone();
+    let session = router_data.session.clone();
+    let request_data = router_data.http_request_data.clone();
     let body_bytes = request_data.body_bytes.clone();
     let can_create_thread = abac::can_create_thread(CanCreateThreadInput {
         db_pool: db_pool.clone(),

@@ -1,6 +1,6 @@
 use error_structs::InternalAppError;
-use forum::{Forum, ForumThread, get_forum_by_id};
-use html_templating::html_template_structs::{self, BaseTemplateData};
+use forum::get_forum_by_id;
+use html_templating::html_template_structs::{self};
 use http_stuff::http_response::{self, HttpResponseData, redirect_to};
 use into_vec::into_vec;
 use session::{
@@ -11,13 +11,12 @@ use user::find_user_by_user_id;
 use crate::RouterData;
 
 pub async fn get(
-    RouterData {
-        db_pool,
-        session,
-        http_request_data: request_data,
-    }: RouterData,
+    mut router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
-    let query = request_data.query.clone();
+    let db_pool = router_data.db_pool.clone();
+    let session = router_data.session.clone();
+    let http_request_data = router_data.http_request_data.clone();
+    let query = http_request_data.query.clone();
     let forum_id = query
         .clone()
         .iter()
@@ -77,48 +76,16 @@ pub async fn get(
         .map_err(InternalAppError::new)?;
     }
 
-    let html = get_html(GetHtmlArgs {
-        title,
-        user_can_create_forum,
-        user_can_create_thread,
-        forum,
-        forum_threads,
-        subforums,
-        notifications,
-    });
-    Ok(http_response::ok_html(html))
-}
-
-struct GetHtmlArgs {
-    pub title: String,
-    pub user_can_create_forum: bool,
-    pub user_can_create_thread: bool,
-    pub forum: Forum,
-    pub forum_threads: Vec<ForumThread>,
-    pub subforums: Vec<Forum>,
-    pub notifications: Vec<SessionNotification>,
-}
-fn get_html(
-    GetHtmlArgs {
-        title,
-        user_can_create_forum,
-        user_can_create_thread,
-        forum,
-        forum_threads,
-        subforums,
-        notifications,
-    }: GetHtmlArgs,
-) -> String {
-    html_templating::render(html_template_structs::ForumTemplate {
-        main_info: BaseTemplateData {
-            title,
-            notifications: into_vec(notifications),
-        },
+    router_data.base_template_data.title = title;
+    router_data.base_template_data.notifications = into_vec(notifications);
+    let html = html_templating::render(html_template_structs::ForumTemplate {
+        main_info: router_data.base_template_data,
         user_can_create_forum,
         user_can_create_thread,
         forum: forum.into(),
         subforums: into_vec(subforums),
         forum_threads: into_vec(forum_threads),
         forum_threads_pagination: vec![],
-    })
+    });
+    Ok(http_response::ok_html(html))
 }

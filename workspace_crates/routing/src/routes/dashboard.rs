@@ -1,17 +1,15 @@
 use error_structs::InternalAppError;
-use html_templating::html_template_structs::{self, BaseTemplateData};
+use html_templating::html_template_structs::{self};
 use http_stuff::http_response::{HttpResponseData, redirect_to};
 use user;
 
 use crate::RouterData;
 
 pub async fn get(
-    RouterData {
-        db_pool,
-        session,
-        http_request_data: _,
-    }: RouterData,
+    mut router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
+    let db_pool = router_data.db_pool.clone();
+    let session = router_data.session.clone();
     if !session.logged_in {
         return Ok(redirect_to("/".to_string()));
     }
@@ -22,12 +20,10 @@ pub async fn get(
         session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
             .await
             .map_err(InternalAppError::new)?;
-
+    router_data.base_template_data.title = "Your Dashboard".to_string();
+    router_data.base_template_data.notifications = into_vec::into_vec(notifications);
     let html = html_templating::render(html_template_structs::DashboardTemplate {
-        main_info: BaseTemplateData {
-            title: "Your Dashboard".to_string(),
-            notifications: into_vec::into_vec(notifications),
-        },
+        main_info: router_data.base_template_data,
         username: user.username.clone(),
     });
     Ok(http_stuff::http_response::ok_html(html))

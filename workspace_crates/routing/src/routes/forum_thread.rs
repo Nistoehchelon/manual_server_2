@@ -18,12 +18,11 @@ use crate::RouterData;
 pub const MESSAGES_PER_PAGE: u64 = 15;
 
 pub async fn get(
-    RouterData {
-        db_pool,
-        session,
-        http_request_data: request_data,
-    }: RouterData,
+    mut router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
+    let db_pool = router_data.db_pool.clone();
+    let session = router_data.session.clone();
+    let request_data = router_data.http_request_data.clone();
     let query = request_data.query.clone();
     let thread_id = query.get("id").cloned();
     let thread_id = match thread_id {
@@ -148,15 +147,14 @@ pub async fn get(
     .await
     .map_err(InternalAppError::new)?;
 
+    router_data.base_template_data.title = String::new();
+    router_data.base_template_data.notifications = into_vec(
+        read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
+            .await
+            .map_err(InternalAppError::new)?,
+    );
     let html = html_templating::render(html_template_structs::ForumThread {
-        main_info: html_template_structs::BaseTemplateData {
-            title: String::new(),
-            notifications: into_vec(
-                read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-                    .await
-                    .map_err(InternalAppError::new)?,
-            ),
-        },
+        main_info: router_data.base_template_data,
         thread_messages,
         thread_name: thread.name,
         current_url: current_url.clone().to_string(),
@@ -176,12 +174,11 @@ pub async fn get(
 }
 
 pub async fn post(
-    RouterData {
-        db_pool,
-        session,
-        http_request_data: request_data,
-    }: RouterData,
+    router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
+    let db_pool = router_data.db_pool.clone();
+    let session = router_data.session.clone();
+    let request_data = router_data.http_request_data.clone();
     let query = request_data.query.clone();
     let body_bytes = request_data.body_bytes.clone();
     let current_url = Url::new(request_data.path.clone(), query.clone());

@@ -1,6 +1,6 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fmt::Display;
-use std::collections::HashMap;
 
 pub type HttpResponse = Vec<u8>;
 
@@ -107,7 +107,6 @@ impl Display for KeepAliveOrClose {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct HttpResponseData {
     pub body: Option<Vec<u8>>,
@@ -133,7 +132,11 @@ pub fn ok_html(content: String) -> HttpResponseData {
     )
 }
 
-pub fn ok(content: Vec<u8>, content_type: ContentType, charset: Option<Charset>) -> HttpResponseData {
+pub fn ok(
+    content: Vec<u8>,
+    content_type: ContentType,
+    charset: Option<Charset>,
+) -> HttpResponseData {
     HttpResponseData {
         body: Some(content),
         headers: Headers {
@@ -224,11 +227,9 @@ bluetooth=()\r\n",
 
     if let Some(other_headers) = other_headers {
         for (name, value) in other_headers.iter() {
-        http_response_string
-        .push_str(&format!("{name}: {value}\r\n"));
+            http_response_string.push_str(&format!("{name}: {value}\r\n"));
+        }
     }
-}
-
 
     let nonce = "test_make_this_random_later";
     http_response_string.push_str(&format!(

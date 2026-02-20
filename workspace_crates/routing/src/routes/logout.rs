@@ -5,12 +5,10 @@ use session::edit_session;
 use crate::RouterData;
 
 pub async fn get(
-    RouterData {
-        db_pool,
-        session,
-        http_request_data: _,
-    }: RouterData,
+    router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
+    let session = router_data.session.clone();
+    let db_pool = router_data.db_pool.clone();
     let mut clone_sess = session.clone();
     clone_sess.logged_in = false;
     clone_sess.user_id = "".to_string();

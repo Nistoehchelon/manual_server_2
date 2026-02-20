@@ -14,12 +14,11 @@ use user::try_to_create_new_user;
 use crate::RouterData;
 
 pub async fn get(
-    RouterData {
-        db_pool,
-        session,
-        http_request_data: _,
-    }: RouterData,
+    router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
+    let RouterData {
+        session, db_pool, ..
+    } = router_data.clone();
     if session.logged_in {
         add_session_notification(
             db_pool.clone(),
@@ -46,30 +45,39 @@ pub async fn get(
         .await
         .map_err(InternalAppError::new)?;
     // Show username form
-    Ok(ok_html(get_signup_html(notifs, csrf_token)))
+    Ok(ok_html(get_signup_html(
+        router_data.base_template_data,
+        notifs,
+        csrf_token,
+    )))
 }
 
-fn get_signup_html(notifications: Vec<session::SessionNotification>, csrf_token: String) -> String {
+fn get_signup_html(
+    mut base_template_data: BaseTemplateData,
+    notifications: Vec<session::SessionNotification>,
+    csrf_token: String,
+) -> String {
+    base_template_data.title = "Signup".to_string();
+    base_template_data.notifications = into_vec(notifications);
     html_templating::render(html_template_structs::SignupTemplate {
-        main_info: BaseTemplateData {
-            title: "Signup".to_string(),
-            notifications: into_vec(notifications),
-        },
+        main_info: base_template_data,
         csrf_token,
     })
 }
 
 pub async fn post(
-    RouterData {
-        db_pool,
-        session,
-        http_request_data: request_data,
-    }: RouterData,
+    router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
+    let RouterData {
+        session,
+        db_pool,
+        http_request_data,
+        ..
+    } = router_data.clone();
     if session.logged_in {
         return Ok(redirect_to("/".to_string()));
     }
-    let body_bytes = request_data.body_bytes.clone();
+    let body_bytes = http_request_data.body_bytes.clone();
     let body_params =
         match http_request_parsing::parse_body_into_string_form_input_params(body_bytes) {
             Ok(bp) => bp,

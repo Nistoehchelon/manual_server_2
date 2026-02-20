@@ -1,7 +1,7 @@
-use std::time::Instant;
 use config_reader::Config;
 use html_templating::html_template_structs::BaseTemplateData;
-    use std::collections::HashMap;
+use std::collections::HashMap;
+use std::time::Instant;
 
 use error_structs::InternalAppError;
 use http_stuff::{
@@ -78,7 +78,7 @@ pub async fn route(
                 break 'response_block redirect_to("/".to_string());
             }
         }
-        let nonce = "123".to_string();
+        let nonce = "123".to_string(); // obviously to replace with real nonce
         let base_template_data = html_templating::html_template_structs::BaseTemplateData {
             title: "".to_string(),
             notifications: Vec::new(),
@@ -256,12 +256,11 @@ pub async fn generate_response_data(
 
     let mut response_data = add_elapsed(response_data, session, request_start, db_pool).await;
 
-
     let hsts_name = String::from("Strict-Transport-Security");
     let hsts_age_0 = String::from("max-age=0; includeSubDomains; preload");
     let hsts_age_9999 = String::from("max-age=99999999; includeSubDomains; preload");
-    if server_config.use_tls { 
-         if let Some(ref mut other_headers) = response_data.headers.other_headers {
+    if server_config.use_tls {
+        if let Some(ref mut other_headers) = response_data.headers.other_headers {
             other_headers.insert(hsts_name.clone(), hsts_age_9999.clone());
         } else {
             response_data.headers.other_headers = Some(HashMap::new());

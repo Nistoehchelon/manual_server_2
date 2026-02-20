@@ -3,7 +3,7 @@ use http_stuff::{
     http_request_parsing::{
         HttpParserConfig, HttpRequestData, HttpRequestParsingError, parse_http_request,
     },
-    http_response::{KeepAliveOrClose, HttpResponseData, StatusCode, standalone_response},
+    http_response::{HttpResponseData, KeepAliveOrClose, StatusCode, standalone_response},
 };
 
 use routing::router::response_to_bytes;
@@ -301,7 +301,8 @@ pub async fn generate_response(
     keep_alive_max_requests_reached: bool,
     server_config: Config,
 ) -> HttpResponseData {
-    let mut response_data = routing::generate_response_data(request_data.clone(), db_pool, server_config).await;
+    let mut response_data =
+        routing::generate_response_data(request_data.clone(), db_pool, server_config).await;
     let close_or_keep_alive = if keep_alive_max_requests_reached {
         KeepAliveOrClose::Close
     } else {

@@ -14,8 +14,6 @@ pub fn read_to_string_on_dev_embed_on_release(file_name: &str) -> String {
     } else {
         // Embed files at compile time in release
         match file_name {
-            "footer.html" => include_str!("../../../static_resources/footer.html").to_string(),
-            "header.html" => include_str!("../../../static_resources/header.html").to_string(),
             "stylesheet.css" => {
                 include_str!("../../../static_resources/stylesheet.css").to_string()
             }

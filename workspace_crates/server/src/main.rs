@@ -274,7 +274,14 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         )
         .await;
 
-        if response_data.headers.connection == KeepAliveOrClose::Close {
+        let server_wants_to_close = 'sc: {
+            let conn_h = response_data.headers.get("connection");
+            if let Some(conn_h) = conn_h && conn_h == KeepAliveOrClose::KeepAlive.to_string() {
+                break 'sc false;
+            }
+            true
+        };
+        if server_wants_to_close {
             dbg!("generate_and_write_response told me to close, closing",);
             break;
         }
@@ -306,7 +313,21 @@ pub async fn generate_response(
     let close_or_keep_alive = if keep_alive_max_requests_reached {
         KeepAliveOrClose::Close
     } else {
-        match response_data.headers.connection {
+        let conn = 'c: {
+            let hc = response_data.headers.get("connection");
+            if let Some(c) = hc.clone() {
+                match c.as_str() {
+                    "close" => break 'c KeepAliveOrClose::Close,
+                    "keep-alive" => break  'c KeepAliveOrClose::KeepAlive,
+                    _ => {
+                        dbg!(format!("{hc:#?}, did not expect that"));
+                        break 'c KeepAliveOrClose::Close;
+                    } 
+                }
+            }
+            KeepAliveOrClose::Close
+        };
+        match conn {
             KeepAliveOrClose::Close => KeepAliveOrClose::Close,
             KeepAliveOrClose::KeepAlive => {
                 if let Some(connection_header) = request_data.headers.get("connection")
@@ -319,7 +340,7 @@ pub async fn generate_response(
             }
         }
     };
-    response_data.headers.connection = close_or_keep_alive;
+    response_data.headers.insert("connection", close_or_keep_alive.to_string());
     response_data
 }
 pub async fn write_response<S: AsyncRead + AsyncWrite + Unpin>(

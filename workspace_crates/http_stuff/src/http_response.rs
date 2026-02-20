@@ -1,6 +1,8 @@
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fmt::Display;
+
+use indexmap::IndexMap;
+use indexmap::map::Iter;
 
 pub type HttpResponse = Vec<u8>;
 
@@ -110,18 +112,87 @@ impl Display for KeepAliveOrClose {
 #[derive(Debug, Clone)]
 pub struct HttpResponseData {
     pub body: Option<Vec<u8>>,
+    pub status_code: StatusCode,
+    pub set_cookie: Option<Vec<SetCookieHeader>>,
     pub headers: Headers,
 }
 
 #[derive(Debug, Clone)]
 pub struct Headers {
-    pub status_code: StatusCode,
-    pub content_type: ContentType,
-    pub charset: Option<Charset>,
-    pub set_cookie: Option<Vec<SetCookieHeader>>,
-    pub location: Option<String>,
-    pub connection: KeepAliveOrClose,
-    pub other_headers: Option<HashMap<String, String>>,
+    inner: IndexMap<String, String>,
+}
+#[derive(Debug, Clone)]
+pub enum HeaderKind {
+     Singleton,
+     CommaList,
+     SetCookie,
+}
+impl Headers {
+    pub fn classify(name: &str) -> HeaderKind {
+        match name {
+            // list headers (RFC 9110 list semantics)
+            "accept" | "accept-encoding" | "accept-language" | "cache-control" | "warning" => {
+                HeaderKind::CommaList
+            }
+
+            "set-cookie" => HeaderKind::SetCookie,
+
+            _ => HeaderKind::Singleton,
+        }
+    }
+    pub fn new() -> Self {
+        Self {
+            inner: IndexMap::new(),
+        }
+    }
+    pub fn insert(&mut self, name: &str, value: String) {
+        let name = name.to_ascii_lowercase();
+        let kind = Headers::classify(&name);
+        match kind {
+            HeaderKind::Singleton => {
+                self.inner.insert(name, value.trim().to_string());
+            }
+
+            HeaderKind::CommaList => {
+                self.inner
+                    .entry(name)
+                    .and_modify(|v| {
+                        v.push_str(", ");
+                        v.push_str(value.trim());
+                    })
+                    .or_insert_with(|| value.trim().to_string());
+            }
+
+            HeaderKind::SetCookie => {
+            }
+        }
+    }
+    pub fn remove(&mut self, name: &str) -> Option<String> {
+        self.inner.shift_remove(name)
+    }
+    pub fn get(&self, name: &str) -> Option<String> {
+        self.inner.get(name).cloned()
+    }
+    
+    pub fn append(&mut self, name: &str, value: String) {
+        let existing_val = self.get(name);
+
+        let mut to_append = "".to_string();
+        if let Some(existing_val) = existing_val {
+            to_append.push_str(&existing_val);
+        }
+        to_append.push_str(&value);
+        self.insert(name, to_append)
+    }
+    pub fn iter(&self) -> Iter<'_, String, String> {
+        self.inner.iter()
+    }
+}
+
+impl Default for Headers {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 pub fn ok_html(content: String) -> HttpResponseData {
@@ -138,15 +209,19 @@ pub fn ok(
     charset: Option<Charset>,
 ) -> HttpResponseData {
     HttpResponseData {
+        set_cookie: None,
         body: Some(content),
-        headers: Headers {
-            status_code: StatusCode::Code200Ok,
-            content_type,
-            charset,
-            set_cookie: None,
-            location: None,
-            connection: KeepAliveOrClose::KeepAlive,
-            other_headers: None,
+        status_code: StatusCode::Code200Ok,
+        headers: {
+            let mut headers = Headers::new();
+            headers.insert("content-type", content_type.to_string());
+            if let Some(charset) = charset {
+                headers.append(
+                    "content-type",
+                    format!("; charset={}", charset),
+                );
+            }
+            headers
         },
     }
 }
@@ -154,17 +229,8 @@ pub fn ok(
 pub fn response(
     HttpResponseData {
         body,
-        headers:
-            Headers {
-                status_code,
-                set_cookie,
-                content_type,
-                charset,
-                location,
-                connection,
-                other_headers,
-            },
-    }: HttpResponseData,
+        status_code,
+        headers, set_cookie }: HttpResponseData,
 ) -> Result<HttpResponse, HttpResponseError> {
     let mut http_response_string: String = String::new();
     http_response_string.push_str("HTTP/1.1");
@@ -183,20 +249,6 @@ pub fn response(
         }
     }
 
-    http_response_string.push_str(&format!("Connection: {}\r\n", connection));
-
-    let content_type_string = content_type.to_string();
-    http_response_string.push_str(&format!("Content-Type: {content_type_string}"));
-    if let Some(cs) = charset {
-        http_response_string.push_str("; charset=");
-        http_response_string.push_str(&(cs.to_string()));
-    }
-    http_response_string.push_str("\r\n");
-
-    if let Some(l) = location {
-        http_response_string.push_str(&format!("Location: {l}\r\n",));
-    }
-
     let mut body_bytes_length = 0;
     let body_bytes: Vec<u8> = match body {
         Some(b) => {
@@ -206,35 +258,34 @@ pub fn response(
         None => Vec::new(),
     };
 
-    http_response_string.push_str(&format!("Content-Length: {body_bytes_length}\r\n"));
+     http_response_string.push_str(&format!("Content-Length: {body_bytes_length}\r\n"));
 
-    http_response_string.push_str("X-Content-Type-Options: nosniff\r\n");
-    http_response_string.push_str("X-Frame-Options: DENY\r\n");
+//     http_response_string.push_str("X-Content-Type-Options: nosniff\r\n");
+//     http_response_string.push_str("X-Frame-Options: DENY\r\n");
 
-    http_response_string.push_str("Cross-Origin-Embedder-Policy: require-corp\r\n");
-    http_response_string.push_str("Cross-Origin-Resource-Policy: same-origin\r\n");
-    http_response_string.push_str("Cross-Origin-Opener-Policy: same-origin\r\n");
-    http_response_string.push_str("Referrer-Policy: no-referrer\r\n");
-    http_response_string.push_str(
-        "Permissions-Policy:\
-camera=(),\
-microphone=(),\
-geolocation=(),\
-payment=(),\
-usb=(),\
-bluetooth=()\r\n",
-    );
+//     http_response_string.push_str("Cross-Origin-Embedder-Policy: require-corp\r\n");
+//     http_response_string.push_str("Cross-Origin-Resource-Policy: same-origin\r\n");
+//     http_response_string.push_str("Cross-Origin-Opener-Policy: same-origin\r\n");
+//     http_response_string.push_str("Referrer-Policy: no-referrer\r\n");
+//     http_response_string.push_str(
+//         "Permissions-Policy:\
+// camera=(),\
+// microphone=(),\
+// geolocation=(),\
+// payment=(),\
+// usb=(),\
+// bluetooth=()\r\n",
+//     );
+//     let nonce = "test_make_this_random_later";
+//     http_response_string.push_str(&format!(
+//         "Content-Security-Policy: default-src 'none'; script-src 'nonce-{nonce}' 'strict-dynamic'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; img-src 'self'; style-src 'self'; connect-src 'self'; font-src 'self'; form-action 'self';"
+//     ));
 
-    if let Some(other_headers) = other_headers {
-        for (name, value) in other_headers.iter() {
+        for (name, value) in headers.iter() {
             http_response_string.push_str(&format!("{name}: {value}\r\n"));
         }
-    }
+    
 
-    let nonce = "test_make_this_random_later";
-    http_response_string.push_str(&format!(
-        "Content-Security-Policy: default-src 'none'; script-src 'nonce-{nonce}' 'strict-dynamic'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; img-src 'self'; style-src 'self'; connect-src 'self'; font-src 'self'; form-action 'self';"
-    ));
 
     http_response_string.push_str("\r\n\r\n");
 
@@ -256,46 +307,44 @@ bluetooth=()\r\n",
 pub fn redirect_to(page: String) -> HttpResponseData {
     HttpResponseData {
         body: None,
-        headers: Headers {
-            status_code: StatusCode::Code302Found,
-            content_type: ContentType::TextHtml,
-            location: Some(page.to_string()),
-            charset: None,
-
-            set_cookie: None,
-            connection: KeepAliveOrClose::KeepAlive,
-            other_headers: None,
+        status_code: StatusCode::Code302Found,
+        headers:  {
+            let mut headers = Headers::new();
+            headers.insert("content-type", ContentType::TextHtml.to_string());
+            headers.insert("location", page.to_string());
+            headers.insert("connection", KeepAliveOrClose::KeepAlive.to_string());
+            headers
         },
+        set_cookie: None,
     }
 }
 
 pub fn internal_server_error_500() -> HttpResponseData {
     HttpResponseData {
         body: None,
-        headers: Headers {
-            status_code: StatusCode::Code500InternalServerError,
-            content_type: ContentType::TextHtml,
-            charset: Some(Charset::Utf8),
-            set_cookie: None,
-            location: None,
-            connection: KeepAliveOrClose::KeepAlive,
-            other_headers: None,
+        status_code: StatusCode::Code500InternalServerError,
+        headers:  {
+            let mut headers = Headers::new();
+            headers.insert("content-type", ContentType::TextHtml.to_string());
+            headers.insert("charset", Charset::Utf8.to_string());
+            headers.insert("connection", KeepAliveOrClose::KeepAlive.to_string());
+            headers
         },
+        set_cookie: None,
     }
 }
 pub fn bad_request_400() -> HttpResponseData {
     HttpResponseData {
         body: None,
-        headers: Headers {
-            status_code: StatusCode::Code400BadRequest,
-            content_type: ContentType::TextHtml,
-            charset: Some(Charset::Utf8),
-
-            set_cookie: None,
-            location: None,
-            connection: KeepAliveOrClose::KeepAlive,
-            other_headers: None,
+        status_code: StatusCode::Code400BadRequest,
+        headers:  {
+            let mut headers = Headers::new();
+            headers.insert("content-type", ContentType::TextHtml.to_string());
+            headers.insert("charset", Charset::Utf8.to_string());
+            headers.insert("connection", KeepAliveOrClose::KeepAlive.to_string());
+            headers
         },
+        set_cookie: None,
     }
 }
 
@@ -308,15 +357,16 @@ pub fn standalone_response(status_code: StatusCode, msg: String) -> HttpResponse
     ).into_bytes();
     let response_data = HttpResponseData {
         body: Some(body),
-        headers: Headers {
-            status_code: status_code.clone(),
-            content_type: ContentType::TextHtml,
-            charset: Some(Charset::Utf8),
-            set_cookie: None,
-            location: None,
-            connection: KeepAliveOrClose::Close,
-            other_headers: None,
+        status_code: status_code.clone(),
+        headers: {
+           let mut headers = Headers::new();
+            headers.insert("content_type", ContentType::TextHtml.to_string());
+            headers.insert("charset", Charset::Utf8.to_string());
+
+            headers.insert("connection", KeepAliveOrClose::Close.to_string());
+            headers
         },
+        set_cookie: None,
     };
     response(response_data).unwrap_or_else(|_| {
         let msg = format!("Some Error occured {msg} {}", status_code);

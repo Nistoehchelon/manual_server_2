@@ -6,15 +6,15 @@ pub fn get() -> Result<HttpResponseData, error_structs::InternalAppError> {
 
     Ok(HttpResponseData {
         body: Some(stylesheet_bytes),
+        status_code: StatusCode::Code200Ok,
+        set_cookie: None,
+        headers: {
+            let mut headers = http_stuff::http_response::Headers::new();
 
-        headers: Headers {
-            status_code: StatusCode::Code200Ok,
-            content_type: ContentType::TextCss,
-            charset: Some(Charset::Utf8),
-            set_cookie: None,
-            location: None,
-            connection: KeepAliveOrClose::KeepAlive,
-            other_headers: None,
+            headers.insert("content-type", ContentType::TextCss.to_string());
+            headers.insert("charset", Charset::Utf8.to_string());
+            headers.insert("connection", KeepAliveOrClose::KeepAlive.to_string());
+            headers
         },
     })
 }

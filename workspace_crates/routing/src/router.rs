@@ -1,13 +1,12 @@
 use config_reader::Config;
 use html_templating::html_template_structs::BaseTemplateData;
-use std::collections::HashMap;
 use std::time::Instant;
 
 use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{
-        Charset, ContentType, Headers, HttpResponseData, SetCookieHeader, StatusCode,
+        self, Charset, ContentType, HttpResponseData, SetCookieHeader, StatusCode,
         internal_server_error_500, redirect_to, response, standalone_response,
     },
 };
@@ -143,10 +142,10 @@ pub async fn route(
             value: session.id.clone(),
             path: "/".to_string(),
         };
-        match response_data.headers.set_cookie {
+        match response_data.set_cookie {
             None => {
                 let v = vec![ch];
-                response_data.headers.set_cookie = Some(v);
+                response_data.set_cookie = Some(v);
             }
             Some(ref mut sch) => {
                 sch.push(ch);
@@ -230,16 +229,21 @@ pub async fn generate_response_data(
             Ok((s, cns)) => (s, cns),
             Err(_) => {
                 return HttpResponseData {
+                    set_cookie: None,
+                    status_code: StatusCode::Code500InternalServerError,
                     body: Some(b"500".to_vec()),
-                    headers: Headers {
-                        status_code: StatusCode::Code500InternalServerError,
-                        content_type: http_stuff::http_response::ContentType::TextPlain,
-                        charset: Some(Charset::Utf8),
-
-                        set_cookie: None,
-                        location: None,
-                        connection: http_stuff::http_response::KeepAliveOrClose::KeepAlive,
-                        other_headers: None,
+                    headers: {
+                        let mut headers = http_response::Headers::new();
+                        headers.insert(
+                            "content-type",
+                            http_stuff::http_response::ContentType::TextPlain.to_string(),
+                        );
+                        headers.insert("charset", Charset::Utf8.to_string());
+                        headers.insert(
+                            "connection",
+                            http_stuff::http_response::KeepAliveOrClose::KeepAlive.to_string(),
+                        );
+                        headers
                     },
                 };
             }
@@ -260,21 +264,11 @@ pub async fn generate_response_data(
     let hsts_age_0 = String::from("max-age=0; includeSubDomains; preload");
     let hsts_age_9999 = String::from("max-age=99999999; includeSubDomains; preload");
     if server_config.use_tls {
-        if let Some(ref mut other_headers) = response_data.headers.other_headers {
-            other_headers.insert(hsts_name.clone(), hsts_age_9999.clone());
-        } else {
-            response_data.headers.other_headers = Some(HashMap::new());
-            if let Some(ref mut other_headers) = response_data.headers.other_headers {
-                other_headers.insert(hsts_name.clone(), hsts_age_9999.clone());
-            }
-        }
-    } else if let Some(ref mut other_headers) = response_data.headers.other_headers {
-        other_headers.insert(hsts_name.clone(), hsts_age_0.clone());
+        response_data
+            .headers
+            .insert(&hsts_name, hsts_age_9999.clone());
     } else {
-        response_data.headers.other_headers = Some(HashMap::new());
-        if let Some(ref mut other_headers) = response_data.headers.other_headers {
-            other_headers.insert(hsts_name.clone(), hsts_age_0.clone());
-        }
+        response_data.headers.insert(&hsts_name, hsts_age_0);
     }
     response_data
 }
@@ -297,8 +291,17 @@ pub async fn add_elapsed(
         }
     };
     let elapsed_ms = request_start.elapsed().as_millis();
+
+    let content_type_html =  'show_time: {
+        if let Some(content_type) = response_data.headers.get("content-type")
+            && content_type == ContentType::TextHtml.to_string() {
+                break 'show_time true;
+            }
+        false
+
+    };
     if let Some(body) = &mut response_data.body
-        && response_data.headers.content_type == ContentType::TextHtml
+        && content_type_html
         && let Ok(mut html) = String::from_utf8(body.clone())
     {
         let previous_ms = session_data.previous_page_load_time_ms;

@@ -6,8 +6,7 @@ use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{
-        self, Charset, ContentType, HttpResponseData, SetCookieHeader, StatusCode,
-        internal_server_error_500, redirect_to, standalone_response,
+        self, Charset, ContentType, HttpResponseData, KeepAliveOrClose, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to, standalone_response
     },
 };
 use session::{
@@ -268,21 +267,19 @@ pub async fn generate_response_data(
 
 
     // KEEP_ALIVE_ENABLED
-    if !server_config.keep_alive_enabled {
-        response_data.headers.insert("connection", "close".to_string());
+    if server_config.keep_alive_enabled {
+        response_data.headers.insert("connection", KeepAliveOrClose::KeepAlive.to_string());
+    } else {
+        response_data.headers.insert("connection", KeepAliveOrClose::Close.to_string());
     }
 
     // HSTS
-    let hsts_name = String::from("Strict-Transport-Security");
-    let hsts_age_0 = String::from("max-age=0; includeSubDomains; preload");
-    let hsts_age_9999 = String::from("max-age=99999999; includeSubDomains; preload");
-    if server_config.use_tls {
-        response_data
-            .headers
-            .insert(&hsts_name, hsts_age_9999.clone());
+    // I guess this will disable sts whenever I run this without ssl, right?..
+    response_data.headers.insert("Strict-Transport-Security", if server_config.use_tls {
+        "max-age=99999999; includeSubDomains; preload"
     } else {
-        response_data.headers.insert(&hsts_name, hsts_age_0);
-    }
+        "max-age=0"
+    }.to_string());
 
     // Other sec headers
 
@@ -293,6 +290,7 @@ pub async fn generate_response_data(
         .headers
         .insert("X-Frame-Options", "DENY".to_string());
 
+        // Chrome gives errors on this, why? Not sure... 
     // response_data
     //     .headers
     //     .insert("Cross-Origin-Embedder-Policy", "require-corp".to_string());
@@ -343,7 +341,7 @@ pub async fn add_elapsed(
 
     let content_type_html = 'show_time: {
         if let Some(content_type) = response_data.headers.get("content-type")
-            && content_type == ContentType::TextHtml.to_string()
+            && content_type.contains(&ContentType::TextHtml.to_string())
         {
             break 'show_time true;
         }

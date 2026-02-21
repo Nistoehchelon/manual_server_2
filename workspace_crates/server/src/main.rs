@@ -325,7 +325,7 @@ pub async fn generate_response(
                     } 
                 }
             }
-            dbg!("should not have reached this keep alive", hc.clone());
+            dbg!("no connection header", hc.clone());
             KeepAliveOrClose::Close
         };
         match conn {

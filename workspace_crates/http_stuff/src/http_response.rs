@@ -352,7 +352,7 @@ pub fn standalone_response(status_code: StatusCode, msg: String) -> HttpResponse
         status_code: status_code.clone(),
         headers: {
            let mut headers = Headers::new();
-            headers.insert("content_type", ContentType::TextHtml.to_string());
+            headers.insert("content-type", ContentType::TextHtml.to_string());
             headers.insert("charset", Charset::Utf8.to_string());
 
             headers.insert("connection", KeepAliveOrClose::Close.to_string());

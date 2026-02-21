@@ -309,16 +309,16 @@ pub fn add_some_headers(
         .headers
         .insert("X-Frame-Options", "DENY".to_string());
 
-    // Chrome gives errors on this for localhost, why? Not sure...
-    // response_data
-    //     .headers
-    //     .insert("Cross-Origin-Embedder-Policy", "require-corp".to_string());
-    // response_data
-    //     .headers
-    //     .insert("Cross-Origin-Resource-Policy", "same-origin".to_string());
-    // response_data
-    //     .headers
-    //     .insert("Cross-Origin-Opener-Policy", "same-origin".to_string());
+    //Chrome gives errors on this for localhost, why? Not sure...
+    response_data
+        .headers
+        .insert("Cross-Origin-Embedder-Policy", "require-corp".to_string());
+    response_data
+        .headers
+        .insert("Cross-Origin-Resource-Policy", "same-origin".to_string());
+    response_data
+        .headers
+        .insert("Cross-Origin-Opener-Policy", "same-origin".to_string());
     response_data
         .headers
         .insert("Referrer-Policy", "no-referrer".to_string());

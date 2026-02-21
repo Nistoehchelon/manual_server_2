@@ -1653,6 +1653,7 @@ dependencies = [
  "forum",
  "html_templating",
  "http_stuff",
+ "id_generator",
  "into_vec",
  "pagination",
  "read_on_dev_embed_on_release",

@@ -6,7 +6,8 @@ use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::HttpRequestData,
     http_response::{
-        self, Charset, ContentType, HttpResponseData, KeepAliveOrClose, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to, standalone_response
+        self, Charset, ContentType, HttpResponseData, KeepAliveOrClose, SetCookieHeader,
+        StatusCode, internal_server_error_500, redirect_to, standalone_response,
     },
 };
 use session::{
@@ -137,7 +138,7 @@ pub async fn route(
             key: session::get_name_of_cookie_containing_session_id(),
             value: session.id.clone(),
             path: "/".to_string(),
-            secure: server_config.use_tls
+            secure: server_config.use_tls,
         };
         dbg!(ch.clone());
         match response_data.set_cookie {
@@ -215,8 +216,10 @@ pub async fn generate_response_data(
     db_pool: sqlx::PgPool,
     server_config: Config,
 ) -> HttpResponseData {
+    let nonce = id_generator::generate_random_alphanumeric_id(50).to_string();
     if is_requesting_static_resource(request_data.path.clone()) {
         let response_data = generate_static_response(request_data);
+        let response_data = add_some_headers(response_data, server_config.clone(), nonce.clone());
         return response_data;
     }
 
@@ -246,7 +249,6 @@ pub async fn generate_response_data(
                 };
             }
         };
-    let nonce = "123".to_string(); // obviously to replace with real nonce
     let base_template_data = html_templating::html_template_structs::BaseTemplateData {
         title: "".to_string(),
         notifications: Vec::new(),
@@ -263,23 +265,40 @@ pub async fn generate_response_data(
     .await
     .unwrap_or(internal_server_error_500());
 
-    let mut response_data = add_elapsed(response_data, session, request_start, db_pool).await;
+    let response_data = add_elapsed(response_data, session, request_start, db_pool).await;
 
+    
 
+    add_some_headers(response_data, server_config, nonce)
+}
+
+pub fn add_some_headers(
+    mut response_data: HttpResponseData,
+    server_config: Config,
+    nonce: String,
+) -> HttpResponseData {
     // KEEP_ALIVE_ENABLED
     if server_config.keep_alive_enabled {
-        response_data.headers.insert("connection", KeepAliveOrClose::KeepAlive.to_string());
+        response_data
+            .headers
+            .insert("connection", KeepAliveOrClose::KeepAlive.to_string());
     } else {
-        response_data.headers.insert("connection", KeepAliveOrClose::Close.to_string());
+        response_data
+            .headers
+            .insert("connection", KeepAliveOrClose::Close.to_string());
     }
 
     // HSTS
     // I guess this will disable sts whenever I run this without ssl, right?..
-    response_data.headers.insert("Strict-Transport-Security", if server_config.use_tls {
-        "max-age=99999999; includeSubDomains; preload"
-    } else {
-        "max-age=0"
-    }.to_string());
+    response_data.headers.insert(
+        "Strict-Transport-Security",
+        if server_config.use_tls {
+            "max-age=99999999; includeSubDomains; preload"
+        } else {
+            "max-age=0"
+        }
+        .to_string(),
+    );
 
     // Other sec headers
 
@@ -290,7 +309,7 @@ pub async fn generate_response_data(
         .headers
         .insert("X-Frame-Options", "DENY".to_string());
 
-        // Chrome gives errors on this, why? Not sure... 
+    // Chrome gives errors on this for localhost, why? Not sure...
     // response_data
     //     .headers
     //     .insert("Cross-Origin-Embedder-Policy", "require-corp".to_string());
@@ -316,10 +335,8 @@ bluetooth=()"
     response_data.headers.insert("Content-Security-Policy", format!(
         "default-src 'none'; script-src 'nonce-{}' 'strict-dynamic'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; img-src 'self'; style-src 'self'; connect-src 'self'; font-src 'self'; form-action 'self';"
     , nonce.clone()));
-
     response_data
 }
-
 pub async fn add_elapsed(
     mut response_data: HttpResponseData,
     Session { id: session_id, .. }: Session,
@@ -363,7 +380,9 @@ Page loading took {elapsed_ms} ms<br>
         html = html.replace("</body>", &format!("{}\n</body>", timing_html));
         *body = html.into_bytes();
         // this is to update the content-length since the above modifies body
-        response_data.headers.insert("content-length",(*body).len().to_string());
+        response_data
+            .headers
+            .insert("content-length", (*body).len().to_string());
     }
     let elapsed_ms: i64 = match i64::try_from(elapsed_ms) {
         Ok(v) => v,

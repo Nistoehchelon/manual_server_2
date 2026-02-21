@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 config_reader = { workspace = true }
+id_generator = { workspace = true }
 session = { workspace = true }
 forum = { workspace = true }
 html_templating = { workspace = true }

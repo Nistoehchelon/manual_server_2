@@ -325,7 +325,7 @@ pub async fn generate_response(
                     } 
                 }
             }
-            dbg!("no connection header", hc.clone());
+            dbg!("response_data contains no connection header, I suppose I will close in this case.", hc.clone());
             KeepAliveOrClose::Close
         };
         match conn {

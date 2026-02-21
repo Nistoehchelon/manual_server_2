@@ -57,7 +57,7 @@ fn get_html(
         };
         html_templating::render(index_template)
     } else {
-        base_template.title = "Welcome back!".to_string();
+        base_template.title = "Welcome".to_string();
         let index_template = IndexNotLoggedInTemplate {
             main_info: base_template,
         };

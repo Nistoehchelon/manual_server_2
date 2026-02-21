@@ -16,6 +16,7 @@ pub struct Config {
     pub per_ip_token_bucket_refill_rate_per_millis: f64,
     pub keep_alive_idle_timeout: Duration,
     pub keep_alive_max_requests_per_connection: u64,
+    pub keep_alive_enabled: bool,
 
     pub common_stream_timeout: Duration,
 
@@ -80,6 +81,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut max_cookies_count: Option<u64> = None;
     let mut keep_alive_idle_timeout_millis: Option<u64> = None;
     let mut keep_alive_max_requests_per_connection: Option<u64> = None;
+    let mut keep_alive_enabled: Option<bool> = None;
 
     let mut server_time_credits_capacity_millis: Option<u64> = None;
     let mut server_time_credits_refill_rate_millis_per_millis: Option<u64> = None;
@@ -120,6 +122,10 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             }
             "KEEP_ALIVE_IDLE_TIMEOUT_MILLIS" => {
                 keep_alive_idle_timeout_millis = Some(value.parse().unwrap())
+            }
+            
+            "KEEP_ALIVE_ENABLED" => {
+                keep_alive_enabled = Some(value.parse().unwrap())
             }
             "IP" => ip = Some(value),
             "PORT" => port = Some(value.parse().unwrap()),
@@ -246,6 +252,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     );
     let keep_alive_max_requests_per_connection = keep_alive_max_requests_per_connection
         .expect("Missing KEEP_ALIVE_MAX_REQUESTS_PER_CONNECTION in file");
+    let keep_alive_enabled = keep_alive_enabled
+        .expect("Missing KEEP_ALIVE_ENABLED in file");
     let ip = ip.expect("Missing IP in env file");
     let port = port.expect("Missing PORT in env file");
     let db_url = db_url.expect("Missing DATABASE_URL in env file");
@@ -313,6 +321,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         lets_encrypt_contact_email,
         keep_alive_idle_timeout,
         keep_alive_max_requests_per_connection,
+        keep_alive_enabled,
         server_time_credits_capacity,
         server_time_credits_refill_rate_per_millis,
         per_ip_time_credits_capacity,

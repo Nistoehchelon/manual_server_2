@@ -254,7 +254,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         let response_data = generate_response(
             request_data,
             db_pool.clone(),
-            requests_count >= keep_alive_max_requests_per_connection,
+            requests_count > keep_alive_max_requests_per_connection,
             server_config.clone(),
         )
         .await;
@@ -282,11 +282,11 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             true
         };
         if server_wants_to_close {
-            dbg!("generate_and_write_response told me to close, closing",);
+            dbg!("server told me to close, closing",);
             break;
         }
     }
-    let _ = timeout(server_config.common_stream_timeout, reader.shutdown()).await;
+
 }
 
 pub async fn consume_time_spent_from_time_credits_bucket(
@@ -316,7 +316,7 @@ pub async fn generate_response(
         let conn = 'c: {
             let hc = response_data.headers.get("connection");
             if let Some(c) = hc.clone() {
-                match c.as_str() {
+                match c.to_ascii_lowercase().as_str() {
                     "close" => break 'c KeepAliveOrClose::Close,
                     "keep-alive" => break  'c KeepAliveOrClose::KeepAlive,
                     _ => {
@@ -325,6 +325,7 @@ pub async fn generate_response(
                     } 
                 }
             }
+            dbg!("should not have reached this keep alive", hc.clone());
             KeepAliveOrClose::Close
         };
         match conn {
@@ -407,6 +408,11 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             )
             .await;
         }
+        HttpRequestParsingError::ClientTimedOutBeforeItSentAnyBytes => {
+            println!("{}", HttpRequestParsingError::ClientTimedOutBeforeItSentAnyBytes);
+            println!("Doing nothing, I guess, since the client sending nothing probably means they won't receive anything either.");
+            
+        }
         hm => {
             eprintln!("main error, could not parse request {:?}", hm);
             let err_response = standalone_response(
@@ -419,7 +425,7 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             )
             .await;
         }
-    };
+    }
 }
 
 pub fn generate_acme_state(server_config: Config) -> AcmeState<Error> {

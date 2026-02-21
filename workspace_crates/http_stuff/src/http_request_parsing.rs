@@ -174,10 +174,18 @@ async fn read_line_bounded<R: AsyncRead + Unpin>(
         let byte = timeout(timeout_dur, reader.read_u8())
             .await
             .map_err(|elapsed| {
-                dbg!("header byte reading timed out", elapsed);
+                if header_bytes_so_far.is_empty() {
+                    dbg!("client timeout before client sent any bytes");
+                    return HttpRequestParsingError::ClientTimedOutBeforeItSentAnyBytes;
+                }
+                dbg!("header byte reading timed out", elapsed, header_bytes_so_far.to_ascii_lowercase());
                 HttpRequestParsingError::HeadersStreamReadTimeout
             })?
             .map_err(|e| {
+                if header_bytes_so_far.is_empty() {
+                    dbg!("nothing from client...", e);
+                    return HttpRequestParsingError::ClientSentNothing;
+                }
                 dbg!(
                     "header byte reading failed",
                     e,
@@ -219,8 +227,7 @@ async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
             parser_config.read_timeout,
             header_bytes.clone(),
         )
-        .await
-        .map_err(|_| HttpRequestParsingError::SomeSortOfStreamError)?;
+        .await?;
         read_total_bytes += line.len();
 
         if read_total_bytes as u64 > parser_config.max_headers_len {
@@ -264,6 +271,8 @@ pub struct HttpRequestData {
 
 #[derive(Clone, Debug)]
 pub enum HttpRequestParsingError {
+    ClientTimedOutBeforeItSentAnyBytes,
+    ClientSentNothing,
     HeadersStreamReadTimeout,
     TooManyCookies,
     HttpVersionNotSupported,
@@ -280,6 +289,8 @@ pub enum HttpRequestParsingError {
 impl Display for HttpRequestParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
+            Self::ClientTimedOutBeforeItSentAnyBytes => "Client Timed Out Before It Sent Any Bytes",
+            Self::ClientSentNothing => "Client Sent Nothing",
             Self::HeadersStreamReadTimeout => "Headers Stream Read Timeout",
             Self::BadRequest => "Bad Request",
             Self::ContentTooLarge => "Content Too Large",

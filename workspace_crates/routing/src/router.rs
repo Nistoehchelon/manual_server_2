@@ -266,6 +266,12 @@ pub async fn generate_response_data(
 
     let mut response_data = add_elapsed(response_data, session, request_start, db_pool).await;
 
+
+    // KEEP_ALIVE_ENABLED
+    if !server_config.keep_alive_enabled {
+        response_data.headers.insert("connection", "close".to_string());
+    }
+
     // HSTS
     let hsts_name = String::from("Strict-Transport-Security");
     let hsts_age_0 = String::from("max-age=0; includeSubDomains; preload");

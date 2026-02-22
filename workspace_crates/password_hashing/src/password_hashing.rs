@@ -7,10 +7,13 @@ use rand::{TryRng, rngs::SysRng};
 pub const MAX_VALID_SALT_BYTES_LENGTH: usize = 48;
 pub const SALT_BYTES_LENGTH: usize = MAX_VALID_SALT_BYTES_LENGTH;
 
-fn strong_argon2() -> Result<Argon2<'static>, String> {
-    let m_cost = 32 * 1024;
-    let t_cost = 2;
-    let p_cost = 2;
+fn generate_argon2_context_for_hashing(
+    PasswordHasherConfig {
+        m_cost,
+        t_cost,
+        p_cost,
+    }: PasswordHasherConfig,
+) -> Result<Argon2<'static>, String> {
     let params = Params::new(m_cost, t_cost, p_cost, None).map_err(|e| {
         dbg!("Error on argo2 params::new", e.to_string());
         e.to_string()
@@ -18,9 +21,29 @@ fn strong_argon2() -> Result<Argon2<'static>, String> {
     Ok(Argon2::new(Algorithm::Argon2id, Version::V0x13, params))
 }
 
-pub fn hash_password(password: String) -> Result<String, String> {
+/*  I do not think verifying uses the m_cost and all that at all.
+As far as I understand, it uses the parameters from the password string instead. So,
+it makes no difference what context I use here. To avoid having to pass pointless params when calling password_verify, I guess I will do the thingie below...
+
+*/
+fn generate_argon2_context_for_verifying() -> Result<Argon2<'static>, String> {
+    const DUMMY_VAL: u32 = 1;
+    generate_argon2_context_for_hashing(PasswordHasherConfig {
+        m_cost: DUMMY_VAL,
+        t_cost: DUMMY_VAL,
+        p_cost: DUMMY_VAL,
+    })
+}
+
+#[derive(Debug, Clone)]
+pub struct PasswordHasherConfig {
+    pub m_cost: u32,
+    pub t_cost: u32,
+    pub p_cost: u32,
+}
+pub fn hash_password(password: String, hasher_config: PasswordHasherConfig) -> Result<String, String> {
     let salt = generate_salt(SALT_BYTES_LENGTH)?;
-    let argon2 = strong_argon2()?;
+    let argon2 = generate_argon2_context_for_hashing(hasher_config)?;
 
     let password_hash = match argon2.hash_password(password.as_bytes(), &salt) {
         Ok(ph) => ph.to_string(),
@@ -38,7 +61,7 @@ pub fn verify_password(password: String, stored_hash: String) -> Result<bool, St
         dbg!("Error parsing hash", e.to_string());
         e.to_string()
     })?;
-    let argon2 = strong_argon2()?;
+    let argon2 = generate_argon2_context_for_verifying()?;
 
     Ok(argon2
         .verify_password(password.as_bytes(), &parsed_hash)

@@ -1,9 +1,9 @@
-use password_hashing::{hash_password, verify_password};
+use password_hashing::{hash_password, password_hashing::PasswordHasherConfig, verify_password};
 
 #[test]
 fn hashes_and_verifies_how_i_would_expect_it_to() {
     let initial_password = String::from("password123");
-    let hash = hash_password(initial_password.clone())
+    let hash = hash_password(initial_password.clone(), PasswordHasherConfig { m_cost: 16000, t_cost: 2, p_cost: 2 })
         .expect("I expected the hash to be generated successfully");
     dbg!(initial_password.clone());
     dbg!(hash.clone());

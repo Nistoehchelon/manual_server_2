@@ -1,4 +1,5 @@
 use std::{fs::read_to_string, path::PathBuf, str::FromStr, time::Duration};
+use password_hashing::PasswordHasherConfig;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -34,6 +35,8 @@ pub struct Config {
     pub server_time_credits_capacity: Duration,
     pub per_ip_time_credits_refill_rate_per_millis: Duration,
     pub per_ip_time_credits_capacity: Duration,
+
+    pub password_hasher_config: PasswordHasherConfig,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum Environment {
@@ -89,6 +92,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut per_ip_time_credits_capacity_millis: Option<u64> = None;
     let mut per_ip_time_credits_refill_rate_millis: Option<u64> = None;
 
+
+    let mut password_hashing_config: Option<PasswordHasherConfig> = None;
+
     let mut unk_keys: Vec<&str> = Vec::new();
 
     for line in contents
@@ -105,6 +111,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         let value = value.trim().to_string();
 
         match key {
+            
             "PER_IP_TIME_CREDITS_CAPACITY_MILLIS" => {
                 per_ip_time_credits_capacity_millis = Some(value.parse().unwrap())
             }
@@ -297,6 +304,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         panic!("USE_TLS is set to `false` but port is set to 443. Change port to something else.");
     }
 
+    let password_hasher_config = password_hasher_config.expect("Missing PASSWORD_HASHING_*");
+
     Config {
         ip: ip.clone(),
         port,
@@ -326,5 +335,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         server_time_credits_refill_rate_per_millis,
         per_ip_time_credits_capacity,
         per_ip_time_credits_refill_rate_per_millis,
+
+        password_hasher_config,
     }
 }

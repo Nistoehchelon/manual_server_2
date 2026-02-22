@@ -44,6 +44,7 @@ pub async fn post(
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
+    let hasher_config = router_data.hasher_config;
     if session.logged_in {
         add_session_notification(
             db_pool,

@@ -20,6 +20,7 @@ use crate::routes;
 
 #[derive(Clone)]
 pub struct RouterData {
+    pub server_config: Config,
     pub db_pool: sqlx::PgPool,
     pub session: Session,
     pub http_request_data: HttpRequestData,
@@ -33,6 +34,7 @@ pub async fn route(
     created_new_session: bool,
     request_data: HttpRequestData,
     base_template_data: BaseTemplateData,
+    
 ) -> Result<HttpResponseData, InternalAppError> {
     let HttpRequestData {
         path_and_query: _path_and_query,
@@ -81,6 +83,7 @@ pub async fn route(
         }
 
         let router_data = RouterData {
+            server_config: server_config.clone(),
             db_pool: db_pool.clone(),
             session: session.clone(),
             http_request_data: request_data.clone(),

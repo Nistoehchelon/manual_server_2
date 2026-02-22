@@ -1,5 +1,6 @@
 use db_manager::{DbError, DbSuccess};
 use error_structs::{ExpectedToGetButFailed, PublicError, SomeSortOfError};
+use password_hashing::password_hashing::PasswordHasherConfig;
 
 use crate::user_structs_and_so_on::User;
 
@@ -30,6 +31,7 @@ pub async fn try_to_create_new_user(
     db_pool: sqlx::PgPool,
     username: String,
     password: String,
+    hasher_config: PasswordHasherConfig,
 ) -> Result<Result<User, PublicError>, SomeSortOfError> {
     if username.clone().trim().is_empty() || password.clone().trim().is_empty() {
         return Ok(Err(PublicError::new(
@@ -47,7 +49,7 @@ pub async fn try_to_create_new_user(
         )));
     }
 
-    let hash = match password_hashing::hash_password(password) {
+    let hash = match password_hashing::hash_password(password, hasher_config) {
         Ok(h) => h,
         Err(e) => {
             return Err(SomeSortOfError::new(e));
@@ -114,6 +116,7 @@ pub async fn find_by_username_and_password(
     username: String,
     password: String,
     db_pool: sqlx::PgPool,
+    hasher_config: PasswordHasherConfig,
 ) -> Result<Option<User>, SomeSortOfError> {
     let user = get_by_username(username.clone(), db_pool)
         .await
@@ -129,7 +132,7 @@ pub async fn find_by_username_and_password(
         dbg!(password.clone());
         dbg!(user.clone().password_hash);
         let tried_hash =
-            password_hashing::hash_password(password.clone()).map_err(SomeSortOfError::new)?;
+            password_hashing::hash_password(password.clone(), hasher_config).map_err(SomeSortOfError::new)?;
 
         dbg!(tried_hash);
         return Ok(None);

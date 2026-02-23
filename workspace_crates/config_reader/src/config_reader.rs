@@ -1,5 +1,5 @@
 use std::{fs::read_to_string, path::PathBuf, str::FromStr, time::Duration};
-use password_hashing::PasswordHasherConfig;
+use password_hashing::{PasswordHasherConfig, PasswordHasherConfigParams};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -93,7 +93,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut per_ip_time_credits_refill_rate_millis: Option<u64> = None;
 
 
-    let mut password_hashing_config: Option<PasswordHasherConfig> = None;
+    let mut password_hasher_config_m_cost_kib: Option<u64> = None;
+    let mut password_hasher_config_t_cost: Option<u64> = None;
+    let mut password_hasher_config_p_cost: Option<u64> = None;
 
     let mut unk_keys: Vec<&str> = Vec::new();
 
@@ -111,7 +113,15 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         let value = value.trim().to_string();
 
         match key {
-            
+            "PASSWORD_HASHER_CONFIG[m_cost_kib]" => {
+                password_hasher_config_m_cost_kib = Some(value.parse().unwrap())
+            }
+            "PASSWORD_HASHER_CONFIG[t_cost]" => {
+                 password_hasher_config_t_cost = Some(value.parse().unwrap())
+            }
+            "PASSWORD_HASHER_CONFIG[p_cost]" => {
+                 password_hasher_config_p_cost = Some(value.parse().unwrap())
+            }
             "PER_IP_TIME_CREDITS_CAPACITY_MILLIS" => {
                 per_ip_time_credits_capacity_millis = Some(value.parse().unwrap())
             }
@@ -304,7 +314,10 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         panic!("USE_TLS is set to `false` but port is set to 443. Change port to something else.");
     }
 
-    let password_hasher_config = password_hasher_config.expect("Missing PASSWORD_HASHING_*");
+    let password_hasher_config_m_cost_kib = password_hasher_config_m_cost_kib.expect("Missing PASSWORD_HASHER_CONFIG[m_cost_kib]");
+    let password_hasher_config_t_cost = password_hasher_config_t_cost.expect("Missing PASSWORD_HASHER_CONFIG[t_cost]");
+    let password_hasher_config_p_cost = password_hasher_config_p_cost.expect("Missing PASSWORD_HASHER_CONFIG[p_cost]");
+    let password_hasher_config = PasswordHasherConfig::new(PasswordHasherConfigParams { m_cost: password_hasher_config_m_cost_kib.try_into().unwrap(), t_cost: password_hasher_config_t_cost.try_into().unwrap(), p_cost: password_hasher_config_p_cost.try_into().unwrap() });
 
     Config {
         ip: ip.clone(),

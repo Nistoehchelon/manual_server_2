@@ -36,11 +36,27 @@ fn generate_argon2_context_for_verifying() -> Result<Argon2<'static>, String> {
 }
 
 #[derive(Debug, Clone)]
-pub struct PasswordHasherConfig {
+pub struct PasswordHasherConfigParams {
     pub m_cost: u32,
     pub t_cost: u32,
     pub p_cost: u32,
 }
+#[derive(Debug, Clone)]
+pub struct PasswordHasherConfig {
+    m_cost: u32,
+    t_cost: u32,
+    p_cost: u32,
+}
+impl PasswordHasherConfig {
+    pub fn new(params: PasswordHasherConfigParams) -> Self {
+        Self {
+            m_cost: params.m_cost,
+            t_cost: params.t_cost,
+            p_cost: params.p_cost,
+        }
+    }
+}
+
 pub fn hash_password(password: String, hasher_config: PasswordHasherConfig) -> Result<String, String> {
     let salt = generate_salt(SALT_BYTES_LENGTH)?;
     let argon2 = generate_argon2_context_for_hashing(hasher_config)?;

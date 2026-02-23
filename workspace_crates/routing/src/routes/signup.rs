@@ -72,6 +72,7 @@ pub async fn post(
         session,
         db_pool,
         http_request_data,
+        server_config,
         ..
     } = router_data.clone();
     if session.logged_in {
@@ -133,7 +134,7 @@ pub async fn post(
         return Ok(redirect_to("/signup".to_string()));
     }
 
-    let user_creation_result = try_to_create_new_user(db_pool.clone(), username, password)
+    let user_creation_result = try_to_create_new_user(db_pool.clone(), username, password, server_config.password_hasher_config)
         .await
         .map_err(InternalAppError::new)?;
     match user_creation_result {

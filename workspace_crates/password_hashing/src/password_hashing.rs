@@ -8,14 +8,15 @@ pub const MAX_VALID_SALT_BYTES_LENGTH: usize = 48;
 pub const SALT_BYTES_LENGTH: usize = MAX_VALID_SALT_BYTES_LENGTH;
 
 fn generate_argon2_context_for_hashing(
-    PasswordHasherConfig {
+ password_hasher_config: PasswordHasherConfig,
+) -> Result<Argon2<'static>, String> {
+    let    PasswordHasherConfig {
         m_cost,
         t_cost,
         p_cost,
-    }: PasswordHasherConfig,
-) -> Result<Argon2<'static>, String> {
+    } = password_hasher_config.clone();
     let params = Params::new(m_cost, t_cost, p_cost, None).map_err(|e| {
-        dbg!("Error on argo2 params::new", e.to_string());
+        dbg!("Error on argo2 params::new", password_hasher_config, e.to_string());
         e.to_string()
     })?;
     Ok(Argon2::new(Algorithm::Argon2id, Version::V0x13, params))
@@ -27,11 +28,12 @@ it makes no difference what context I use here. To avoid having to pass pointles
 
 */
 fn generate_argon2_context_for_verifying() -> Result<Argon2<'static>, String> {
-    const DUMMY_VAL: u32 = 1;
+    const DUMMY_M: u32= 32000;
+    const DUMMY_T_P: u32 = 1;
     generate_argon2_context_for_hashing(PasswordHasherConfig {
-        m_cost: DUMMY_VAL,
-        t_cost: DUMMY_VAL,
-        p_cost: DUMMY_VAL,
+        m_cost: DUMMY_M,
+        t_cost: DUMMY_T_P,
+        p_cost: DUMMY_T_P,
     })
 }
 

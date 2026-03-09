@@ -22,6 +22,7 @@ server = { path = "workspace_crates/server" }
 session = { path = "workspace_crates/session" }
 session_structs_and_so_on = { path = "workspace_crates/session_structs_and_so_on" }
 user = { path = "workspace_crates/user" }
+user_creation = { path = "workspace_crates/user_creation" }
 into_vec = { path = "workspace_crates/into_vec" }
 routing = { path = "workspace_crates/routing" }
 http_stuff = { path = "workspace_crates/http_stuff" }

@@ -1664,6 +1664,7 @@ dependencies = [
  "sqlx",
  "url 0.1.0",
  "user",
+ "user_creation",
 ]
 
 [[package]]
@@ -2526,6 +2527,9 @@ dependencies = [
 name = "user_creation"
 version = "0.1.0"
 dependencies = [
+ "error_structs",
+ "password_hashing",
+ "sqlx",
  "user",
 ]
 

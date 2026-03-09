@@ -10,6 +10,7 @@ session = { workspace = true }
 forum = { workspace = true }
 html_templating = { workspace = true }
 user = { workspace = true }
+user_creation = { workspace = true }
 http_stuff = { workspace = true }
 db_manager = { workspace = true }
 into_vec = { workspace = true }

@@ -9,7 +9,7 @@ use session::{
     SessionNotification, add_session_notification, edit_session,
     read_and_delete_session_notifications,
 };
-use user::try_to_create_new_user;
+use user_creation::try_to_create_new_user;
 
 use crate::RouterData;
 

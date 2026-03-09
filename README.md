@@ -6,6 +6,7 @@ Issues I would like to solve
 See file ISSUES.md
 
 How I usually set this up:
+
 0. If using VPS:
 Remember to install build-essential, required to run rust compilation.
 Also, if using VSCode's Remote SSH, it seems that while it connects to a Fedora VPS works out of the box, when Remote SSH connects to Ubuntu VPS, it times out. I disabled "Use Local Server" and then it seemed to have begun working.

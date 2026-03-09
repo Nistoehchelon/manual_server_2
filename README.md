@@ -6,6 +6,11 @@ Issues I would like to solve
 See file ISSUES.md
 
 How I usually set this up:
+0. If using VPS:
+Remember to install build-essential, required to run rust compilation.
+Also, if using VSCode's Remote SSH, it seems that while it connects to a Fedora VPS works out of the box, when Remote SSH connects to Ubuntu VPS, it times out. I disabled "Use Local Server" and then it seemed to have begun working.
+
+
 1. Install PostGres:
 On Windows I download zip and copy/unpack it where I want.
 On Linux (say, on VPS) I followed the typical PostGres set up from the website and then some commands to create the typical db name and user with password (I usually name them database123, user123, password123).

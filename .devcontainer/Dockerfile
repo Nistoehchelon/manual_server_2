@@ -1,5 +1,5 @@
-ARG VARIANT="buster"
-FROM mcr.microsoft.com/vscode/devcontainers/base:0-${VARIANT}
+ARG VARIANT="noble"
+FROM mcr.microsoft.com/devcontainers/base:${VARIANT}
 
 # Install deps needed for Rust toolchain (curl, build-essential, etc.)
 RUN apt-get update \

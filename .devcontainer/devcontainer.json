@@ -2,7 +2,7 @@
   "name": "Rust",
   "build": {
     "dockerfile": "Dockerfile",
-    "args": { "VARIANT": "bookworm" }
+    "args": { "VARIANT": "noble" }
   },
   "runArgs": [
     "--cap-add=SYS_PTRACE",

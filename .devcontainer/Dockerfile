@@ -1,14 +1,13 @@
-ARG VARIANT="noble"
-FROM mcr.microsoft.com/devcontainers/base:${VARIANT}
+# [Choice] Debian OS version (use bookworm, or bullseye on local arm64/Apple Silicon): bookworm, buster, bullseye
+ARG VARIANT="trixie"
+FROM rust:1-${VARIANT}
 
-# Install deps needed for Rust toolchain (curl, build-essential, etc.)
-RUN apt-get update \
- && apt-get install -y --no-install-recommends curl build-essential pkg-config libssl-dev libclang-dev clang
+# Fixing vulnerability issue by upgrading svn to 1.14.5. Ref https://subversion.apache.org/security/CVE-2024-46901-advisory.txt
+COPY ./scripts/install-subversion.sh /tmp/install-subversion.sh
+RUN chmod +x /tmp/install-subversion.sh
+RUN /tmp/install-subversion.sh \
+  && rm -f /tmp/install-subversion.sh
 
-# Install rustup and stable toolchain
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-RUN rustup default stable \
- && rustup component add clippy rustfmt
-
-# (Optional) add user or other setup steps as needed
+# [Optional] Uncomment this section to install additional OS packages.
+# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+#     && apt-get -y install --no-install-recommends <your-package-list-here>

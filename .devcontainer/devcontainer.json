@@ -1,17 +1,1 @@
-{
-  "name": "Codespace + PostgreSQL",
-  "features": {
-    "ghcr.io/devcontainers/features/postgres:1": {
-      "version": "18",
-      "password": "postgres",
-      "database": "database123"
-    }
-  },
-  "forwardPorts": [5432],
-  "remoteEnv": {
-    "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/database123"
-  },
-  "portsAttributes": {
-    "5432": { "label": "PostgreSQL", "onAutoForward": "silent", "requireLocalPort": true }
-  }
-}
+

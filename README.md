@@ -30,39 +30,30 @@ From https://www.postgresql.org/download/linux/ubuntu/:
 
 1.1. 
 ```bash
-sudo apt install -y postgresql-common
-```
+sudo apt install -y postgresql-common && sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && sudo apt install postgresql-18 -y
+``
 
-1.2. 
-```bash
-sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
-```
-
-^ The above 1.1 and 1.2 pull postgres's up to date repo. Typically, a fresh Ubuntu VPS will have an outdated Postgres  like 16 (current latest is 18, at the moment I write this)
+^ The above pulls postgres's up to date repo. Typically, a fresh Ubuntu VPS will have an outdated Postgres  like 16 (current latest is 18, at the moment I write this)
 Then, of course, the latest postgres is available (replace 18 with needed version):
-1.3. 
-```bash
-sudo apt install postgresql-18
-```
 
 Then setup db and user:
-1.4. 
+1.2. 
 ```bash
 sudo -u postgres psql <- login as postgres user
 ```
-1.5. 
+1.3. 
 ```sql
 CREATE USER user123 WITH PASSWORD 'password123';
 ```
-1.6. 
+1.4. 
 ```sql
 CREATE DATABASE database123 OWNER user123;
 ```
-1.7. GPT suggested this, but probably not necessary: 
+1.5. GPT suggested this, but probably not necessary: 
 ```sql
 ALTER ROLE user123 WITH LOGIN;
 ```
-1.8. test it works by: 
+1.6. test it works by: 
 ```bash
 psql -U user123 -d database123 -h localhost -W
 ```
@@ -72,7 +63,7 @@ psql -U user123 -d database123 -h localhost -W
 How I created DB on Windows:
 
 ```bash
-initdb --encoding=UTF8 --locale-provider=icu --icu-locale=und-x-icu  --lc-collate='und-x-icu' --lc-ctype='und-x-icu' --lc-messages='und-x-icu' --lc-monetary='und-x-icu' --lc-numeric='und-x-icu' --lc-time='und-x-icu' --data-checksums -D pgdb/
+initdb --encoding=UTF8 --locale-provider=icu --icu-locale=en --data-checksums -D pgdb/
 ```
 This has full-text search warning about und-x-icu not having fts something so it sets it to simple  mode. Available mode are simple, english, french, etc. I guess it does not matter?
 

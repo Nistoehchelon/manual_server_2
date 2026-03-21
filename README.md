@@ -7,6 +7,13 @@ See file ISSUES.md
 
 How I usually set this up:
 
+
+-1.
+Rustup:
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
 0. If using VPS:
 Remember to
 

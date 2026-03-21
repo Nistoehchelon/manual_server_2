@@ -40,21 +40,21 @@ encoding = { path = "workspace_crates/encoding" }
 indexmap = "2.13.0"
 sqlx = { version = "0.8.6", features = ["postgres", "macros", "runtime-tokio", "time", "tls-rustls-aws-lc-rs"] }
 
-tokio = { version = "1.49.0", features = ["full"] }
+tokio = { version = "1.50.0", features = ["full"] }
 tokio-rustls = "0.26.4"
 tokio-stream = { version = "0.1.18", features = ["net"] }
-rustls = { version = "0.23.36", features = ["prefer-post-quantum"]}
+rustls = { version = "0.23.37", features = ["prefer-post-quantum"]}
 rustls-pemfile = "2.2.0"
 rustls-acme = { version = "0.15.1", features = ["tokio"]}
 
-askama = { version = "0.15.4", features = ["std", "derive"] }
+askama = { version = "0.15.5", features = ["std", "derive"] }
 
 argon2 = {version = "0.5.3", features = ["zeroize"] }
 
 
 rand = "0.10.0"
 hex = "0.4.3"
-uuid = { version = "1.20.0", features = ["v4"] }
+uuid = { version = "1.22.0", features = ["v4"] }
 urlencoding = "2.1.3"
 percent-encoding = "2.3.2"
 

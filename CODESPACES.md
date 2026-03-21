@@ -1,14 +1,17 @@
-1. 
+
 ```bash
 /usr/lib/postgresql/18/bin/pg_ctl -D pgdb -o "-c unix_socket_directories=/tmp" -l logfile start
 ```
 
-2.
+```bash
+psql -h /tmp -d postgres
+```
+
+
 ```bash
 sudo rm -f /etc/apt/sources.list.d/yarn.list
 ```
 
-3.
 ```bash
 export PATH=$PATH:/usr/lib/postgresql/18/bin
 ```

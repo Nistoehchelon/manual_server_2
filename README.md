@@ -67,14 +67,6 @@ initdb --encoding=UTF8 --locale-provider=icu --icu-locale=en --data-checksums -D
 ```
 This has full-text search warning about und-x-icu not having fts something so it sets it to simple  mode. Available mode are simple, english, french, etc. I guess it does not matter?
 
-
-On Termux:
-
-```bash
-ibitdb --encoding=UTF8 --locale-provider=icu --icu-locale='und-x-icu --data-checksums -D pgdb/'
-```
-
-
 ```bash
 createuser --superuser --pwprompt user123
 ```

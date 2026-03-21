@@ -104,6 +104,7 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
     let http_version = first_line_split[2].to_string();
 
     if http_version != "HTTP/1.1" {
+        dbg!(http_version.clone());
         return Err(HttpRequestParsingError::HttpVersionNotSupported);
     }
 

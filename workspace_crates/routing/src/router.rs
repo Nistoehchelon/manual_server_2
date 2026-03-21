@@ -385,10 +385,7 @@ Page loading took {elapsed_ms} ms<br>
 
         html = html.replace("</body>", &format!("{}\n</body>", timing_html));
         *body = html.into_bytes();
-        // this is to update the content-length since the above modifies body
-        response_data
-            .headers
-            .insert("content-length", (*body).len().to_string());
+
     }
     let elapsed_ms: i64 = match i64::try_from(elapsed_ms) {
         Ok(v) => v,

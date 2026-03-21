@@ -7,3 +7,9 @@
 ```bash
 sudo rm -f /etc/apt/sources.list.d/yarn.list
 ```
+
+The app does not work. The codespaces proxy gives 502 error. A simple python server works.
+TODO:
+1.Test if app works using nginx reverse proxy on a VPS.
+2. Test if app works in codespaces using three layers: app -> nginx -> codespaces.
+I assume something is wrong with my web server implementation.

@@ -17,6 +17,11 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 0. If using VPS:
 Remember to
 
+
+```bash
+sudo apt update -y &&  sudo apt upgrade -y
+```
+
 ```bash
 sudo apt install build-essential
 ```
@@ -38,7 +43,7 @@ From https://www.postgresql.org/download/linux/ubuntu/:
 1.1. 
 ```bash
 sudo apt install -y postgresql-common && sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && sudo apt install postgresql-18 -y
-``
+```
 
 ^ The above pulls postgres's up to date repo. Typically, a fresh Ubuntu VPS will have an outdated Postgres  like 16 (current latest is 18, at the moment I write this)
 Then, of course, the latest postgres is available (replace 18 with needed version):

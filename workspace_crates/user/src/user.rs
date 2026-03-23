@@ -1,6 +1,7 @@
 use db_manager::{DbError, DbSuccess};
 use error_structs::{ExpectedToGetButFailed, PublicError, SomeSortOfError};
 use password_hashing::password_hashing::PasswordHasherConfig;
+use sqlx::{Acquire, Postgres};
 
 use crate::user_structs_and_so_on::User;
 
@@ -131,8 +132,8 @@ pub async fn find_by_username_and_password(
         dbg!("Failed password hash verification");
         dbg!(password.clone());
         dbg!(user.clone().password_hash);
-        let tried_hash =
-            password_hashing::hash_password(password.clone(), hasher_config).map_err(SomeSortOfError::new)?;
+        let tried_hash = password_hashing::hash_password(password.clone(), hasher_config)
+            .map_err(SomeSortOfError::new)?;
 
         dbg!(tried_hash);
         return Ok(None);
@@ -169,15 +170,19 @@ async fn storage_specific_create_new_user(
     db_pool: sqlx::PgPool,
     new_user: User,
 ) -> Result<User, DbError> {
-    storage_specific_add_user(db_pool, new_user.clone()).await?;
+    storage_specific_add_user(&db_pool, new_user.clone()).await?;
 
     Ok(new_user)
 }
 
-async fn storage_specific_add_user(
-    db_pool: sqlx::PgPool,
+async fn storage_specific_add_user<'a, A>(
+    acquiree: A,
     user: User,
-) -> Result<db_manager::DbSuccess, db_manager::DbError> {
+) -> Result<db_manager::DbSuccess, db_manager::DbError>
+where
+    A: Acquire<'a, Database = Postgres>,
+{
+    let mut conn = acquiree.acquire().await.map_err(DbError::new)?;
     match sqlx::query!(
         r#"INSERT INTO users (id, username, password_hash, bio) VALUES ($1,$2,$3,$4)"#,
         user.id,
@@ -185,7 +190,7 @@ async fn storage_specific_add_user(
         user.password_hash,
         user.bio
     )
-    .execute(&db_pool)
+    .execute(&mut *conn)
     .await
     {
         Ok(_) => Ok(DbSuccess::new("User created")),

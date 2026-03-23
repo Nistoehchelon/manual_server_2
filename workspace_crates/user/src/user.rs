@@ -1,7 +1,7 @@
 use db_manager::{DbError, DbSuccess};
 use error_structs::{ExpectedToGetButFailed, PublicError, SomeSortOfError};
 use password_hashing::password_hashing::PasswordHasherConfig;
-use sqlx::{Acquire, Postgres};
+use sqlx::{Postgres, Transaction};
 
 use crate::user_structs_and_so_on::User;
 
@@ -29,7 +29,7 @@ pub struct CheckingError {
     pub message: String,
 }
 pub async fn try_to_create_new_user(
-    db_pool: sqlx::PgPool,
+    tx: &mut Transaction<'_, Postgres>,
     username: String,
     password: String,
     hasher_config: PasswordHasherConfig,
@@ -40,7 +40,7 @@ pub async fn try_to_create_new_user(
         )));
     }
 
-    let username_available = is_username_available(username.clone(), db_pool.clone())
+    let username_available = is_username_available(username.clone(), tx)
         .await
         .map_err(SomeSortOfError::new)?;
 
@@ -63,7 +63,7 @@ pub async fn try_to_create_new_user(
         password_hash: hash,
         bio: "Default bio".to_string(),
     };
-    let user = storage_specific_create_new_user(db_pool, new_user)
+    let user = storage_specific_create_new_user(tx, new_user)
         .await
         .map_err(SomeSortOfError::new)?;
 
@@ -72,10 +72,10 @@ pub async fn try_to_create_new_user(
 
 pub async fn is_username_available(
     username: String,
-    db_pool: sqlx::PgPool,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<bool, DbError> {
     let bool_whether_username_available =
-        storage_specific_is_username_available(db_pool, username).await?;
+        storage_specific_is_username_available(tx, username).await?;
     Ok(bool_whether_username_available)
 }
 
@@ -146,14 +146,14 @@ fn generate_user_id() -> String {
 }
 
 async fn storage_specific_is_username_available(
-    db_pool: sqlx::PgPool,
+    tx: &mut Transaction<'_, Postgres>,
     username: String,
 ) -> Result<bool, DbError> {
     let exists = match sqlx::query!(
         r#"SELECT username FROM users WHERE username = $1"#,
         username,
     )
-    .fetch_optional(&db_pool)
+    .fetch_optional(&mut **tx)
     .await
     {
         Ok(opt) => opt.is_some(),
@@ -167,22 +167,18 @@ async fn storage_specific_is_username_available(
 }
 
 async fn storage_specific_create_new_user(
-    db_pool: sqlx::PgPool,
+    tx: &mut Transaction<'_, Postgres>,
     new_user: User,
 ) -> Result<User, DbError> {
-    storage_specific_add_user(&db_pool, new_user.clone()).await?;
+    storage_specific_add_user(&mut *tx, new_user.clone()).await?;
 
     Ok(new_user)
 }
 
-async fn storage_specific_add_user<'a, A>(
-    acquiree: A,
+async fn storage_specific_add_user(
+    tx: &mut Transaction<'_, Postgres>,
     user: User,
-) -> Result<db_manager::DbSuccess, db_manager::DbError>
-where
-    A: Acquire<'a, Database = Postgres>,
-{
-    let mut conn = acquiree.acquire().await.map_err(DbError::new)?;
+) -> Result<db_manager::DbSuccess, db_manager::DbError> {
     match sqlx::query!(
         r#"INSERT INTO users (id, username, password_hash, bio) VALUES ($1,$2,$3,$4)"#,
         user.id,
@@ -190,7 +186,7 @@ where
         user.password_hash,
         user.bio
     )
-    .execute(&mut *conn)
+    .execute(&mut **tx)
     .await
     {
         Ok(_) => Ok(DbSuccess::new("User created")),

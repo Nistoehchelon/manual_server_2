@@ -276,7 +276,9 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
 
         let server_wants_to_close = 'sc: {
             let conn_h = response_data.headers.get("connection");
-            if let Some(conn_h) = conn_h && conn_h == KeepAliveOrClose::KeepAlive.to_string() {
+            if let Some(conn_h) = conn_h
+                && conn_h == KeepAliveOrClose::KeepAlive.to_string()
+            {
                 break 'sc false;
             }
             true
@@ -286,7 +288,6 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             break;
         }
     }
-
 }
 
 pub async fn consume_time_spent_from_time_credits_bucket(
@@ -318,14 +319,17 @@ pub async fn generate_response(
             if let Some(c) = hc.clone() {
                 match c.to_ascii_lowercase().as_str() {
                     "close" => break 'c KeepAliveOrClose::Close,
-                    "keep-alive" => break  'c KeepAliveOrClose::KeepAlive,
+                    "keep-alive" => break 'c KeepAliveOrClose::KeepAlive,
                     _ => {
                         dbg!(format!("{hc:#?}, did not expect that"));
                         break 'c KeepAliveOrClose::Close;
-                    } 
+                    }
                 }
             }
-            dbg!("response_data contains no connection header, I suppose I will close in this case.", hc.clone());
+            dbg!(
+                "response_data contains no connection header, I suppose I will close in this case.",
+                hc.clone()
+            );
             KeepAliveOrClose::Close
         };
         match conn {
@@ -341,7 +345,9 @@ pub async fn generate_response(
             }
         }
     };
-    response_data.headers.insert("connection", close_or_keep_alive.to_string());
+    response_data
+        .headers
+        .insert("connection", close_or_keep_alive.to_string());
     response_data
 }
 pub async fn write_response<S: AsyncRead + AsyncWrite + Unpin>(
@@ -409,14 +415,17 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             .await;
         }
         HttpRequestParsingError::ClientTimedOutBeforeItSentAnyBytes => {
-            println!("{}", HttpRequestParsingError::ClientTimedOutBeforeItSentAnyBytes);
-            println!("Doing nothing, I guess, since the client sending nothing probably means they won't receive anything either.");
-            
+            println!(
+                "{}",
+                HttpRequestParsingError::ClientTimedOutBeforeItSentAnyBytes
+            );
+            println!(
+                "Doing nothing, I guess, since the client sending nothing probably means they won't receive anything either."
+            );
         }
         HttpRequestParsingError::ClientSentNothing => {
             println!("{}", HttpRequestParsingError::ClientSentNothing);
             println!("Doing nothing, because client connected but sent nothing...");
-            
         }
         hm => {
             eprintln!("main error, could not parse request {:?}", hm);

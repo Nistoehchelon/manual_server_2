@@ -8,15 +8,19 @@ pub const MAX_VALID_SALT_BYTES_LENGTH: usize = 48;
 pub const SALT_BYTES_LENGTH: usize = MAX_VALID_SALT_BYTES_LENGTH;
 
 fn generate_argon2_context_for_hashing(
- password_hasher_config: PasswordHasherConfig,
+    password_hasher_config: PasswordHasherConfig,
 ) -> Result<Argon2<'static>, String> {
-    let    PasswordHasherConfig {
+    let PasswordHasherConfig {
         m_cost,
         t_cost,
         p_cost,
     } = password_hasher_config.clone();
     let params = Params::new(m_cost, t_cost, p_cost, None).map_err(|e| {
-        dbg!("Error on argo2 params::new", password_hasher_config, e.to_string());
+        dbg!(
+            "Error on argo2 params::new",
+            password_hasher_config,
+            e.to_string()
+        );
         e.to_string()
     })?;
     Ok(Argon2::new(Algorithm::Argon2id, Version::V0x13, params))
@@ -28,7 +32,7 @@ it makes no difference what context I use here. To avoid having to pass pointles
 
 */
 fn generate_argon2_context_for_verifying() -> Result<Argon2<'static>, String> {
-    const DUMMY_M: u32= 32000;
+    const DUMMY_M: u32 = 32000;
     const DUMMY_T_P: u32 = 1;
     generate_argon2_context_for_hashing(PasswordHasherConfig {
         m_cost: DUMMY_M,
@@ -59,7 +63,10 @@ impl PasswordHasherConfig {
     }
 }
 
-pub fn hash_password(password: String, hasher_config: PasswordHasherConfig) -> Result<String, String> {
+pub fn hash_password(
+    password: String,
+    hasher_config: PasswordHasherConfig,
+) -> Result<String, String> {
     let salt = generate_salt(SALT_BYTES_LENGTH)?;
     let argon2 = generate_argon2_context_for_hashing(hasher_config)?;
 

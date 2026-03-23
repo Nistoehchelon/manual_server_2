@@ -179,7 +179,11 @@ async fn read_line_bounded<R: AsyncRead + Unpin>(
                     dbg!("client timeout before client sent any bytes");
                     return HttpRequestParsingError::ClientTimedOutBeforeItSentAnyBytes;
                 }
-                dbg!("header byte reading timed out", elapsed, header_bytes_so_far.to_ascii_lowercase());
+                dbg!(
+                    "header byte reading timed out",
+                    elapsed,
+                    header_bytes_so_far.to_ascii_lowercase()
+                );
                 HttpRequestParsingError::HeadersStreamReadTimeout
             })?
             .map_err(|e| {

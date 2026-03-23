@@ -34,7 +34,6 @@ pub async fn route(
     created_new_session: bool,
     request_data: HttpRequestData,
     base_template_data: BaseTemplateData,
-    
 ) -> Result<HttpResponseData, InternalAppError> {
     let HttpRequestData {
         path_and_query: _path_and_query,
@@ -270,8 +269,6 @@ pub async fn generate_response_data(
 
     let response_data = add_elapsed(response_data, session, request_start, db_pool).await;
 
-    
-
     add_some_headers(response_data, server_config, nonce)
 }
 
@@ -341,8 +338,6 @@ bluetooth=()"
     response_data
 }
 
-
-
 pub async fn add_elapsed(
     mut response_data: HttpResponseData,
     Session { id: session_id, .. }: Session,
@@ -385,7 +380,6 @@ Page loading took {elapsed_ms} ms<br>
 
         html = html.replace("</body>", &format!("{}\n</body>", timing_html));
         *body = html.into_bytes();
-
     }
     let elapsed_ms: i64 = match i64::try_from(elapsed_ms) {
         Ok(v) => v,

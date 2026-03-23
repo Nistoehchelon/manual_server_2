@@ -120,70 +120,68 @@ pub struct HttpResponseData {
     pub headers: Headers,
 }
 impl HttpResponseData {
-    pub fn response(&self,
-) -> Result<HttpResponse, HttpResponseError> {
-    let HttpResponseData {
-        body,
-        status_code,
-        headers, set_cookie } = self;
-    let mut http_response_string: String = String::new();
-    http_response_string.push_str("HTTP/1.1");
-    http_response_string.push(' ');
-    let status_code_string = status_code.to_string();
-    http_response_string.push_str(&status_code_string);
-    http_response_string.push_str("\r\n");
+    pub fn response(&self) -> Result<HttpResponse, HttpResponseError> {
+        let HttpResponseData {
+            body,
+            status_code,
+            headers,
+            set_cookie,
+        } = self;
+        let mut http_response_string: String = String::new();
+        http_response_string.push_str("HTTP/1.1");
+        http_response_string.push(' ');
+        let status_code_string = status_code.to_string();
+        http_response_string.push_str(&status_code_string);
+        http_response_string.push_str("\r\n");
 
-    if let Some(set_cookie) = set_cookie {
-        for sc in set_cookie.iter() {
-            dbg!(sc.clone());
-            let secure = 's: {
-                if sc.secure {
-                    break 's "Secure;";
+        if let Some(set_cookie) = set_cookie {
+            for sc in set_cookie.iter() {
+                dbg!(sc.clone());
+                let secure = 's: {
+                    if sc.secure {
+                        break 's "Secure;";
+                    }
+                    ""
                 }
-                ""
-            }.to_string();
-            let set_cookie_string = format!(
-                "Set-Cookie: {}={}; Path={}; {secure} HttpOnly; SameSite=Strict\r\n",
-                sc.key, sc.value, sc.path
-            );
-            http_response_string.push_str(&set_cookie_string);
+                .to_string();
+                let set_cookie_string = format!(
+                    "Set-Cookie: {}={}; Path={}; {secure} HttpOnly; SameSite=Strict\r\n",
+                    sc.key, sc.value, sc.path
+                );
+                http_response_string.push_str(&set_cookie_string);
+            }
         }
-    }
 
-    let mut body_bytes_length = 0;
-    let body_bytes: Vec<u8> = match body {
-        Some(b) => {
-            body_bytes_length = b.len();
-            b.to_vec()
-        }
-        None => Vec::new(),
-    };
+        let mut body_bytes_length = 0;
+        let body_bytes: Vec<u8> = match body {
+            Some(b) => {
+                body_bytes_length = b.len();
+                b.to_vec()
+            }
+            None => Vec::new(),
+        };
 
-     http_response_string.push_str(&format!("content-length: {body_bytes_length}\r\n"));
-
-
+        http_response_string.push_str(&format!("content-length: {body_bytes_length}\r\n"));
 
         for (name, value) in headers.iter() {
             http_response_string.push_str(&format!("{name}: {value}\r\n"));
         }
-    
 
+        http_response_string.push_str("\r\n");
 
-    http_response_string.push_str("\r\n");
+        if !http_response_string.is_ascii() {
+            let err = "http_response_string contains non-ascii bytes, not allowed".to_string();
+            dbg!(&err);
+            return Err(HttpResponseError::new(err));
+        }
 
-    if !http_response_string.is_ascii() {
-        let err = "http_response_string contains non-ascii bytes, not allowed".to_string();
-        dbg!(&err);
-        return Err(HttpResponseError::new(err));
-    }
+        let mut http_response_bytes = http_response_string.clone().into_bytes();
 
-    let mut http_response_bytes = http_response_string.clone().into_bytes();
+        if body_bytes_length > 0 {
+            http_response_bytes.extend_from_slice(&body_bytes);
+        }
 
-    if body_bytes_length > 0 {
-        http_response_bytes.extend_from_slice(&body_bytes);
-    }
-
-    Ok(http_response_bytes)
+        Ok(http_response_bytes)
     }
 }
 
@@ -193,9 +191,9 @@ pub struct Headers {
 }
 #[derive(Debug, Clone)]
 pub enum HeaderKind {
-     Singleton,
-     CommaList,
-     SetCookie,
+    Singleton,
+    CommaList,
+    SetCookie,
 }
 impl Headers {
     pub fn classify(name: &str) -> HeaderKind {
@@ -233,8 +231,7 @@ impl Headers {
                     .or_insert_with(|| value.trim().to_string());
             }
 
-            HeaderKind::SetCookie => {
-            }
+            HeaderKind::SetCookie => {}
         }
     }
     pub fn remove(&mut self, name: &str) -> Option<String> {
@@ -243,7 +240,7 @@ impl Headers {
     pub fn get(&self, name: &str) -> Option<String> {
         self.inner.get(name).cloned()
     }
-    
+
     pub fn append(&mut self, name: &str, value: String) {
         let existing_val = self.get(name);
 
@@ -286,10 +283,7 @@ pub fn ok(
             let mut headers = Headers::new();
             headers.insert("content-type", content_type.to_string());
             if let Some(charset) = charset {
-                headers.append(
-                    "content-type",
-                    format!("; charset={}", charset),
-                );
+                headers.append("content-type", format!("; charset={}", charset));
             }
             headers
         },
@@ -300,7 +294,7 @@ pub fn redirect_to(page: String) -> HttpResponseData {
     HttpResponseData {
         body: None,
         status_code: StatusCode::Code302Found,
-        headers:  {
+        headers: {
             let mut headers = Headers::new();
             headers.insert("content-type", ContentType::TextHtml.to_string());
             headers.insert("location", page.to_string());
@@ -315,7 +309,7 @@ pub fn internal_server_error_500() -> HttpResponseData {
     HttpResponseData {
         body: None,
         status_code: StatusCode::Code500InternalServerError,
-        headers:  {
+        headers: {
             let mut headers = Headers::new();
             headers.insert("content-type", ContentType::TextHtml.to_string());
             headers.insert("charset", Charset::Utf8.to_string());
@@ -329,7 +323,7 @@ pub fn bad_request_400() -> HttpResponseData {
     HttpResponseData {
         body: None,
         status_code: StatusCode::Code400BadRequest,
-        headers:  {
+        headers: {
             let mut headers = Headers::new();
             headers.insert("content-type", ContentType::TextHtml.to_string());
             headers.insert("charset", Charset::Utf8.to_string());
@@ -351,7 +345,7 @@ pub fn standalone_response(status_code: StatusCode, msg: String) -> HttpResponse
         body: Some(body),
         status_code: status_code.clone(),
         headers: {
-           let mut headers = Headers::new();
+            let mut headers = Headers::new();
             headers.insert("content-type", ContentType::TextHtml.to_string());
             headers.insert("charset", Charset::Utf8.to_string());
 

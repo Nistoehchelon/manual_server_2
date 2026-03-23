@@ -113,9 +113,10 @@ pub async fn post(
         .map_err(InternalAppError::new)?;
         return Ok(redirect_to("/login".to_string()));
     }
-    let user_result = find_by_username_and_password(username, password, db_pool.clone(), hasher_config)
-        .await
-        .map_err(InternalAppError::new)?;
+    let user_result =
+        find_by_username_and_password(username, password, db_pool.clone(), hasher_config)
+            .await
+            .map_err(InternalAppError::new)?;
 
     if user_result.is_none() {
         add_session_notification(

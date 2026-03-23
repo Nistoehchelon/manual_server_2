@@ -51,8 +51,11 @@ Then, of course, the latest postgres is available (replace 18 with needed versio
 Then setup db and user:
 1.2. 
 ```bash
-sudo -u postgres psql <- login as postgres user
+sudo -u postgres psql
 ```
+
+^ login as postgres user
+
 1.3. 
 ```sql
 CREATE USER user123 WITH PASSWORD 'password123';

@@ -17,7 +17,7 @@ pub async fn try_to_create_new_user(
         }
         Ok(u) => u,
     };
-
+ 
     sqlx::query!(
         "INSERT INTO access_attributes (subject, subject_id, name) VALUES($1, $2, $3)",
         "user",

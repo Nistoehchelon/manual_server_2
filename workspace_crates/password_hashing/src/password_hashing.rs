@@ -11,9 +11,9 @@ fn generate_argon2_context_for_hashing(
     password_hasher_config: PasswordHasherConfig,
 ) -> Result<Argon2<'static>, String> {
     let PasswordHasherConfig {
-        m_cost,
-        t_cost,
-        p_cost,
+        memory_cost: m_cost,
+        time_cost: t_cost,
+        parallelism_cost: p_cost,
     } = password_hasher_config.clone();
     let params = Params::new(m_cost, t_cost, p_cost, None).map_err(|e| {
         dbg!(
@@ -35,30 +35,30 @@ fn generate_argon2_context_for_verifying() -> Result<Argon2<'static>, String> {
     const DUMMY_M: u32 = 32000;
     const DUMMY_T_P: u32 = 1;
     generate_argon2_context_for_hashing(PasswordHasherConfig {
-        m_cost: DUMMY_M,
-        t_cost: DUMMY_T_P,
-        p_cost: DUMMY_T_P,
+        memory_cost: DUMMY_M,
+        time_cost: DUMMY_T_P,
+        parallelism_cost: DUMMY_T_P,
     })
 }
 
 #[derive(Debug, Clone)]
 pub struct PasswordHasherConfigParams {
-    pub m_cost: u32,
-    pub t_cost: u32,
-    pub p_cost: u32,
+    pub memory_cost: u32,
+    pub time_cost: u32,
+    pub parallelism_cost: u32,
 }
 #[derive(Debug, Clone)]
 pub struct PasswordHasherConfig {
-    m_cost: u32,
-    t_cost: u32,
-    p_cost: u32,
+    memory_cost: u32,
+    time_cost: u32,
+    parallelism_cost: u32,
 }
 impl PasswordHasherConfig {
     pub fn new(params: PasswordHasherConfigParams) -> Self {
         Self {
-            m_cost: params.m_cost,
-            t_cost: params.t_cost,
-            p_cost: params.p_cost,
+            memory_cost: params.memory_cost,
+            time_cost: params.time_cost,
+            parallelism_cost: params.parallelism_cost,
         }
     }
 }

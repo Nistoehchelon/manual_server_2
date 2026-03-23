@@ -317,9 +317,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let password_hasher_config_p_cost =
         password_hasher_config_p_cost.expect("Missing PASSWORD_HASHER_CONFIG[p_cost]");
     let password_hasher_config = PasswordHasherConfig::new(PasswordHasherConfigParams {
-        m_cost: password_hasher_config_m_cost_kib.try_into().unwrap(),
-        t_cost: password_hasher_config_t_cost.try_into().unwrap(),
-        p_cost: password_hasher_config_p_cost.try_into().unwrap(),
+        memory_cost: password_hasher_config_m_cost_kib.try_into().unwrap(),
+        time_cost: password_hasher_config_t_cost.try_into().unwrap(),
+        parallelism_cost: password_hasher_config_p_cost.try_into().unwrap(),
     });
 
     Config {

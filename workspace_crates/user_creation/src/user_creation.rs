@@ -1,11 +1,14 @@
 use error_structs::{PublicError, SomeSortOfError};
+use password_hashing::PasswordHasherConfig;
+use sqlx::PgPool;
+use user::User;
 
 pub async fn try_to_create_new_user(
-    db_pool: sqlx::PgPool,
+    db_pool: PgPool,
     username: String,
     password: String,
-    hasher_config: password_hashing::PasswordHasherConfig,
-) -> Result<Result<user::User, error_structs::PublicError>, error_structs::SomeSortOfError> {
+    hasher_config: PasswordHasherConfig,
+) -> Result<Result<User, PublicError>, SomeSortOfError> {
     let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
 
     let user = match user::try_to_create_new_user(&mut tx, username, password, hasher_config)

@@ -9,9 +9,9 @@ fn hashes_and_verifies_how_i_would_expect_it_to() {
     let hash = hash_password(
         initial_password.clone(),
         PasswordHasherConfig::new(PasswordHasherConfigParams {
-            m_cost: 16000,
-            t_cost: 2,
-            p_cost: 2,
+            memory_cost: 16000,
+            time_cost: 2,
+            parallelism_cost: 2,
         }),
     )
     .expect("I expected the hash to be generated successfully");

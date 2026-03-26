@@ -58,17 +58,10 @@ sudo -u postgres psql
 
 1.3. 
 ```sql
-CREATE USER user123 WITH PASSWORD 'password123';
+CREATE USER user123 WITH PASSWORD 'password123'; CREATE DATABASE database123 OWNER user123;
 ```
-1.4. 
-```sql
-CREATE DATABASE database123 OWNER user123;
-```
-1.5. GPT suggested this, but probably not necessary: 
-```sql
-ALTER ROLE user123 WITH LOGIN;
-```
-1.6. test it works by: 
+
+1.4. test it works by: 
 ```bash
 psql -U user123 -d database123 -h localhost -W
 ```

@@ -86,12 +86,24 @@ createdb database123 --owner=user123 --template=template0 --encoding=UTF8
 ```
 
 
+cd into manual_server/pgsql_backups
+and use below, without the chmod 600 a warning that prevents script execution occurs:
+WARNING: password file "/home/username/manual_server/pgsql_backups/.pgpass" has group or world access; permissions should be u=rw (0600) or less
+
+```bash
+chmod 600 .pgpass
+bash push.sh --schema
+```
+
+
 
 1. Configure .env file based on .env_example. On fresh set up I can copy the example and modify as needed.
 2. I guess pg_backups/.pgpass if needed, but I usually use default password123 etc for dev and pg pass is only for dev, right? I dunno, by the way, how production import/export would look like.
 3. Use pg_backups's pull and push scripts...
 4. Ah, and the local (for dev) self-signed cert generation/TLS intrusctions is inside local_ssl/README.md
 5. This seems to be about it
+
+
 
 Regarding pgsql_backups:
 I have two scripts there: push.sh and pull.sh

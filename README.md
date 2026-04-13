@@ -95,13 +95,20 @@ chmod 600 .pgpass
 bash push.sh --schema
 ```
 
+In manual_server root folder:
+```bash
+cp .env_example .env
+```
+Then configure it as you wish.
+
+Run app:
+```bash
+cargo run
+```
 
 
-1. Configure .env file based on .env_example. On fresh set up I can copy the example and modify as needed.
-2. I guess pg_backups/.pgpass if needed, but I usually use default password123 etc for dev and pg pass is only for dev, right? I dunno, by the way, how production import/export would look like.
-3. Use pg_backups's pull and push scripts...
-4. Ah, and the local (for dev) self-signed cert generation/TLS intrusctions is inside local_ssl/README.md
-5. This seems to be about it
+1. Ah, and the local (for dev) self-signed cert generation/TLS intrusctions is inside local_ssl/README.md
+2. This seems to be about it
 
 
 

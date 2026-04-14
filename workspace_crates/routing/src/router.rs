@@ -253,6 +253,7 @@ pub async fn generate_response_data(
         };
     let base_template_data = html_templating::html_template_structs::BaseTemplateData {
         title: "".to_string(),
+        page: request_data.path.clone(),
         notifications: Vec::new(),
         nonce: nonce.clone(),
     };

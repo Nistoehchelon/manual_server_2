@@ -62,6 +62,7 @@ pub struct ForumThread {
 
 #[derive(Clone, Debug)]
 pub struct BaseTemplateData {
+    pub page: String,
     pub title: String,
     pub notifications: Vec<SessionNotification>,
     pub nonce: String,

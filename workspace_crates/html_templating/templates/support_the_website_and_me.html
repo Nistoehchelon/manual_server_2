@@ -1,0 +1,27 @@
+{% extends "template_base.html" %}
+
+{% block content%}
+
+{% include "includes/notifications.html" %}
+
+
+<p>You may contribute to the website fund. Money from this fund must be used for covering the project's expenses only.
+</p>
+
+<p id="website_fund_xmr_addrress">Website fund address (XMR): [website_fund_address]</p>
+
+<p>Current fund contents: [website_fund_xmr_amount] XMR (website_fund_usd_amount) USD</p>
+
+<div id="expenses_list">Website expenses (monthly):
+    <p>0. Total expenses (monthly): [total_monthly_expenses_amount_xmr]XMR ([total_monthly_expenses_amount_usd] USD)</p>
+    <p>1. Domain(s) ([list_all_domains_here? Or only the main ones]): [XMR amount]XMR ([amount ] USD)</p>
+    <p>2. Server(s): [amount] XMR ([amount] USD)</p>
+    <p>Total: [total] XMR ([amount] USD)/month</p>
+</div>
+
+You may also choose to donate to me personally. Money donated to the personal fund may be used, for example, for me to
+buy myself a chocolate cake or a milkshake or in any other way I may want.
+
+<p id="personal_fund_xmr_address">Personal fund address (XMR): [personal_fund_address]</p>
+
+{%endblock%}

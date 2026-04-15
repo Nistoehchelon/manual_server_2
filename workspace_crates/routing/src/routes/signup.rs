@@ -134,6 +134,9 @@ pub async fn post(
         return Ok(redirect_to("/signup".to_string()));
     }
 
+    //let cf_url = String::from("https://challenges.cloudflare.com/turnstile/v0/siteverify");
+    
+
     let user_creation_result = try_to_create_new_user(
         db_pool.clone(),
         username,

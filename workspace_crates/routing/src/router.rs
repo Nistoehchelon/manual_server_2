@@ -127,7 +127,12 @@ pub async fn route(
                 routes::forum_thread_message_versions::get(router_data.clone())
                     .await
                     .unwrap_or(internal_server_error_500())
-            }
+            },
+            ("POST", "/dump_request") => {
+                routes::dump_request::dump_request(router_data.clone())
+                    
+                    .unwrap_or(internal_server_error_500())
+            },
 
             _ => routes::index::get(router_data.clone())
                 .await
@@ -167,6 +172,7 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
 
     let guest_allowed = vec![
         "/signup",
+        "/dump_request",
         "/login",
         "/",
         "/stylesheet.css",
@@ -177,6 +183,7 @@ fn check_if_user_can_access_path(session: Session, path: String) -> bool {
     ];
 
     let user_allowed = vec![
+        "/dump_request",
         "/logout",
         "/dashboard",
         "/",
@@ -334,7 +341,16 @@ bluetooth=()"
             .to_string(),
     );
     response_data.headers.insert("Content-Security-Policy", format!(
-        "default-src 'none'; script-src 'nonce-{}' 'strict-dynamic'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; img-src 'self'; style-src 'self'; connect-src 'self'; font-src 'self'; form-action 'self';"
+        "default-src 'none'; \
+        script-src 'nonce-{}' 'strict-dynamic'; \
+        object-src 'none'; \
+        base-uri 'none'; \
+        frame-ancestors 'none'; \
+        img-src 'self'; \
+        style-src 'self'; \
+        connect-src 'self'; \
+        font-src 'self'; \
+        form-action 'self';"
     , nonce.clone()));
     response_data
 }

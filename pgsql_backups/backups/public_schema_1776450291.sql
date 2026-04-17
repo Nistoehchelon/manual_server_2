@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict HzRYfPWK2kf7fklntmAAX13tA6xcrAtCHigNItmGYHxkmLwEfScMdKeyOlyuvUD
+\restrict 8TdjsIvlt2Hr5trJWvENHN1i7EIN2bc1ca9GjbCvFvN2bHl8Kic7eJI7T1hCvHv
 
--- Dumped from database version 18.1
--- Dumped by pg_dump version 18.1
+-- Dumped from database version 18.3 (Ubuntu 18.3-1.pgdg24.04+1)
+-- Dumped by pg_dump version 18.3 (Ubuntu 18.3-1.pgdg24.04+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -102,13 +102,28 @@ ALTER SEQUENCE public.csrf_tokens_primary_key_seq OWNED BY public.csrf_tokens.pr
 
 
 --
+-- Name: forum_thread_message_versions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.forum_thread_message_versions (
+    primary_key bigint NOT NULL,
+    id text NOT NULL,
+    user_id text NOT NULL,
+    content text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    message_id text NOT NULL
+);
+
+
+--
 -- Name: forum_thread_messages; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.forum_thread_messages (
     primary_key bigint NOT NULL,
-    id text CONSTRAINT forum_thread_messages_public_id_not_null NOT NULL,
-    thread_id text NOT NULL
+    id text NOT NULL,
+    thread_id text NOT NULL,
+    user_id text NOT NULL
 );
 
 
@@ -137,7 +152,7 @@ ALTER SEQUENCE public.forum_thread_messages_primary_key_seq OWNED BY public.foru
 
 CREATE TABLE public.forum_threads (
     primary_key bigint NOT NULL,
-    id text CONSTRAINT forum_threads_public_id_not_null NOT NULL,
+    id text NOT NULL,
     name text NOT NULL,
     forum_id text NOT NULL
 );
@@ -169,9 +184,9 @@ ALTER SEQUENCE public.forum_threads_primary_key_seq OWNED BY public.forum_thread
 
 CREATE TABLE public.forums (
     primary_key bigint NOT NULL,
-    id text CONSTRAINT forums_public_id_not_null NOT NULL,
+    id text NOT NULL,
     name text NOT NULL,
-    parent_id text CONSTRAINT forums_forum_id_not_null NOT NULL
+    parent_id text NOT NULL
 );
 
 
@@ -231,9 +246,10 @@ ALTER SEQUENCE public.session_notifications_primary_key_seq OWNED BY public.sess
 
 CREATE TABLE public.sessions (
     primary_key bigint NOT NULL,
-    id text CONSTRAINT sessions_public_id_not_null NOT NULL,
+    id text NOT NULL,
     user_id text NOT NULL,
-    logged_in boolean NOT NULL
+    logged_in boolean NOT NULL,
+    previous_page_load_time_ms bigint DEFAULT '0'::bigint NOT NULL
 );
 
 
@@ -257,17 +273,125 @@ ALTER SEQUENCE public.sessions_primary_key_seq OWNED BY public.sessions.primary_
 
 
 --
--- Name: thread_message_versions; Type: TABLE; Schema: public; Owner: -
+-- Name: site_page_content; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.thread_message_versions (
+CREATE TABLE public.site_page_content (
     primary_key bigint NOT NULL,
-    id text CONSTRAINT thread_message_versions_public_id_not_null NOT NULL,
-    user_id text NOT NULL,
-    content text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    message_id text NOT NULL
+    id text NOT NULL,
+    page_id text NOT NULL
 );
+
+
+--
+-- Name: site_page_content_primary_key_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.site_page_content_primary_key_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: site_page_content_primary_key_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.site_page_content_primary_key_seq OWNED BY public.site_page_content.primary_key;
+
+
+--
+-- Name: site_page_content_versions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.site_page_content_versions (
+    primary_key bigint NOT NULL,
+    id text NOT NULL,
+    content text NOT NULL,
+    user_id text NOT NULL,
+    "timestamp" timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: site_page_content_versions_primary_key_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.site_page_content_versions_primary_key_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: site_page_content_versions_primary_key_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.site_page_content_versions_primary_key_seq OWNED BY public.site_page_content_versions.primary_key;
+
+
+--
+-- Name: site_pages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.site_pages (
+    primary_key bigint NOT NULL,
+    id text NOT NULL
+);
+
+
+--
+-- Name: site_pages_primary_key_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.site_pages_primary_key_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: site_pages_primary_key_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.site_pages_primary_key_seq OWNED BY public.site_pages.primary_key;
+
+
+--
+-- Name: site_pages_variables; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.site_pages_variables (
+    primary_key bigint NOT NULL,
+    id text NOT NULL,
+    name text NOT NULL,
+    value text NOT NULL
+);
+
+
+--
+-- Name: site_pages_variables_primary_key_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.site_pages_variables_primary_key_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: site_pages_variables_primary_key_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.site_pages_variables_primary_key_seq OWNED BY public.site_pages_variables.primary_key;
 
 
 --
@@ -286,7 +410,7 @@ CREATE SEQUENCE public.thread_message_versions_primary_key_seq
 -- Name: thread_message_versions_primary_key_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.thread_message_versions_primary_key_seq OWNED BY public.thread_message_versions.primary_key;
+ALTER SEQUENCE public.thread_message_versions_primary_key_seq OWNED BY public.forum_thread_message_versions.primary_key;
 
 
 --
@@ -295,10 +419,9 @@ ALTER SEQUENCE public.thread_message_versions_primary_key_seq OWNED BY public.th
 
 CREATE TABLE public.users (
     primary_key bigint NOT NULL,
-    id text CONSTRAINT users_public_id_not_null NOT NULL,
+    id text NOT NULL,
     username text NOT NULL,
     password_hash text NOT NULL,
-    password_salt text NOT NULL,
     bio text NOT NULL
 );
 
@@ -337,6 +460,13 @@ ALTER TABLE ONLY public.csrf_tokens ALTER COLUMN primary_key SET DEFAULT nextval
 
 
 --
+-- Name: forum_thread_message_versions primary_key; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.forum_thread_message_versions ALTER COLUMN primary_key SET DEFAULT nextval('public.thread_message_versions_primary_key_seq'::regclass);
+
+
+--
 -- Name: forum_thread_messages primary_key; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -372,10 +502,31 @@ ALTER TABLE ONLY public.sessions ALTER COLUMN primary_key SET DEFAULT nextval('p
 
 
 --
--- Name: thread_message_versions primary_key; Type: DEFAULT; Schema: public; Owner: -
+-- Name: site_page_content primary_key; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.thread_message_versions ALTER COLUMN primary_key SET DEFAULT nextval('public.thread_message_versions_primary_key_seq'::regclass);
+ALTER TABLE ONLY public.site_page_content ALTER COLUMN primary_key SET DEFAULT nextval('public.site_page_content_primary_key_seq'::regclass);
+
+
+--
+-- Name: site_page_content_versions primary_key; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_page_content_versions ALTER COLUMN primary_key SET DEFAULT nextval('public.site_page_content_versions_primary_key_seq'::regclass);
+
+
+--
+-- Name: site_pages primary_key; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_pages ALTER COLUMN primary_key SET DEFAULT nextval('public.site_pages_primary_key_seq'::regclass);
+
+
+--
+-- Name: site_pages_variables primary_key; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_pages_variables ALTER COLUMN primary_key SET DEFAULT nextval('public.site_pages_variables_primary_key_seq'::regclass);
 
 
 --
@@ -442,10 +593,42 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: thread_message_versions thread_message_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: site_page_content site_page_content_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.thread_message_versions
+ALTER TABLE ONLY public.site_page_content
+    ADD CONSTRAINT site_page_content_pkey PRIMARY KEY (primary_key);
+
+
+--
+-- Name: site_page_content_versions site_page_content_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_page_content_versions
+    ADD CONSTRAINT site_page_content_versions_pkey PRIMARY KEY (primary_key);
+
+
+--
+-- Name: site_pages site_pages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_pages
+    ADD CONSTRAINT site_pages_pkey PRIMARY KEY (primary_key);
+
+
+--
+-- Name: site_pages_variables site_pages_variables_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_pages_variables
+    ADD CONSTRAINT site_pages_variables_pkey PRIMARY KEY (primary_key);
+
+
+--
+-- Name: forum_thread_message_versions thread_message_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.forum_thread_message_versions
     ADD CONSTRAINT thread_message_versions_pkey PRIMARY KEY (primary_key);
 
 
@@ -461,5 +644,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict HzRYfPWK2kf7fklntmAAX13tA6xcrAtCHigNItmGYHxkmLwEfScMdKeyOlyuvUD
+\unrestrict 8TdjsIvlt2Hr5trJWvENHN1i7EIN2bc1ca9GjbCvFvN2bHl8Kic7eJI7T1hCvHv
 

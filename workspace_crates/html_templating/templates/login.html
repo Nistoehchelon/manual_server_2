@@ -1,12 +1,13 @@
 {% extends "template_base.html" %}
 
 {% block head %}
-<link rel="preconnect" href="https://challenges.cloudflare.com" />
+{% if main_info.cloudflare_turnstile_enabled %}
 <script
   src="https://challenges.cloudflare.com/turnstile/v0/api.js"  nonce="{{ main_info.nonce }}"
   async
   defer
 ></script>
+{% endif %}
 
 {% endblock %}
 
@@ -18,7 +19,9 @@
     <input type="text" name="username" placeholder="Enter your username" required><br>
     <input type="password" name="password" placeholder="Enter your password" required><br>
     <input type="hidden" name="csrf_token" value = "{{ csrf_token }}"><br>
+    {% if main_info.cloudflare_turnstile_enabled %}
     <div class="cf-turnstile" data-sitekey="{{ main_info.cloudflare_turnstile_site_key }}"></div>
+    {% endif %}
     <input type="submit" value="Login">
 </form>
 {%endblock%}

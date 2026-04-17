@@ -263,6 +263,7 @@ pub async fn generate_response_data(
     let base_template_data = html_templating::html_template_structs::BaseTemplateData {
         title: "".to_string(),
         page: request_data.path.clone(),
+        cloudflare_turnstile_enabled: server_config.cloudflare_turnstile_enabled,
         cloudflare_turnstile_site_key: server_config.cloudflare_turnstile_site_key.clone(),
         notifications: Vec::new(),
         nonce: nonce.clone(),
@@ -348,19 +349,20 @@ bluetooth=()"
     let mut frame_src = String::new();
     // if on pages using cf turntile, include the url in the csp headers
 
-    match request_data.path.as_str() {
-        "/signup" | "/login" => {
-            script_src = String::from("https://challenges.cloudflare.com");
-            frame_src = String::from("https://challenges.cloudflare.com");
+    if server_config.cloudflare_turnstile_enabled {
+        match request_data.path.as_str() {
+            "/signup" | "/login" => {
+                script_src = String::from("https://challenges.cloudflare.com");
+                frame_src = String::from("https://challenges.cloudflare.com");
+            }
+            _ => {}
         }
-        _ => {}
     }
-
 
     response_data.headers.insert(
         "Content-Security-Policy",
         format!(
-        "default-src 'none'; \
+            "default-src 'none'; \
         script-src 'nonce-{}' 'strict-dynamic' {script_src}; \
         frame-src {frame_src}; \
         object-src 'none'; \

@@ -1,8 +1,11 @@
 use config_reader::Config;
 use encoding::decode_request_string;
 use indexmap::IndexMap;
+use std::net::IpAddr;
 use std::{
-    collections::HashMap, fmt::{self, Display}, time::Duration
+    collections::HashMap,
+    fmt::{self, Display},
+    time::Duration,
 };
 use tokio::io::BufReader;
 use tokio::{
@@ -150,7 +153,23 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
         body.extend(body_bytes_exact);
     }
 
-    Ok(HttpRequestData {
+    let x_real_ip = match headers.get("x-real-ip") {
+        Some(ip) => match ip.parse::<IpAddr>() {
+            Ok(ip) => ip,
+            Err(e) => {
+                println!("x-real-ip header could not be parsed from str into IpAddr, {e}");
+                return Err(HttpRequestParsingError::XRealIpHeaderParsingError);
+            }
+        },
+        None => {
+            println!(
+                "x-real-ip header not found in header list, possibly cf/nginx misconfiguration?"
+            );
+            return Err(HttpRequestParsingError::XRealIpHeaderNotProvided);
+        }
+    };
+    let req_data = HttpRequestData {
+        x_real_ip,
         method,
         path,
         path_and_query,
@@ -158,7 +177,9 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
         body_bytes: body,
         cookies,
         headers,
-    })
+    };
+
+    Ok(req_data)
 }
 
 async fn read_line_bounded<R: AsyncRead + Unpin>(
@@ -263,7 +284,7 @@ async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
 /// Holds all the parsed information from an HTTP request.
 #[derive(Clone, Debug)]
 pub struct HttpRequestData {
-   // pub ip: IpAddr,
+    pub x_real_ip: IpAddr,
     pub headers: Headers,
     pub method: String,
     pub path: String,
@@ -289,6 +310,8 @@ pub enum HttpRequestParsingError {
     TooManyHeaders,
     HeaderNameTooLong,
     HeaderValueTooLong,
+    XRealIpHeaderNotProvided,
+    XRealIpHeaderParsingError
 }
 impl Display for HttpRequestParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -307,6 +330,8 @@ impl Display for HttpRequestParsingError {
             Self::TooManyCookies => "Too Many Cookies",
             Self::HeaderNameTooLong => "Header Name Too Long",
             Self::HeaderValueTooLong => "Header Value Too Long",
+            Self::XRealIpHeaderNotProvided => "X-Real-IP header not provided",
+            Self::XRealIpHeaderParsingError => "X-Real-IP Header Parsing Error",
         };
         write!(f, "{}", s)
     }

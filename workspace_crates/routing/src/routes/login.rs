@@ -59,43 +59,77 @@ pub async fn post(
         return Ok(redirect_to(String::from("/")));
     }
     let body_bytes = router_data.http_request_data.body_bytes.clone();
-    let (username, password, csrf_token) =
+    let body_params =
         match http_request_parsing::parse_body_into_string_form_input_params(body_bytes) {
+            Ok(bp) => bp,
             Err(_) => {
                 add_session_notification(
                     db_pool.clone(),
                     SessionNotification {
-                        message: "Could not extract params from body".to_string(),
+                        message: "Invalid body".to_string(),
                         session_id: session.id.clone(),
                         notification_type: session::SessionNotificationType::Error,
                     },
                 )
                 .await
                 .map_err(InternalAppError::new)?;
-                return Ok(redirect_to("/login".to_string()));
-            }
-            Ok(params) => {
-                let username_opt = params.get("username").cloned();
-                let password_opt = params.get("password").cloned();
-                let csrf_token_opt = params.get("csrf_token").cloned();
-                match (username_opt, password_opt, csrf_token_opt) {
-                    (Some(u), Some(p), Some(c)) => (u, p, c),
-                    _ => {
-                        add_session_notification(
-                            db_pool.clone(),
-                            SessionNotification {
-                                message: "Could not extract params from body".to_string(),
-                                session_id: session.id.clone(),
-                                notification_type: session::SessionNotificationType::Error,
-                            },
-                        )
-                        .await
-                        .map_err(InternalAppError::new)?;
-                        return Ok(redirect_to("/login".to_string()));
-                    }
-                }
+                return Ok(redirect_to("/".to_string()));
             }
         };
+    let username = body_params.get("username").cloned();
+    let password = body_params.get("password").cloned();
+    let csrf_token = body_params.get("csrf_token").cloned();
+
+    let (username, password, csrf_token) = match (username, password, csrf_token) {
+        (Some(u), Some(p), Some(c)) => (u, p, c),
+        _ => {
+            add_session_notification(
+                db_pool.clone(),
+                SessionNotification {
+                    message: "Invalid body".to_string(),
+                    session_id: session.id.clone(),
+                    notification_type: session::SessionNotificationType::Error,
+                },
+            )
+            .await
+            .map_err(InternalAppError::new)?;
+            return Ok(redirect_to("/signup".to_string()));
+        }
+    };
+    if router_data.server_config.cloudflare_turnstile_enabled {
+        let cf_turnstile_token = match body_params.get("cf-turnstile-response").cloned() {
+            Some(t) => t,
+            None => {
+                return Err(InternalAppError::new(
+                    "Could not retrieve cf_turnstile_token from request body",
+                ));
+            }
+        };
+        let client_ip = router_data.http_request_data.x_real_ip;
+
+        if !cloudflare_turnstile::validate_turnstile(
+            router_data
+                .server_config
+                .cloudflare_turnstile_secret_key
+                .clone(),
+            cf_turnstile_token,
+            client_ip,
+        )
+        .await
+        {
+            add_session_notification(
+                db_pool.clone(),
+                SessionNotification {
+                    session_id: session.id.clone(),
+                    message: String::from("Could not validate Turnstile Captcha"),
+                    notification_type: session::SessionNotificationType::Error,
+                },
+            )
+            .await
+            .map_err(InternalAppError::new)?;
+            return Ok(redirect_to("/signup".to_string()));
+        }
+    }
 
     let csrf_token_valid = validate_token(db_pool.clone(), session.id.clone(), csrf_token)
         .await
@@ -114,8 +148,6 @@ pub async fn post(
         return Ok(redirect_to("/login".to_string()));
     }
 
-
-    
     let user_result =
         find_by_username_and_password(username, password, db_pool.clone(), hasher_config)
             .await

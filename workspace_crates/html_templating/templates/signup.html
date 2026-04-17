@@ -1,23 +1,26 @@
 {% extends "template_base.html" %}
 
 {% block head %}
-<link rel="preconnect" href="https://challenges.cloudflare.com" />
+{% if main_info.cloudflare_turnstile_enabled %}
 <script
   src="https://challenges.cloudflare.com/turnstile/v0/api.js"  nonce="{{ main_info.nonce }}"
   async
   defer
 ></script>
+{% endif %}
 
 {% endblock %}
 
 {% block content%}
 <h1>Sign up</h1>
 {% include "includes/notifications.html" %}
-<form method='POST' action='/dump_request'>
+<form method='POST' action='/signup'>
     <input type='text' name='username' placeholder='Enter your username' required><br>
     <input type='password' name='password' placeholder='Enter your password' required><br>
     <input type = "hidden" name = "csrf_token" value = "{{ csrf_token }}">
-    <div class="cf-turnstile" data-sitekey="{{ main_info.cloudflare_turnstile_site_key}}"></div>
+    {% if main_info.cloudflare_turnstile_enabled %}
+    <div class="cf-turnstile" data-sitekey="{{ main_info.cloudflare_turnstile_site_key }}"></div>
+    {% endif %}
     <input type='submit' value='Create a new account!'>
 </form>
 {%endblock%}

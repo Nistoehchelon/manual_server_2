@@ -18,7 +18,7 @@
     <input type="text" name="username" placeholder="Enter your username" required><br>
     <input type="password" name="password" placeholder="Enter your password" required><br>
     <input type="hidden" name="csrf_token" value = "{{ csrf_token }}"><br>
-    <div class="cf-turnstile" data-sitekey="3x00000000000000000000FF"></div>
+    <div class="cf-turnstile" data-sitekey="{{ main_info.cloudflare_turnstile_site_key }}"></div>
     <input type="submit" value="Login">
 </form>
 {%endblock%}

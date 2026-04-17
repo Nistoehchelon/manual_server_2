@@ -66,6 +66,7 @@ pub struct BaseTemplateData {
     pub title: String,
     pub notifications: Vec<SessionNotification>,
     pub nonce: String,
+    pub cloudflare_turnstile_site_key: String,
 }
 
 #[derive(Debug, Clone)]

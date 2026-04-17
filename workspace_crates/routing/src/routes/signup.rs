@@ -138,24 +138,33 @@ pub async fn post(
         return Ok(redirect_to("/signup".to_string()));
     }
 
-    let cf_secret_key = "1x0000000000000000000000000000000AA".to_string();
-    let client_ip = "127.0.0.1"
-        .parse::<IpAddr>()
-        .map_err(InternalAppError::new)?;
-    let cf_valid = cloudflare_turnstile::validate_turnstile(cf_secret_key, cf_turnstile_token, client_ip).await;
+    let client_ip = match http_request_data.headers.get("x-real-ip") {
+        Some(ip) => ip,
+        None => {
+            return Err(InternalAppError::new("x-real-ip header is not set"));
+        }
+    };
+
+    let client_ip = client_ip.parse::<IpAddr>().map_err(InternalAppError::new)?;
+    let cf_valid = cloudflare_turnstile::validate_turnstile(
+        server_config.cloudflare_turnstile_secret_key.clone(),
+        cf_turnstile_token,
+        client_ip,
+    )
+    .await;
 
     if !cf_valid {
         add_session_notification(
-                db_pool.clone(),
-                SessionNotification {
-                    session_id: session.id.clone(),
-                    message: String::from("Could not validate Turnstile Captcha"),
-                    notification_type: session::SessionNotificationType::Error,
-                },
-            )
-            .await
-            .map_err(InternalAppError::new)?;
-            return Ok(redirect_to("/signup".to_string()));
+            db_pool.clone(),
+            SessionNotification {
+                session_id: session.id.clone(),
+                message: String::from("Could not validate Turnstile Captcha"),
+                notification_type: session::SessionNotificationType::Error,
+            },
+        )
+        .await
+        .map_err(InternalAppError::new)?;
+        return Ok(redirect_to("/signup".to_string()));
     }
 
     let user_creation_result = try_to_create_new_user(

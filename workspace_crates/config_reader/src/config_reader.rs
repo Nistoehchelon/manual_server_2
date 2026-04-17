@@ -3,6 +3,9 @@ use std::{fs::read_to_string, path::PathBuf, str::FromStr, time::Duration};
 
 #[derive(Debug, Clone)]
 pub struct Config {
+    pub cloudflare_turnstile_site_key: String,
+    pub cloudflare_turnstile_secret_key: String,
+
     pub ip_and_port: String,
     pub port: u64,
     pub ip: String,
@@ -58,6 +61,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let contents = read_to_string(&config_file_path)
         .unwrap_or_else(|_| panic!("Could not find path config {config_file_path:#?}"));
 
+    let mut cloudflare_turnstile_site_key: Option<String> = None;
+    let mut cloudflare_turnstile_secret_key: Option<String> = None;
+
     let mut ip: Option<String> = None;
     let mut port: Option<u64> = None;
     let mut db_url: Option<String> = None;
@@ -112,6 +118,12 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         let value = value.trim().to_string();
 
         match key {
+            "CLOUDFLARE_TURNSTILE_SITE_KEY" => {
+                cloudflare_turnstile_site_key = Some(value.parse().unwrap())
+            }
+            "CLOUDFLARE_TURNSTILE_SECRET_KEY" => {
+                cloudflare_turnstile_secret_key = Some(value.parse().unwrap())
+            }
             "PASSWORD_HASHER_CONFIG[m_cost_kib]" => {
                 password_hasher_config_m_cost_kib = Some(value.parse().unwrap())
             }
@@ -243,6 +255,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         );
     }
 
+    let cloudflare_turnstile_site_key = cloudflare_turnstile_site_key.expect("Missing CLOUDFLARE_TURNSTILE_SITE_KEY");
+    let cloudflare_turnstile_secret_key = cloudflare_turnstile_secret_key.expect("Missing CLOUDFLARE_TURNSTILE_SECRET_KEY");
+
     let server_time_credits_capacity = Duration::from_millis(
         server_time_credits_capacity_millis
             .expect("Missing SERVER_TIME_CREDITS_CAPACITY_MILLIS in env file"),
@@ -323,6 +338,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     });
 
     Config {
+        cloudflare_turnstile_secret_key,
+        cloudflare_turnstile_site_key,
         ip: ip.clone(),
         port,
         ip_and_port: format!("{ip}:{port}"),

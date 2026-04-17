@@ -127,12 +127,9 @@ pub async fn route(
                 routes::forum_thread_message_versions::get(router_data.clone())
                     .await
                     .unwrap_or(internal_server_error_500())
-            },
-            ("POST", "/dump_request") => {
-                routes::dump_request::dump_request(router_data.clone())
-                    
-                    .unwrap_or(internal_server_error_500())
-            },
+            }
+            ("POST", "/dump_request") => routes::dump_request::dump_request(router_data.clone())
+                .unwrap_or(internal_server_error_500()),
 
             _ => routes::index::get(router_data.clone())
                 .await
@@ -227,8 +224,13 @@ pub async fn generate_response_data(
 ) -> HttpResponseData {
     let nonce = id_generator::generate_random_alphanumeric_id(50).to_string();
     if is_requesting_static_resource(request_data.path.clone()) {
-        let response_data = generate_static_response(request_data);
-        let response_data = add_some_headers(response_data, server_config.clone(), nonce.clone());
+        let response_data = generate_static_response(request_data.clone());
+        let response_data = add_some_headers(
+            request_data,
+            response_data,
+            server_config.clone(),
+            nonce.clone(),
+        );
         return response_data;
     }
 
@@ -269,7 +271,7 @@ pub async fn generate_response_data(
         server_config.clone(),
         session.clone(),
         created_new_session,
-        request_data,
+        request_data.clone(),
         base_template_data,
     )
     .await
@@ -277,10 +279,11 @@ pub async fn generate_response_data(
 
     let response_data = add_elapsed(response_data, session, request_start, db_pool).await;
 
-    add_some_headers(response_data, server_config, nonce)
+    add_some_headers(request_data, response_data, server_config, nonce)
 }
 
 pub fn add_some_headers(
+    request_data: HttpRequestData,
     mut response_data: HttpResponseData,
     server_config: Config,
     nonce: String,
@@ -340,9 +343,21 @@ usb=(),\
 bluetooth=()"
             .to_string(),
     );
-    response_data.headers.insert("Content-Security-Policy", format!(
-        "default-src 'none'; \
-        script-src 'nonce-{}' 'strict-dynamic'; \
+    let mut script_src = String::new();
+    let mut frame_src = String::new();
+    match request_data.path.as_str() {
+        "/signup" | "/login" => {
+            script_src = String::from("https://challenges.cloudflare.com");
+            frame_src = String::from("https://challenges.cloudflare.com");
+        }
+        _ => {}
+    }
+    response_data.headers.insert(
+        "Content-Security-Policy",
+        format!(
+            "default-src 'none'; \
+        script-src 'nonce-{}' 'strict-dynamic' {script_src}; \
+        frame-src {frame_src}; \
         object-src 'none'; \
         base-uri 'none'; \
         frame-ancestors 'none'; \
@@ -350,8 +365,10 @@ bluetooth=()"
         style-src 'self'; \
         connect-src 'self'; \
         font-src 'self'; \
-        form-action 'self';"
-    , nonce.clone()));
+        form-action 'self';",
+            nonce.clone()
+        ),
+    );
     response_data
 }
 

@@ -2,9 +2,7 @@ use config_reader::Config;
 use encoding::decode_request_string;
 use indexmap::IndexMap;
 use std::{
-    collections::HashMap,
-    fmt::{self, Display},
-    time::Duration,
+    collections::HashMap, fmt::{self, Display}, time::Duration
 };
 use tokio::io::BufReader;
 use tokio::{
@@ -265,6 +263,7 @@ async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
 /// Holds all the parsed information from an HTTP request.
 #[derive(Clone, Debug)]
 pub struct HttpRequestData {
+   // pub ip: IpAddr,
     pub headers: Headers,
     pub method: String,
     pub path: String,

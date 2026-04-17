@@ -13,11 +13,11 @@
 {% block content%}
 <h1>Sign up</h1>
 {% include "includes/notifications.html" %}
-<form method='POST' action='/dump_request'>
+<form method='POST' action='/signup'>
     <input type='text' name='username' placeholder='Enter your username' required><br>
     <input type='password' name='password' placeholder='Enter your password' required><br>
     <input type = "hidden" name = "csrf_token" value = "{{ csrf_token }}">
-    <div class="cf-turnstile" data-sitekey="0x4AAAAAAC8323hzWQ9KT3uZ"></div>
+    <div class="cf-turnstile" data-sitekey="3x00000000000000000000FF"></div>
     <input type='submit' value='Create a new account!'>
 </form>
 {%endblock%}

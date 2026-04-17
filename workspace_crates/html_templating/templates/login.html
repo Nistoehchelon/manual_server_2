@@ -1,5 +1,16 @@
 {% extends "template_base.html" %}
 
+{% block head %}
+<link rel="preconnect" href="https://challenges.cloudflare.com" />
+<script
+  src="https://challenges.cloudflare.com/turnstile/v0/api.js"  nonce="{{ main_info.nonce }}"
+  async
+  defer
+></script>
+
+{% endblock %}
+
+
 {% block content%}
 <h1>Log in 😊</h1>
 {% include "includes/notifications.html" %}
@@ -7,6 +18,7 @@
     <input type="text" name="username" placeholder="Enter your username" required><br>
     <input type="password" name="password" placeholder="Enter your password" required><br>
     <input type="hidden" name="csrf_token" value = "{{ csrf_token }}"><br>
+    <div class="cf-turnstile" data-sitekey="3x00000000000000000000FF"></div>
     <input type="submit" value="Login">
 </form>
 {%endblock%}

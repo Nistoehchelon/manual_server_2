@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, BaseTemplateData};
 use http_stuff::{
@@ -99,22 +101,24 @@ pub async fn post(
     let username = body_params.get("username").cloned();
     let password = body_params.get("password").cloned();
     let csrf_token = body_params.get("csrf_token").cloned();
-    let (username, password, csrf_token) = match (username, password, csrf_token) {
-        (Some(u), Some(p), Some(c)) => (u, p, c),
-        _ => {
-            add_session_notification(
-                db_pool.clone(),
-                SessionNotification {
-                    message: "Invalid body".to_string(),
-                    session_id: session.id.clone(),
-                    notification_type: session::SessionNotificationType::Error,
-                },
-            )
-            .await
-            .map_err(InternalAppError::new)?;
-            return Ok(redirect_to("/signup".to_string()));
-        }
-    };
+    let cf_turnstile_token = body_params.get("cf-turnstile-response").cloned();
+    let (username, password, csrf_token, cf_turnstile_token) =
+        match (username, password, csrf_token, cf_turnstile_token) {
+            (Some(u), Some(p), Some(c), Some(cftt)) => (u, p, c, cftt),
+            _ => {
+                add_session_notification(
+                    db_pool.clone(),
+                    SessionNotification {
+                        message: "Invalid body".to_string(),
+                        session_id: session.id.clone(),
+                        notification_type: session::SessionNotificationType::Error,
+                    },
+                )
+                .await
+                .map_err(InternalAppError::new)?;
+                return Ok(redirect_to("/signup".to_string()));
+            }
+        };
 
     let csrf_token_valid =
         csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone())
@@ -134,8 +138,25 @@ pub async fn post(
         return Ok(redirect_to("/signup".to_string()));
     }
 
-    //let cf_url = String::from("https://challenges.cloudflare.com/turnstile/v0/siteverify");
-    
+    let cf_secret_key = "1x0000000000000000000000000000000AA".to_string();
+    let client_ip = "127.0.0.1"
+        .parse::<IpAddr>()
+        .map_err(InternalAppError::new)?;
+    let cf_valid = validate_turnstile(cf_secret_key, cf_turnstile_token, client_ip).await;
+
+    if !cf_valid {
+        add_session_notification(
+                db_pool.clone(),
+                SessionNotification {
+                    session_id: session.id.clone(),
+                    message: String::from("Could not validate Turnstile Captcha"),
+                    notification_type: session::SessionNotificationType::Error,
+                },
+            )
+            .await
+            .map_err(InternalAppError::new)?;
+            return Ok(redirect_to("/signup".to_string()));
+    }
 
     let user_creation_result = try_to_create_new_user(
         db_pool.clone(),
@@ -170,4 +191,55 @@ pub async fn post(
     }
 
     Ok(redirect_to("/".to_string()))
+}
+
+async fn validate_turnstile(cf_secret_key: String, cf_token: String, client_ip: IpAddr) -> bool {
+    use reqwest::Client;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize, Debug)]
+    struct TurnstileRequest<'a> {
+        secret: &'a str,
+        response: &'a str,
+        remoteip: &'a str,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct TurnstileResponse {
+        pub success: bool,
+        #[serde(rename = "error-codes")]
+        pub error_codes: Option<Vec<String>>,
+    }
+
+    let cf_url = String::from("https://challenges.cloudflare.com/turnstile/v0/siteverify");
+
+    let body = TurnstileRequest {
+        secret: &cf_secret_key,
+        response: &cf_token,
+        remoteip: &client_ip.to_string(),
+    };
+    let client = Client::new();
+    let response = match client.post(cf_url).json(&body).send().await {
+        Ok(response) => match response.json::<TurnstileResponse>().await {
+            Ok(r) => r,
+            Err(err) => {
+                eprintln!("Turnstile JSON parse error: {:?}", err);
+                TurnstileResponse {
+                    success: false,
+                    error_codes: Some(vec!["myapperror parse".to_string()]),
+                }
+            }
+        },
+        Err(err) => {
+             eprintln!("Turnstile validation error: {:?}", err);
+            TurnstileResponse {
+                success: false,
+                error_codes: Some(vec!["internal-error".to_string()]),
+            }
+        }
+    };
+
+    
+    println!("Turnstile validation result: {} {:#?}",response.success, response.error_codes, );
+    response.success
 }

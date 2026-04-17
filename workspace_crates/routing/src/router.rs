@@ -345,6 +345,8 @@ bluetooth=()"
     );
     let mut script_src = String::new();
     let mut frame_src = String::new();
+    // if on pages using cf turntile, include the url in the csp headers
+
     match request_data.path.as_str() {
         "/signup" | "/login" => {
             script_src = String::from("https://challenges.cloudflare.com");
@@ -352,10 +354,12 @@ bluetooth=()"
         }
         _ => {}
     }
+
+
     response_data.headers.insert(
         "Content-Security-Policy",
         format!(
-            "default-src 'none'; \
+        "default-src 'none'; \
         script-src 'nonce-{}' 'strict-dynamic' {script_src}; \
         frame-src {frame_src}; \
         object-src 'none'; \

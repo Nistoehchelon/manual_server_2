@@ -92,12 +92,14 @@ and use below, without the chmod 600 a warning that prevents script execution oc
 WARNING: password file "/home/username/manual_server/pgsql_backups/.pgpass" has group or world access; permissions should be u=rw (0600) or less
 
 ```bash
+cd pgsql_backups
 chmod 600 .pgpass
 bash push.sh --schema
 ```
 
 In manual_server root folder:
 ```bash
+cd ..
 cp .env_example .env
 ```
 Then configure it as you wish.

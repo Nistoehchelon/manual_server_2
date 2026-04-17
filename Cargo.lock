@@ -403,6 +403,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cloudflare_turnstile"
+version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "serde",
+]
+
+[[package]]
 name = "cmake"
 version = "0.1.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2032,6 +2040,7 @@ name = "routing"
 version = "0.1.0"
 dependencies = [
  "abac",
+ "cloudflare_turnstile",
  "config_reader",
  "csrf_stuff",
  "db_manager",

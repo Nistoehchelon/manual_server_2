@@ -7,6 +7,37 @@ pub fn get_name_of_cookie_containing_session_id() -> String {
     NAME_OF_COOKIE_CONTAINING_SESSION_ID.to_string()
 }
 
+pub async fn get_custom_data_or_empty_string(db_pool: sqlx::PgPool, session_id: String, name: String) -> Result<String, DbError> {
+      let result = sqlx::query_scalar!(
+        r#"SELECT value FROM session_custom_data WHERE session_id = $1 AND name = $2"#,
+        session_id,
+        name
+    )
+    .fetch_optional(&db_pool)
+    .await
+    .map_err(DbError::new)?;
+
+    // Return the value if found, otherwise return an empty string
+    Ok(result.unwrap_or_else(|| "".to_string()))
+}
+pub async fn set_custom_data(db_pool: sqlx::PgPool, session_id: String, name: String, value: String) -> Result<(), DbError> {
+        sqlx::query!(
+        r#"
+        INSERT INTO session_custom_data (session_id, name, value)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (session_id, name) 
+        DO UPDATE SET value = EXCLUDED.value
+        "#,
+        session_id,
+        name,
+        value
+    )
+    .execute(&db_pool)
+    .await
+    .map_err(DbError::new)?;
+
+    Ok(())
+}
 pub async fn edit_session(
     db_pool: sqlx::PgPool,
     session_id: String,
@@ -43,6 +74,21 @@ pub async fn add_session_notification(
             Err(e)
         }
     }
+}
+pub async fn add_session_notification_error(
+    db_pool: sqlx::PgPool,
+    session_id: String,
+    message: String,
+) -> Result<(), DbError> {
+match add_session_notification(db_pool, SessionNotification { session_id, message, notification_type: SessionNotificationType::Error }).await.map_err(DbError::new) {
+    Ok(_) => {
+        Ok(())
+    },
+    Err(e) =>{
+        Err(DbError::new(e))
+    }
+ }
+
 }
 
 pub async fn read_and_delete_session_notifications(

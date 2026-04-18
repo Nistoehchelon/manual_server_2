@@ -1,5 +1,5 @@
 use error_structs::InternalAppError;
-use forum::get_forum_by_id;
+use forum::find_forum_by_id;
 use html_templating::html_template_structs::{self};
 use http_stuff::http_response::{self, HttpResponseData, redirect_to};
 use into_vec::into_vec;
@@ -22,7 +22,7 @@ pub async fn get(
         .map(|(_, v)| v.clone())
         .unwrap_or_else(|| "0".to_string());
 
-    let forum = match get_forum_by_id(db_pool.clone(), forum_id.clone())
+    let forum = match find_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
         .map_err(InternalAppError::new)?
     {

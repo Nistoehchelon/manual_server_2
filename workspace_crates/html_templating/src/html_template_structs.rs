@@ -160,5 +160,9 @@ pub struct ForumTemplate {
 pub struct CreateThreadTemplate {
     pub main_info: BaseTemplateData,
     pub forum: Forum,
+    pub draft_thread_name: String,
+    pub draft_thread_content: String,
+    pub draft_thread_custom_id: String,
+    pub can_set_custom_id: bool,
     pub csrf_token: String,
 }

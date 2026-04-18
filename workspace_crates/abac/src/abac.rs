@@ -10,6 +10,41 @@ pub struct UserPermissions {
     pub can_create_forum_thread: bool,
     pub can_create_forum_thread_message: bool,
 }
+pub struct CanSetCustomThreadIdWhenCreatingItInput {
+pub db_pool: sqlx::PgPool,
+pub session: Session,
+}
+
+pub async fn can_set_custom_thread_id_when_creating_it(CanSetCustomThreadIdWhenCreatingItInput { db_pool, session }: CanSetCustomThreadIdWhenCreatingItInput) -> Result<bool, SomeSortOfError> {
+     let session = match get_session_by_session_id(session.id.clone(), db_pool.clone())
+        .await
+        .map_err(SomeSortOfError::new)?
+    {
+        Ok(s) => s,
+        Err(_) => return Ok(false),
+    };
+    let user = match get_user_by_user_id(db_pool.clone(), session.user_id.clone())
+        .await
+        .map_err(SomeSortOfError::new)
+    {
+        Ok(u) => u,
+        Err(_) => {
+            return Ok(false);
+        }
+    };
+    let user_id = user.id.clone();
+    let b = sqlx::query!(
+        "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
+        "user",
+        user_id,
+        "set_custom_thread_id_when_creating_it"
+    )
+    .fetch_optional(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?
+    .is_some();
+    Ok(b)
+}
 
 pub async fn can_create_forum_thread_message(session: Session) -> Result<bool, SomeSortOfError> {
     Ok(session.logged_in)

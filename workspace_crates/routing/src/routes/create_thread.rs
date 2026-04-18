@@ -1,7 +1,7 @@
-use abac::CanCreateThreadInput;
+use abac::{CanCreateThreadInput, CanSetCustomThreadIdWhenCreatingItInput};
 use error_structs::InternalAppError;
 use forum;
-use forum::get_forum_by_id;
+use forum::find_forum_by_id;
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::{self},
@@ -32,7 +32,7 @@ pub async fn get(
         .cloned()
         .unwrap_or_else(|| "0".to_string());
 
-    let forum = get_forum_by_id(db_pool.clone(), forum_id.clone())
+    let forum = find_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
         .map_err(InternalAppError::new)?;
 
@@ -66,6 +66,45 @@ pub async fn get(
         main_info: router_data.base_template_data,
         forum: forum.into(),
         csrf_token,
+        draft_thread_content: session::get_custom_data_or_empty_string(
+            db_pool.clone(),
+            session.id.clone(),
+            "draft_forum_thread_content".to_string(),
+        )
+        .await
+        .map_err(InternalAppError::new)?,
+
+        draft_thread_name: session::get_custom_data_or_empty_string(
+            db_pool.clone(),
+            session.id.clone(),
+            "draft_forum_thread_name".to_string(),
+        )
+        .await
+        .map_err(InternalAppError::new)?,
+
+        draft_thread_custom_id: {
+            let draft = session::get_custom_data_or_empty_string(
+                db_pool.clone(),
+                session.id.clone(),
+                "draft_forum_thread_custom_id".to_string(),
+            )
+            .await
+            .map_err(InternalAppError::new)?;
+            if draft.is_empty() {
+                "[auto]".to_string()
+            } else {
+                draft
+            }
+        },
+
+        can_set_custom_id: abac::can_set_custom_thread_id_when_creating_it(
+            CanSetCustomThreadIdWhenCreatingItInput {
+                db_pool: db_pool.clone(),
+                session: session.clone(),
+            },
+        )
+        .await
+        .map_err(InternalAppError::new)?,
     });
     Ok(ok_html(html))
 }
@@ -106,9 +145,103 @@ pub async fn post(
     if !is_csrf_token_valid {
         return Ok(bad_request_400());
     }
+    let forum = find_forum_by_id(db_pool.clone(), forum_id.clone())
+        .await
+        .map_err(InternalAppError::new)?;
+
+    session::set_custom_data(
+        db_pool.clone(),
+        session.id.clone(),
+        "draft_forum_thread_name".to_string(),
+        name.clone(),
+    )
+    .await
+    .map_err(InternalAppError::new)?;
+    session::set_custom_data(
+        db_pool.clone(),
+        session.id.clone(),
+        "draft_forum_thread_content".to_string(),
+        content.clone(),
+    )
+    .await
+    .map_err(InternalAppError::new)?;
+    if forum.is_none() {
+        session::add_session_notification_error(
+            db_pool.clone(),
+            session.id.clone(),
+            "Could not find forum with specified id".to_string(),
+        )
+        .await
+        .map_err(InternalAppError::new)?;
+        return Ok(redirect_to(format!("/create_thread?forum_id={forum_id}")));
+    }
+
+
+    let mut thread_id = forum::generate_unique_thread_id(db_pool.clone())
+        .await
+        .map_err(InternalAppError::new)?;
+    
+    if let Some(custom_id) = params.get("custom_id")
+        && custom_id != "[auto]"
+    {
+        let custom_id = custom_id.to_owned();
+        if !abac::can_set_custom_thread_id_when_creating_it(
+            CanSetCustomThreadIdWhenCreatingItInput {
+                db_pool: db_pool.clone(),
+                session: session.clone(),
+            },
+        )
+        .await
+        .map_err(InternalAppError::new)?
+        {
+            add_session_notification(
+                db_pool,
+                SessionNotification {
+                    session_id: session.id.clone(),
+                    message:
+                        "You do not have access to `set thread id upon creation` functionality"
+                            .to_string(),
+                    notification_type: session::SessionNotificationType::Error,
+                },
+            )
+            .await
+            .map_err(InternalAppError::new)?;
+            return Ok(redirect_to(format!("create_thread?forum_id={forum_id}")));
+        } else {
+            session::set_custom_data(
+                db_pool.clone(),
+                session.id.clone(),
+                "draft_forum_thread_custom_id".to_string(),
+                custom_id.clone(),
+            )
+            .await
+            .map_err(InternalAppError::new)?;
+            let custom_id_available = forum::find_thread(db_pool.clone(), custom_id.clone())
+                .await
+                .map_err(InternalAppError::new)?
+                .is_none();
+            if !custom_id_available {
+                add_session_notification(
+                    db_pool,
+                    SessionNotification {
+                        session_id: session.id.clone(),
+                        message: "Custom id already taken by some other thread".to_string(),
+                        notification_type: session::SessionNotificationType::Error,
+                    },
+                )
+                .await
+                .map_err(InternalAppError::new)?;
+
+                return Ok(redirect_to(format!("/create_thread?forum_id={forum_id}")));
+            } else {
+                thread_id = custom_id;
+            }
+        }
+    }
 
     let thread_id = forum::create_thread(
         db_pool.clone(),
+        thread_id,
         name,
         content,
         session.user_id.clone(),

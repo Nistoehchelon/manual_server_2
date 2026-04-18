@@ -2,9 +2,14 @@
 
 {% block content %}
 <a href="/forum?id={{ forum.id }}">Back to forum "{{ forum.name }}"</a><br>
+
+{% include "includes/notifications.html" %}
 <form method="POST" action="/create_thread">
-    Thread name:<br> <input name="name"><br>
-    Thread content:<br> <textarea name="content"></textarea><br>
+    {% if can_set_custom_id %}
+    Thread id (leave "[auto]" for auto generation):<br> <input name="custom_id" value = "{{ draft_thread_custom_id }}"><br>
+    {% endif %}
+    Thread name:<br> <input name="name" value = "{{ draft_thread_name }}"><br>
+    Thread content:<br> <textarea name="content">{{ draft_thread_content }}</textarea><br>
     <button type="submit">Submit</button><br>
     <input type="hidden" name="forum_id" value="{{ forum.id }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

@@ -21,7 +21,9 @@ let content: String = {
     let msg_id = forum::get_thread_message_ids(db_pool.clone(), thread_id.clone(), thread_page, limit).await.map_err(InternalAppError::new)?;
     let msg_id = msg_id[0].to_string();
     let msg = forum::get_latest_message_version(db_pool.clone(), msg_id.clone()).await.map_err(InternalAppError::new)?;
-    msg.content 
+    let msg_content = msg.content;
+    site_pages::replace_variables_with_contents(db_pool.clone(), msg_content).await.map_err(InternalAppError::new)?
+
 };
 
  Ok(ok_html(html_templating::render(html_template_structs::ViewCustomPageTemplate {

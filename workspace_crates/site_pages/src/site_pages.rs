@@ -22,9 +22,10 @@ pub async fn replace_variables_with_contents(
     let db_pool = &db_pool;
     let input = input.as_str();
     let mut output = input.to_string();
+    let max_depth = 5;
     let mut depth = 0;
 
-    while depth < 5 {
+    while depth < max_depth {
         let mut names = Vec::new();
         let mut cursor = 0;
 

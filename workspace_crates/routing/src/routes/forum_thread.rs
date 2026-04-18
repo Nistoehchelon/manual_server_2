@@ -9,7 +9,6 @@ use http_stuff::http_response::{HttpResponseData, redirect_to};
 use into_vec::into_vec;
 use pagination::pagination::Pagination;
 use session::add_session_notification;
-use session::read_and_delete_session_notifications;
 use url::Url;
 use user::find_user_by_user_id;
 

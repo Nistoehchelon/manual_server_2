@@ -4,7 +4,7 @@ use html_templating::html_template_structs::{self};
 use http_stuff::http_response::{self, HttpResponseData, redirect_to};
 use into_vec::into_vec;
 use session::{
-    SessionNotification, add_session_notification, read_and_delete_session_notifications,
+    SessionNotification, add_session_notification,
 };
 use user::find_user_by_user_id;
 

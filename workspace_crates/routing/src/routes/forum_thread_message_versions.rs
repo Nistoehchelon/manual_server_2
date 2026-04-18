@@ -8,7 +8,6 @@ use into_vec::into_vec;
 use pagination::Pagination;
 use session::{
     SessionNotification, SessionNotificationType, add_session_notification,
-    read_and_delete_session_notifications,
 };
 use url::Url;
 use user::get_user_by_user_id;

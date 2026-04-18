@@ -43,18 +43,15 @@ pub async fn get(
     // Show username form
     Ok(ok_html(get_signup_html(
         router_data.base_template_data,
-        router_data.session_notifications,
         csrf_token,
     )))
 }
 
 fn get_signup_html(
     mut base_template_data: BaseTemplateData,
-    notifications: Vec<session::SessionNotification>,
     csrf_token: String,
 ) -> String {
     base_template_data.title = "Signup".to_string();
-    base_template_data.notifications = into_vec(notifications);
     html_templating::render(html_template_structs::SignupTemplate {
         main_info: base_template_data,
         csrf_token,

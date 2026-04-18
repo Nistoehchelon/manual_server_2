@@ -18,7 +18,6 @@ pub async fn get(
         .map_err(InternalAppError::new)?;
 
     router_data.base_template_data.title = "Your Dashboard".to_string();
-    router_data.base_template_data.notifications = into_vec::into_vec(router_data.session_notifications);
     let user_can_manage_site_pages = abac::can_manage_site_pages(abac::CanManageSitePagesInput {
         db_pool,
         session_id: session.id.clone(),

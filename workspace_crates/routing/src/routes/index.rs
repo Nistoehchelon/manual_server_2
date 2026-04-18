@@ -3,8 +3,7 @@ use html_templating::html_template_structs::{
     self, BaseTemplateData, IndexLoggedInTemplate, IndexNotLoggedInTemplate,
 };
 
-use into_vec::into_vec;
-use session::{Session, SessionNotification};
+use session::Session;
 use user::{User, get_user_by_user_id};
 
 use http_stuff::http_response::HttpResponseData;
@@ -24,14 +23,12 @@ pub async fn get(
         return Ok(http_stuff::http_response::ok_html(get_html(
             router_data.base_template_data,
             session.clone(),
-            router_data.session_notifications,
             user,
         )));
     }
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         session.clone(),
-        router_data.session_notifications,
         User::default(),
     )))
 }
@@ -39,10 +36,8 @@ pub async fn get(
 fn get_html(
     mut base_template: BaseTemplateData,
     session: Session,
-    notifications: Vec<SessionNotification>,
     user: User,
 ) -> String {
-    base_template.notifications = into_vec(notifications);
     if session.logged_in {
         base_template.title = "Welcome back!".to_string();
 

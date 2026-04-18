@@ -60,7 +60,6 @@ pub async fn get(
     .map_err(InternalAppError::new)?;
 
     let title = format!(r##"Create a thread in forum {}"##, forum.name.clone());
-    router_data.base_template_data.notifications = into_vec::into_vec(router_data.session_notifications);
     router_data.base_template_data.title = title;
 
     let html = html_templating::render(html_template_structs::CreateThreadTemplate {

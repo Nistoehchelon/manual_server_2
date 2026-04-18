@@ -147,9 +147,7 @@ pub async fn get(
     .map_err(InternalAppError::new)?;
 
     router_data.base_template_data.title = String::new();
-    router_data.base_template_data.notifications = into_vec(
-router_data.session_notifications
-    );
+
     let html = html_templating::render(html_template_structs::ForumThread {
         main_info: router_data.base_template_data,
         thread_messages,

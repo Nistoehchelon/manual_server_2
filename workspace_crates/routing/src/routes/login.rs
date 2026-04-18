@@ -31,7 +31,6 @@ pub async fn get(
     
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
-        router_data.session_notifications,
         csrf_token,
     )))
 }
@@ -186,11 +185,9 @@ pub async fn post(
 
 fn get_html(
     mut base_template: BaseTemplateData,
-    notifications: Vec<SessionNotification>,
     csrf_token: String,
 ) -> String {
     base_template.title = "Login".to_string();
-    base_template.notifications = into_vec(notifications);
     html_templating::render(html_template_structs::LoginTemplate {
         csrf_token,
         main_info: base_template,

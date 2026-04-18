@@ -75,7 +75,7 @@ pub async fn get(
     }
 
     router_data.base_template_data.title = title;
-    router_data.base_template_data.notifications = into_vec(router_data.session_notifications);
+
     let html = html_templating::render(html_template_structs::ForumTemplate {
         main_info: router_data.base_template_data,
         user_can_create_forum,

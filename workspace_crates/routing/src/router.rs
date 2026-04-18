@@ -1,5 +1,6 @@
 use config_reader::Config;
 use html_templating::html_template_structs::BaseTemplateData;
+use into_vec::into_vec;
 use std::time::Instant;
 
 use error_structs::InternalAppError;
@@ -201,12 +202,20 @@ pub async fn generate_response_data(
                 };
             }
         };
+        let notifications =  session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
+                .await;
+        let notifications = match notifications {
+            Ok(ns)=>ns,
+            Err(_) => {
+                return internal_server_error_500();
+            } 
+        };    
     let base_template_data = html_templating::html_template_structs::BaseTemplateData {
         title: "".to_string(),
         page: request_data.path.clone(),
         cloudflare_turnstile_enabled: server_config.cloudflare_turnstile_enabled,
         cloudflare_turnstile_site_key: server_config.cloudflare_turnstile_site_key.clone(),
-        notifications: Vec::new(),
+        notifications: into_vec(notifications),
         nonce: nonce.clone(),
     };
     let response_data = route(

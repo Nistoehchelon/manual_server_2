@@ -18,7 +18,7 @@ pub async fn get(
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
 
-    let can_create_thread = abac::can_create_thread(CanCreateThreadInput {
+    let can_create_thread = abac::can_create_forum_thread(CanCreateThreadInput {
         db_pool: db_pool.clone(),
         session_id: session.id.clone(),
     })
@@ -50,11 +50,7 @@ pub async fn get(
         return Ok(redirect_to("/forum".to_string()));
     }
     let forum = forum.unwrap();
-    let notifications =
-        session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-            .await
-            .map_err(InternalAppError::new)?;
-
+  
     let csrf_token = csrf_stuff::get_or_create_token(
         db_pool.clone(),
         session.id.clone(),
@@ -64,7 +60,7 @@ pub async fn get(
     .map_err(InternalAppError::new)?;
 
     let title = format!(r##"Create a thread in forum {}"##, forum.name.clone());
-    router_data.base_template_data.notifications = into_vec::into_vec(notifications);
+    router_data.base_template_data.notifications = into_vec::into_vec(router_data.session_notifications);
     router_data.base_template_data.title = title;
 
     let html = html_templating::render(html_template_structs::CreateThreadTemplate {
@@ -82,7 +78,7 @@ pub async fn post(
     let session = router_data.session.clone();
     let request_data = router_data.http_request_data.clone();
     let body_bytes = request_data.body_bytes.clone();
-    let can_create_thread = abac::can_create_thread(CanCreateThreadInput {
+    let can_create_thread = abac::can_create_forum_thread(CanCreateThreadInput {
         db_pool: db_pool.clone(),
         session_id: session.id.clone(),
     })

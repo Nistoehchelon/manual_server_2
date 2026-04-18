@@ -10,3 +10,4 @@ pub mod logout;
 pub mod signup;
 pub mod stylesheet;
 pub mod dump_request;
+pub mod manage_site_pages;

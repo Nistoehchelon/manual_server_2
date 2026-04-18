@@ -1030,10 +1030,12 @@ dependencies = [
 name = "html_templating"
 version = "0.1.0"
 dependencies = [
+ "abac",
  "askama",
  "forum",
  "pagination",
  "session",
+ "site_pages",
 ]
 
 [[package]]
@@ -2055,6 +2057,7 @@ dependencies = [
  "reqwest",
  "serde",
  "session",
+ "site_pages",
  "sqlx",
  "url 0.1.0",
  "user",
@@ -2427,6 +2430,15 @@ checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest",
  "rand_core 0.6.4",
+]
+
+[[package]]
+name = "site_pages"
+version = "0.1.0"
+dependencies = [
+ "db_manager",
+ "error_structs",
+ "sqlx",
 ]
 
 [[package]]

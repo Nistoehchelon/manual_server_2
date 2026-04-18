@@ -8,7 +8,6 @@ use http_stuff::{
 use into_vec::into_vec;
 use session::{
     Session, SessionNotification, add_session_notification, edit_session,
-    read_and_delete_session_notifications,
 };
 use user::find_by_username_and_password;
 
@@ -29,12 +28,10 @@ pub async fn get(
     )
     .await
     .map_err(InternalAppError::new)?;
-    let notifs = read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-        .await
-        .map_err(InternalAppError::new)?;
+    
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
-        notifs,
+        router_data.session_notifications,
         csrf_token,
     )))
 }

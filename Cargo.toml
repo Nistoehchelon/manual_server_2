@@ -11,6 +11,7 @@ members = ["workspace_crates/*"]
 # internal workspace crates
 
 cloudflare_turnstile = { path = "workspace_crates/cloudflare_turnstile" }
+site_pages = { path = "workspace_crates/site_pages" }
 db_manager = { path = "workspace_crates/db_manager" }
 config_reader = { path = "workspace_crates/config_reader" } 
 error_structs = { path = "workspace_crates/error_structs" }

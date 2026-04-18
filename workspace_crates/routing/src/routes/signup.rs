@@ -41,13 +41,10 @@ pub async fn get(
     .await
     .map_err(InternalAppError::new)?;
 
-    let notifs = read_and_delete_session_notifications(db_pool.clone(), session.id)
-        .await
-        .map_err(InternalAppError::new)?;
     // Show username form
     Ok(ok_html(get_signup_html(
         router_data.base_template_data,
-        notifs,
+        router_data.session_notifications,
         csrf_token,
     )))
 }

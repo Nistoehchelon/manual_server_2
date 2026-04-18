@@ -135,9 +135,7 @@ pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, Intern
 
     router_data.base_template_data.title = "Message versions".to_string();
     router_data.base_template_data.notifications = into_vec(
-        read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-            .await
-            .map_err(InternalAppError::new)?,
+       router_data.session_notifications
     );
     Ok(ok_html(render(
         html_template_structs::ForumThreadMessageVersionsTemplate {

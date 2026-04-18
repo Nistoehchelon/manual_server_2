@@ -25,6 +25,7 @@ pub struct RouterData {
     pub session: Session,
     pub http_request_data: HttpRequestData,
     pub base_template_data: BaseTemplateData,
+    pub session_notifications: Vec<SessionNotification>,
 }
 
 pub async fn route(
@@ -80,8 +81,12 @@ pub async fn route(
                 break 'response_block redirect_to("/".to_string());
             }
         }
-
+        let session_notifications =
+            session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
+                .await
+                .map_err(InternalAppError::new)?;
         let router_data = RouterData {
+            session_notifications,
             server_config: server_config.clone(),
             db_pool: db_pool.clone(),
             session: session.clone(),
@@ -130,7 +135,9 @@ pub async fn route(
             }
             ("POST", "/dump_request") => routes::dump_request::dump_request(router_data.clone())
                 .unwrap_or(internal_server_error_500()),
-
+            ("GET", "/manage_site_pages") => routes::manage_site_pages::get(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
             _ => routes::index::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),

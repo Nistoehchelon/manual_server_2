@@ -4,5 +4,9 @@
 {% include "includes/notifications.html" %}
 <h1>Hello, {{ username }}!</h1><br>
 <p>Welcome to your dashboard.</p>
+
+{% if user_can_manage_site_pages %}
+<a href="/manage_site_pages">Manage site pages</a>
+{% endif %}
 <p><a href='/logout'>Logout</a></p>
 {%endblock%}

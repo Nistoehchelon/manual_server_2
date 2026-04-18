@@ -4,7 +4,7 @@ use html_templating::html_template_structs::{
 };
 
 use into_vec::into_vec;
-use session::{Session, SessionNotification, read_and_delete_session_notifications};
+use session::{Session, SessionNotification};
 use user::{User, get_user_by_user_id};
 
 use http_stuff::http_response::HttpResponseData;
@@ -16,9 +16,6 @@ pub async fn get(
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
-    let notifications = read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-        .await
-        .map_err(InternalAppError::new)?;
     if session.logged_in {
         let user = get_user_by_user_id(db_pool.clone(), session.user_id.clone())
             .await
@@ -27,14 +24,14 @@ pub async fn get(
         return Ok(http_stuff::http_response::ok_html(get_html(
             router_data.base_template_data,
             session.clone(),
-            notifications,
+            router_data.session_notifications,
             user,
         )));
     }
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         session.clone(),
-        notifications,
+        router_data.session_notifications,
         User::default(),
     )))
 }

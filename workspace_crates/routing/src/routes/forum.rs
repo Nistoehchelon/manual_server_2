@@ -56,13 +56,11 @@ pub async fn get(
         .map_err(InternalAppError::new)?;
 
     let title = forum.name.clone();
-    let notifications = read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-        .await
-        .map_err(InternalAppError::new)?;
+   
     let mut user_can_create_forum = false;
     let mut user_can_create_thread = false;
     if user_opt.is_some() {
-        user_can_create_thread = abac::can_create_thread(abac::CanCreateThreadInput {
+        user_can_create_thread = abac::can_create_forum_thread(abac::CanCreateThreadInput {
             db_pool: db_pool.clone(),
             session_id: session.id.clone(),
         })
@@ -77,7 +75,7 @@ pub async fn get(
     }
 
     router_data.base_template_data.title = title;
-    router_data.base_template_data.notifications = into_vec(notifications);
+    router_data.base_template_data.notifications = into_vec(router_data.session_notifications);
     let html = html_templating::render(html_template_structs::ForumTemplate {
         main_info: router_data.base_template_data,
         user_can_create_forum,

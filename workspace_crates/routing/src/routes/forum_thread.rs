@@ -149,9 +149,7 @@ pub async fn get(
 
     router_data.base_template_data.title = String::new();
     router_data.base_template_data.notifications = into_vec(
-        read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-            .await
-            .map_err(InternalAppError::new)?,
+router_data.session_notifications
     );
     let html = html_templating::render(html_template_structs::ForumThread {
         main_info: router_data.base_template_data,
@@ -165,7 +163,7 @@ pub async fn get(
             name: "thread_paginator".to_string(),
             elements: thread_pagination_elements,
         },
-        user_can_add_message: abac::can_add_forum_thread_message(session.clone())
+        user_can_add_message: abac::can_create_forum_thread_message(session.clone())
             .await
             .map_err(InternalAppError::new)?,
     });
@@ -202,7 +200,7 @@ pub async fn post(
         }
     };
 
-    if !abac::can_add_forum_thread_message(session.clone())
+    if !abac::can_create_forum_thread_message(session.clone())
         .await
         .map_err(InternalAppError::new)?
     {

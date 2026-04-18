@@ -1,5 +1,6 @@
 use askama::Template;
 use pagination::PaginationElement;
+use site_pages::site_pages::SitePage;
 
 pub struct User {
     pub username: String,
@@ -62,6 +63,7 @@ pub struct ForumThread {
 
 #[derive(Clone, Debug)]
 pub struct BaseTemplateData {
+   
     pub page: String,
     pub title: String,
     pub notifications: Vec<SessionNotification>,
@@ -100,8 +102,8 @@ pub struct ForumThreadMessageVersionsTemplate {
     pub thread_page: String,
     pub message_versions: Vec<ForumThreadMessageVersion>,
     pub versions_paginator: Paginator,
-}
-
+}  
+ 
 #[derive(Template)]
 #[template(path = "index_logged_in.html")]
 pub struct IndexLoggedInTemplate {
@@ -132,7 +134,18 @@ pub struct LoginTemplate {
 pub struct DashboardTemplate {
     pub main_info: BaseTemplateData,
     pub username: String,
+    pub user_can_manage_site_pages: bool,
 }
+
+
+#[derive(Template)]
+#[template(path = "manage_site_pages.html")]
+pub struct ManageSitePagesTemplate {
+    pub main_info: BaseTemplateData,
+    pub site_pages: Vec<SitePage>,
+}
+
+
 
 #[derive(Template)]
 #[template(path = "forum.html")]

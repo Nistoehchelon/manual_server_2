@@ -16,15 +16,19 @@ pub async fn get(
     let user = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
         .map_err(InternalAppError::new)?;
-    let notifications =
-        session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-            .await
-            .map_err(InternalAppError::new)?;
+
     router_data.base_template_data.title = "Your Dashboard".to_string();
-    router_data.base_template_data.notifications = into_vec::into_vec(notifications);
+    router_data.base_template_data.notifications = into_vec::into_vec(router_data.session_notifications);
+    let user_can_manage_site_pages = abac::can_manage_site_pages(abac::CanManageSitePagesInput {
+        db_pool,
+        session_id: session.id.clone(),
+    })
+    .await
+    .map_err(InternalAppError::new)?;
     let html = html_templating::render(html_template_structs::DashboardTemplate {
         main_info: router_data.base_template_data,
         username: user.username.clone(),
+        user_can_manage_site_pages,
     });
     Ok(http_stuff::http_response::ok_html(html))
 }

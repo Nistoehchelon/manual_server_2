@@ -52,7 +52,7 @@ pub async fn can_create_forum(
     if is_superuser {
         return Ok(true);
     }
-
+  
     let b = sqlx::query!(
         "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
         "user",

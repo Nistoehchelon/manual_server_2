@@ -3,6 +3,9 @@ use session::get_session_by_session_id;
 use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;
 
+
+
+
 #[derive(Debug, Clone)]
 pub struct UserPermissions {
     pub can_manage_site_pages: bool,

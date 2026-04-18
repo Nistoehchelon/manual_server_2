@@ -9,5 +9,6 @@ pub mod index;
 pub mod login;
 pub mod logout;
 pub mod manage_site_pages;
+pub mod view_site_page;
 pub mod signup;
 pub mod stylesheet;

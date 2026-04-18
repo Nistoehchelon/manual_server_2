@@ -2,6 +2,7 @@ use abac::CanManageSitePagesInput;
 use error_structs::InternalAppError;
 use html_templating::html_template_structs;
 use http_stuff::http_response::{HttpResponseData, redirect_to};
+use into_vec::into_vec;
 
 use crate::RouterData;
 
@@ -22,15 +23,8 @@ pub async fn get(
         return Ok(redirect_to("/".to_string()));
     }
 
-    let pagination_page = 1;
-    let pagination_records_per_page = 20;
-    let site_pages = site_pages::list_of_site_pages(
-        router_data.db_pool,
-        pagination_page,
-        pagination_records_per_page,
-    )
-    .await
-    .map_err(InternalAppError::new)?;
+    let site_pages =  forum::get_forum_threads(db_pool.clone(), "site_pages".to_string()).await.map_err(InternalAppError::new)?;
+    let site_pages = into_vec(site_pages);
 
     let html = html_templating::render(html_template_structs::ManageSitePagesTemplate {
         main_info: router_data.base_template_data,

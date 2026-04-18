@@ -123,9 +123,17 @@ pub async fn route(
             ("GET", "/manage_site_pages") => routes::manage_site_pages::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            _ => routes::index::get(router_data.clone())
+            (_method, path) => {
+                let mut p = path.to_string();
+                p.remove(0); // remove slash
+                if !p.is_empty() && let Ok(_thread) = forum::find_thread(db_pool.clone(), p.clone()).await {
+                    routes::view_site_page::get(router_data.clone(), p).await.unwrap_or(internal_server_error_500())
+                } else {
+                routes::index::get(router_data.clone())
                 .await
-                .unwrap_or(internal_server_error_500()),
+                .unwrap_or(internal_server_error_500())
+                }
+            },
         }
     };
 

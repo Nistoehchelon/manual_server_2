@@ -1,0 +1,7 @@
+{% extends "template_base.html" %}
+
+{% block content%}
+<h1>{{ page.name }}</h1>
+{% include "includes/notifications.html" %}
+{{ page.content }}
+{%endblock%}

@@ -1,6 +1,5 @@
 use askama::Template;
 use pagination::PaginationElement;
-use site_pages::site_pages::SitePage;
 
 pub struct User {
     pub username: String,
@@ -17,6 +16,18 @@ impl From<forum::Forum> for Forum {
             name: f.name,
         }
     }
+}
+
+#[derive(Template)]
+#[template(path = "view_custom_page.html")]
+pub struct ViewCustomPageTemplate {
+    pub main_info: BaseTemplateData,
+    pub page: CustomPage,
+}
+
+pub struct CustomPage {
+    pub name: String,
+    pub content: String,
 }
 
 pub struct ForumThreadIdAndName {
@@ -140,7 +151,7 @@ pub struct DashboardTemplate {
 #[template(path = "manage_site_pages.html")]
 pub struct ManageSitePagesTemplate {
     pub main_info: BaseTemplateData,
-    pub site_pages: Vec<SitePage>,
+    pub site_pages: Vec<ForumThreadIdAndName>,
 }
 
 #[derive(Template)]

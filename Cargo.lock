@@ -545,6 +545,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "custom_site_pages"
+version = "0.1.0"
+dependencies = [
+ "db_manager",
+ "error_structs",
+ "forum",
+ "sqlx",
+]
+
+[[package]]
 name = "data-encoding"
 version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1033,10 +1043,10 @@ version = "0.1.0"
 dependencies = [
  "abac",
  "askama",
+ "custom_site_pages",
  "forum",
  "pagination",
  "session",
- "site_pages",
 ]
 
 [[package]]
@@ -2048,6 +2058,7 @@ dependencies = [
  "cloudflare_turnstile",
  "config_reader",
  "csrf_stuff",
+ "custom_site_pages",
  "db_manager",
  "error_structs",
  "forum",
@@ -2060,7 +2071,6 @@ dependencies = [
  "reqwest",
  "serde",
  "session",
- "site_pages",
  "sqlx",
  "url 0.1.0",
  "user",
@@ -2433,16 +2443,6 @@ checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest",
  "rand_core 0.6.4",
-]
-
-[[package]]
-name = "site_pages"
-version = "0.1.0"
-dependencies = [
- "db_manager",
- "error_structs",
- "forum",
- "sqlx",
 ]
 
 [[package]]

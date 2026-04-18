@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-site_pages = { workspace = true }
+custom_site_pages = { workspace = true }
 cloudflare_turnstile = { workspace = true }
 config_reader = { workspace = true }
 id_generator = { workspace = true }

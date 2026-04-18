@@ -9,4 +9,4 @@ forum = { workspace = true }
 session = { workspace = true }
 pagination = { workspace = true }
 abac = { workspace = true }
-site_pages = { workspace = true }
+custom_site_pages = { workspace = true }

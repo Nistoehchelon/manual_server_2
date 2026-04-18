@@ -11,7 +11,7 @@ use http_stuff::{
     },
 };
 use session::{
-    self, Session, SessionNotification, add_session_notification, get_session_by_session_id,
+    self, Session, SessionNotification, get_session_by_session_id,
     set_previous_page_load_time_ms,
 };
 use user::{self, get_user_by_user_id};
@@ -46,21 +46,6 @@ pub async fn route(
     } = request_data.clone();
 
     let mut response_data: HttpResponseData = 'response_block: {
-        if !check_if_user_can_access_path(session.clone(), path.clone()) {
-            add_session_notification(
-                db_pool,
-                SessionNotification {
-                    notification_type: session::SessionNotificationType::Error,
-                    session_id: session.id.clone(),
-                    message: format!(
-                        "Page {path} is inaccessible at this particular nanosecond *sigh*"
-                    ),
-                },
-            )
-            .await
-            .map_err(InternalAppError::new)?;
-            break 'response_block redirect_to("/".to_string());
-        }
         if session.logged_in {
             let user_associated_with_session_actually_exists =
                 get_user_by_user_id(db_pool.clone(), session.user_id.clone())
@@ -166,57 +151,6 @@ pub async fn route(
     Ok(response_data)
 }
 
-fn check_if_user_can_access_path(session: Session, path: String) -> bool {
-    let mut access_level = 0;
-    if session.logged_in {
-        access_level = 1;
-    }
-
-    let mut allowed: Vec<&str> = vec![];
-
-    let guest_allowed = vec![
-        "/signup",
-        "/dump_request",
-        "/login",
-        "/",
-        "/stylesheet.css",
-        "/favicon.ico",
-        "/forum",
-        "/forum_thread",
-        "/forum_thread_message_versions",
-    ];
-
-    let user_allowed = vec![
-        "/dump_request",
-        "/logout",
-        "/dashboard",
-        "/",
-        "/forum",
-        "/stylesheet.css",
-        "/favicon.ico",
-        "/create_thread",
-        "/forum_thread",
-        "/forum_thread_message_versions",
-    ];
-    let mut admin_allowed: Vec<&str> = user_allowed.clone();
-    admin_allowed.extend(vec!["/create_forum"]);
-
-    match access_level {
-        0 => {
-            allowed = guest_allowed;
-        }
-        1 => {
-            allowed = user_allowed;
-        }
-        4 => {
-            allowed = admin_allowed;
-        }
-        _ => {
-            unreachable!();
-        }
-    }
-    allowed.contains(&path.as_str())
-}
 
 pub async fn response_to_bytes(response_data: HttpResponseData) -> Vec<u8> {
     match response_data.response() {

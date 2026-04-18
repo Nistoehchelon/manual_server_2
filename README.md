@@ -100,7 +100,7 @@ bash push.sh --schema
 In manual_server root folder:
 ```bash
 cd ..
-cp .env_example .env
+cp .env.example .env
 ```
 Then configure it as you wish.
 

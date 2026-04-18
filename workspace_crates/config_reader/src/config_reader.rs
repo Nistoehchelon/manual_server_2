@@ -3,7 +3,6 @@ use std::{fs::read_to_string, path::PathBuf, str::FromStr, time::Duration};
 
 #[derive(Debug, Clone)]
 pub struct Config {
-
     pub cloudflare_turnstile_enabled: bool,
     pub cloudflare_turnstile_site_key: String,
     pub cloudflare_turnstile_secret_key: String,
@@ -261,9 +260,12 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         );
     }
 
-    let cloudflare_turnstile_enabled = cloudflare_turnstile_enabled.expect("Missing CLOUDFLARE_TURNSTILE_ENABLED");
-    let cloudflare_turnstile_site_key = cloudflare_turnstile_site_key.expect("Missing CLOUDFLARE_TURNSTILE_SITE_KEY");
-    let cloudflare_turnstile_secret_key = cloudflare_turnstile_secret_key.expect("Missing CLOUDFLARE_TURNSTILE_SECRET_KEY");
+    let cloudflare_turnstile_enabled =
+        cloudflare_turnstile_enabled.expect("Missing CLOUDFLARE_TURNSTILE_ENABLED");
+    let cloudflare_turnstile_site_key =
+        cloudflare_turnstile_site_key.expect("Missing CLOUDFLARE_TURNSTILE_SITE_KEY");
+    let cloudflare_turnstile_secret_key =
+        cloudflare_turnstile_secret_key.expect("Missing CLOUDFLARE_TURNSTILE_SECRET_KEY");
 
     let server_time_credits_capacity = Duration::from_millis(
         server_time_credits_capacity_millis

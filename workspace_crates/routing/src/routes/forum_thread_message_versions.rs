@@ -4,11 +4,8 @@ use html_templating::{
     render,
 };
 use http_stuff::http_response::{HttpResponseData, ok_html, redirect_to};
-use into_vec::into_vec;
 use pagination::Pagination;
-use session::{
-    SessionNotification, SessionNotificationType, add_session_notification,
-};
+use session::{SessionNotification, SessionNotificationType, add_session_notification};
 use url::Url;
 use user::get_user_by_user_id;
 

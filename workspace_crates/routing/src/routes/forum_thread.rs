@@ -6,7 +6,6 @@ use http_stuff::http_request_parsing;
 use http_stuff::http_response::bad_request_400;
 use http_stuff::http_response::ok_html;
 use http_stuff::http_response::{HttpResponseData, redirect_to};
-use into_vec::into_vec;
 use pagination::pagination::Pagination;
 use session::add_session_notification;
 use url::Url;

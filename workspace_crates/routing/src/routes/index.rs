@@ -33,11 +33,7 @@ pub async fn get(
     )))
 }
 
-fn get_html(
-    mut base_template: BaseTemplateData,
-    session: Session,
-    user: User,
-) -> String {
+fn get_html(mut base_template: BaseTemplateData, session: Session, user: User) -> String {
     if session.logged_in {
         base_template.title = "Welcome back!".to_string();
 

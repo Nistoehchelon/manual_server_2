@@ -4,12 +4,9 @@ use http_stuff::{
     http_request_parsing::{self},
     http_response::{HttpResponseData, ok_html, redirect_to},
 };
-use into_vec::into_vec;
-use session::{
-    SessionNotification, add_session_notification, edit_session,
-};
+use session::{SessionNotification, add_session_notification, edit_session};
 use user_creation::try_to_create_new_user;
- 
+
 use crate::RouterData;
 
 pub async fn get(
@@ -47,10 +44,7 @@ pub async fn get(
     )))
 }
 
-fn get_signup_html(
-    mut base_template_data: BaseTemplateData,
-    csrf_token: String,
-) -> String {
+fn get_signup_html(mut base_template_data: BaseTemplateData, csrf_token: String) -> String {
     base_template_data.title = "Signup".to_string();
     html_templating::render(html_template_structs::SignupTemplate {
         main_info: base_template_data,
@@ -122,14 +116,14 @@ pub async fn post(
         let client_ip = http_request_data.x_real_ip;
 
         if !cloudflare_turnstile::validate_turnstile(
-                router_data
-                    .server_config
-                    .cloudflare_turnstile_secret_key
-                    .clone(),
-                cf_turnstile_token,
-                client_ip,
-            )
-            .await
+            router_data
+                .server_config
+                .cloudflare_turnstile_secret_key
+                .clone(),
+            cf_turnstile_token,
+            client_ip,
+        )
+        .await
         {
             add_session_notification(
                 db_pool.clone(),
@@ -144,7 +138,7 @@ pub async fn post(
             return Ok(redirect_to("/signup".to_string()));
         }
     }
-    
+
     let csrf_token_valid =
         csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone())
             .await

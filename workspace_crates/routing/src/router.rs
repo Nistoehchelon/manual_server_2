@@ -12,8 +12,7 @@ use http_stuff::{
     },
 };
 use session::{
-    self, Session, SessionNotification, get_session_by_session_id,
-    set_previous_page_load_time_ms,
+    self, Session, SessionNotification, get_session_by_session_id, set_previous_page_load_time_ms,
 };
 use user::{self, get_user_by_user_id};
 
@@ -152,7 +151,6 @@ pub async fn route(
     Ok(response_data)
 }
 
-
 pub async fn response_to_bytes(response_data: HttpResponseData) -> Vec<u8> {
     match response_data.response() {
         Ok(rb) => rb,
@@ -202,14 +200,14 @@ pub async fn generate_response_data(
                 };
             }
         };
-        let notifications =  session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
-                .await;
-        let notifications = match notifications {
-            Ok(ns)=>ns,
-            Err(_) => {
-                return internal_server_error_500();
-            } 
-        };    
+    let notifications =
+        session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone()).await;
+    let notifications = match notifications {
+        Ok(ns) => ns,
+        Err(_) => {
+            return internal_server_error_500();
+        }
+    };
     let base_template_data = html_templating::html_template_structs::BaseTemplateData {
         title: "".to_string(),
         page: request_data.path.clone(),

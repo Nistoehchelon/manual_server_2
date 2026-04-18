@@ -3,9 +3,7 @@ use forum::get_forum_by_id;
 use html_templating::html_template_structs::{self};
 use http_stuff::http_response::{self, HttpResponseData, redirect_to};
 use into_vec::into_vec;
-use session::{
-    SessionNotification, add_session_notification,
-};
+use session::{SessionNotification, add_session_notification};
 use user::find_user_by_user_id;
 
 use crate::RouterData;
@@ -56,7 +54,7 @@ pub async fn get(
         .map_err(InternalAppError::new)?;
 
     let title = forum.name.clone();
-   
+
     let mut user_can_create_forum = false;
     let mut user_can_create_thread = false;
     if user_opt.is_some() {

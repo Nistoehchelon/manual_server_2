@@ -1,5 +1,6 @@
 pub mod create_thread;
 pub mod dashboard;
+pub mod dump_request;
 pub mod favicon;
 pub mod forum;
 pub mod forum_thread;
@@ -7,7 +8,6 @@ pub mod forum_thread_message_versions;
 pub mod index;
 pub mod login;
 pub mod logout;
+pub mod manage_site_pages;
 pub mod signup;
 pub mod stylesheet;
-pub mod dump_request;
-pub mod manage_site_pages;

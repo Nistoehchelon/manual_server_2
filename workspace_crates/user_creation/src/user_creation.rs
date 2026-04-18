@@ -31,7 +31,7 @@ pub async fn try_to_create_new_user(
     .await
     .map_err(SomeSortOfError::new)?;
 
-    // Test rollback if we enter this specific username, we test if this whole tx fails if we return before committing 
+    // Test rollback if we enter this specific username, we test if this whole tx fails if we return before committing
     if user.username.clone() == "test_transaction_failure" {
         return Ok(Err(PublicError::new(format!(
             "testing transaction auto-rollback on error. This artificial error is triggered right after inserting the user but before tx.commit'ting. Thus the user {} should not be created due to auto-rollback. Try logging in. If it fails, this means this test has succeeded.",

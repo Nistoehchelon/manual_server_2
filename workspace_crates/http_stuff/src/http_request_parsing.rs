@@ -311,7 +311,7 @@ pub enum HttpRequestParsingError {
     HeaderNameTooLong,
     HeaderValueTooLong,
     XRealIpHeaderNotProvided,
-    XRealIpHeaderParsingError
+    XRealIpHeaderParsingError,
 }
 impl Display for HttpRequestParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

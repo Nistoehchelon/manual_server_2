@@ -3,7 +3,6 @@ use session::get_session_by_session_id;
 use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;
 
-
 #[derive(Debug, Clone)]
 pub struct UserPermissions {
     pub can_manage_site_pages: bool,
@@ -11,7 +10,6 @@ pub struct UserPermissions {
     pub can_create_forum_thread: bool,
     pub can_create_forum_thread_message: bool,
 }
-
 
 pub async fn can_create_forum_thread_message(session: Session) -> Result<bool, SomeSortOfError> {
     Ok(session.logged_in)
@@ -62,7 +60,7 @@ pub async fn can_create_forum(
     if is_superuser {
         return Ok(true);
     }
-  
+
     let b = sqlx::query!(
         "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
         "user",
@@ -136,8 +134,6 @@ pub async fn can_create_forum_thread(
     .is_some();
     Ok(b)
 }
-
-
 
 pub async fn can_manage_site_pages(
     CanManageSitePagesInput {

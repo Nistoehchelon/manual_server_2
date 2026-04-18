@@ -10,18 +10,29 @@ pub struct SitePageHistoryOfEditsEntry {
     pub user_id: String,
     pub timestamp: String,
 }
-   pub async fn list_of_site_pages(db_pool: sqlx::PgPool, pagination_page: i64, pagination_records_per_page: i64) -> Result<Vec<SitePage>, SomeSortOfError> {
+pub async fn list_of_site_pages(
+    db_pool: sqlx::PgPool,
+    pagination_page: i64,
+    pagination_records_per_page: i64,
+) -> Result<Vec<SitePage>, SomeSortOfError> {
     let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
- 
-     let limit = pagination_records_per_page;
-     let page = pagination_page;
-     let offset = (page - 1) * limit;
-      let site_pages = sqlx::query_as!(SitePage, "SELECT primary_key, id, name FROM site_pages ORDER BY primary_key DESC LIMIT $1 OFFSET $2", limit, offset).fetch_all(&mut *tx).await.map_err(SomeSortOfError::new)?;
-      
-      tx.commit().await.map_err(SomeSortOfError::new)?;
-      Ok(site_pages)
-   }
 
+    let limit = pagination_records_per_page;
+    let page = pagination_page;
+    let offset = (page - 1) * limit;
+    let site_pages = sqlx::query_as!(
+        SitePage,
+        "SELECT primary_key, id, name FROM site_pages ORDER BY primary_key DESC LIMIT $1 OFFSET $2",
+        limit,
+        offset
+    )
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(SomeSortOfError::new)?;
+
+    tx.commit().await.map_err(SomeSortOfError::new)?;
+    Ok(site_pages)
+}
 
 //    pub async fn get_thread_message_versions(
 //     db_pool: sqlx::PgPool,

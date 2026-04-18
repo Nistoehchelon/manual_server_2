@@ -1,5 +1,9 @@
 use std::net::IpAddr;
-pub async fn validate_turnstile(cf_secret_key: String, cf_token: String, client_ip: IpAddr) -> bool {
+pub async fn validate_turnstile(
+    cf_secret_key: String,
+    cf_token: String,
+    client_ip: IpAddr,
+) -> bool {
     use reqwest::Client;
     use serde::{Deserialize, Serialize};
 
@@ -37,7 +41,7 @@ pub async fn validate_turnstile(cf_secret_key: String, cf_token: String, client_
             }
         },
         Err(err) => {
-             eprintln!("Turnstile validation error: {:?}", err);
+            eprintln!("Turnstile validation error: {:?}", err);
             TurnstileResponse {
                 success: false,
                 error_codes: Some(vec!["internal-error".to_string()]),
@@ -45,7 +49,9 @@ pub async fn validate_turnstile(cf_secret_key: String, cf_token: String, client_
         }
     };
 
-    
-    println!("Turnstile validation result: {} {:#?}",response.success, response.error_codes, );
+    println!(
+        "Turnstile validation result: {} {:#?}",
+        response.success, response.error_codes,
+    );
     response.success
 }

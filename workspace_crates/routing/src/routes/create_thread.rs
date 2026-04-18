@@ -50,7 +50,7 @@ pub async fn get(
         return Ok(redirect_to("/forum".to_string()));
     }
     let forum = forum.unwrap();
-  
+
     let csrf_token = csrf_stuff::get_or_create_token(
         db_pool.clone(),
         session.id.clone(),

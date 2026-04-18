@@ -5,10 +5,7 @@ use http_stuff::{
     http_request_parsing::{self},
     http_response::{HttpResponseData, redirect_to},
 };
-use into_vec::into_vec;
-use session::{
-    Session, SessionNotification, add_session_notification, edit_session,
-};
+use session::{Session, SessionNotification, add_session_notification, edit_session};
 use user::find_by_username_and_password;
 
 use crate::RouterData;
@@ -28,7 +25,7 @@ pub async fn get(
     )
     .await
     .map_err(InternalAppError::new)?;
-    
+
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         csrf_token,
@@ -183,10 +180,7 @@ pub async fn post(
     Ok(redirect_to("/".to_string()))
 }
 
-fn get_html(
-    mut base_template: BaseTemplateData,
-    csrf_token: String,
-) -> String {
+fn get_html(mut base_template: BaseTemplateData, csrf_token: String) -> String {
     base_template.title = "Login".to_string();
     html_templating::render(html_template_structs::LoginTemplate {
         csrf_token,

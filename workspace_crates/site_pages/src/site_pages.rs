@@ -14,7 +14,7 @@ pub async fn list_of_site_pages(
     Ok(site_pages)
 }
 
-// Gemini generated this. Supposedly, a simple parser to replace [[varname]] with db-defined vars or none if not found. To be used in site pages. So, I can update something dynamically, like contact number and stuff
+// Gemini generated this. Supposedly, a simple parser to replace [[varname]] with db-defined vars or none if not found. To be used in site pages. So, I can update something dynamically, like contact number and stuff. Seems to work well.
 pub async fn replace_variables_with_contents(
     db_pool: sqlx::PgPool,
     input: String,

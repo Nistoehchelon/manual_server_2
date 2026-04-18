@@ -18,6 +18,7 @@ pub async fn get(
         .await
         .map_err(InternalAppError::new)?
     {
+        session::add_session_notification_error(db_pool.clone(), session.id.clone(), String::from("Insufficient permissions to access this amazing page")).await.map_err(InternalAppError::new)?;
         return Ok(redirect_to("/".to_string()));
     }
 

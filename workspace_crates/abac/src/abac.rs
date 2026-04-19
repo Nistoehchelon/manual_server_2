@@ -4,7 +4,14 @@ use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;
 
 
-
+pub struct CanEditForumThreadMessageInput {
+    pub user_id: String,
+    pub original_message_poster_id: String,
+}
+pub async fn can_edit_forum_thread_message(input: CanEditForumThreadMessageInput) -> Result<bool, SomeSortOfError> {
+    // todo... at least check if user and msg's OP are the same. Actually, let's do that now.
+    Ok(input.user_id == input.original_message_poster_id)
+}
 
 #[derive(Debug, Clone)]
 pub struct UserPermissions {

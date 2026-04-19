@@ -252,7 +252,7 @@ pub async fn post(
     let mut redir_url = current_url.clone();
     redir_url
         .query
-        .insert("thread_page".to_string(), total_pages.to_string());
+        .insert("page".to_string(), total_pages.to_string());
     let redir_url = redir_url.to_string();
 
     Ok(redirect_to(redir_url))

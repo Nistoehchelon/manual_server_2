@@ -5,7 +5,7 @@
 {% include "includes/notifications.html" %}
 
 <p>Currently, the custom site pages system is based on top of the same system as the forum.</p>
-<p><a href="/create_site_page">Create a new site page</a></p>
+<p><a href="/create_thread?forum_id={{ custom_site_pages_forum_id }}">Create a new site page</a></p>
 
 {% if site_pages.len() == 0 %} 
 <p>No pages yet. Create one!</p>

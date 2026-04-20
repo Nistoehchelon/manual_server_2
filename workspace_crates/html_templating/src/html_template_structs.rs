@@ -163,6 +163,7 @@ pub struct DashboardTemplate {
 pub struct ManageSitePagesTemplate {
     pub main_info: BaseTemplateData,
     pub site_pages: Vec<ForumThreadIdAndName>,
+    pub custom_site_pages_forum_id: String,
 }
 
 #[derive(Template)]

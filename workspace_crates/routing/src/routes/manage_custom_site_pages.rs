@@ -3,7 +3,7 @@ use error_structs::InternalAppError;
 use html_templating::html_template_structs;
 use http_stuff::http_response::{HttpResponseData, redirect_to};
 use into_vec::into_vec;
-use custom_site_pages::KEY;
+use custom_site_pages::FORUM_ID;
 
 use crate::RouterData;
 
@@ -15,7 +15,10 @@ pub async fn get(
     if !session.logged_in
         || !abac::can_manage_site_pages(CanManageSitePagesInput {
             db_pool: db_pool.clone(),
-            session_id: session.id.clone(),
+            user_id: {
+                let u = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone()).await.map_err(InternalAppError::new)?;
+                u.id
+            },
         })
         .await
         .map_err(InternalAppError::new)?
@@ -24,7 +27,7 @@ pub async fn get(
         return Ok(redirect_to("/".to_string()));
     }
 
-    let site_pages =  forum::get_forum_threads(db_pool.clone(), KEY.to_string()).await.map_err(InternalAppError::new)?;
+    let site_pages =  forum::get_forum_threads(db_pool.clone(), FORUM_ID.to_string()).await.map_err(InternalAppError::new)?;
     let site_pages = into_vec(site_pages);
 
     let html = html_templating::render(html_template_structs::ManageSitePagesTemplate {

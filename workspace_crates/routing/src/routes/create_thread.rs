@@ -1,4 +1,4 @@
-use abac::{CanCreateThreadInput, CanSetCustomThreadIdWhenCreatingItInput};
+use abac::{CanAccessThisForumInput, CanCreateThreadInput, CanSetCustomThreadIdWhenCreatingItInput, can_access_this_forum};
 use error_structs::InternalAppError;
 use forum;
 use forum::find_forum_by_id;
@@ -32,6 +32,8 @@ pub async fn get(
         .cloned()
         .unwrap_or_else(|| "0".to_string());
 
+
+
     let forum = find_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
         .map_err(InternalAppError::new)?;
@@ -51,6 +53,7 @@ pub async fn get(
     }
     let forum = forum.unwrap();
 
+    
     let csrf_token = csrf_stuff::get_or_create_token(
         db_pool.clone(),
         session.id.clone(),
@@ -58,6 +61,11 @@ pub async fn get(
     )
     .await
     .map_err(InternalAppError::new)?;
+
+    if !can_access_this_forum(CanAccessThisForumInput{ db_pool:db_pool.clone(), user_id: session.user_id.clone(), forum_id: forum_id.clone() }).await.map_err(InternalAppError::new)? {
+        println!("User doesn't have permissions to access this forum");
+        return Ok(redirect_to("/".to_string()));
+    }
 
     let title = format!(r##"Create a thread in forum {}"##, forum.name.clone());
     router_data.base_template_data.title = title;
@@ -174,6 +182,11 @@ pub async fn post(
         .await
         .map_err(InternalAppError::new)?;
         return Ok(redirect_to(format!("/create_thread?forum_id={forum_id}")));
+    }
+
+    if !can_access_this_forum(CanAccessThisForumInput{ db_pool:db_pool.clone(), user_id: session.user_id.clone(), forum_id: forum_id.clone() }).await.map_err(InternalAppError::new)? {
+        println!("User doesn't have permissions to access this forum");
+        return Ok(redirect_to("/".to_string()));
     }
 
 

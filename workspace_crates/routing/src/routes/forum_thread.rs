@@ -1,4 +1,6 @@
 use abac::CanEditForumThreadMessageInput;
+use abac::CanAccessThisForumThreadInput;
+use abac::can_access_this_forum_thread;
 use error_structs::{self, InternalAppError};
 use forum::forum_structs;
 use html_templating;
@@ -14,8 +16,6 @@ use url::Url;
 use user::find_user_by_user_id;
 
 use crate::RouterData;
-
-
 
 pub async fn get(
     mut router_data: RouterData,
@@ -73,7 +73,18 @@ pub async fn get(
         }
     };
 
-    let user_opt = find_user_by_user_id(session.user_id.clone(), db_pool.clone())
+    if !can_access_this_forum_thread(CanAccessThisForumThreadInput {
+        db_pool: db_pool.clone(),
+        user_id: session.user_id.clone(),
+        thread_id: thread_id.clone(),
+    })
+    .await
+    .map_err(InternalAppError::new)?
+    {
+        println!("User doesn't have permissions to access this thread");
+        return Ok(redirect_to("/".to_string()));
+    }
+    let user_opt = find_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
         .map_err(InternalAppError::new)?;
 
@@ -136,15 +147,20 @@ pub async fn get(
             user_username: username,
             modifications_count,
             the_viewing_user_can_edit_it: 'check: {
-                abac::can_edit_forum_thread_message(CanEditForumThreadMessageInput { user_id: {
-                if let Some(ref user) = user_opt {
-                    user.id.clone()
-                } else {
-                    // non-logged in users can't edit messages. Maybe I might consider adding some review queue for them instead, too, in the future
-                    break 'check false;
-                }
-            }, original_message_poster_id: initial_message_version.user_id.clone() }).await.map_err(InternalAppError::new)?
-        }
+                abac::can_edit_forum_thread_message(CanEditForumThreadMessageInput {
+                    user_id: {
+                        if let Some(ref user) = user_opt {
+                            user.id.clone()
+                        } else {
+                            // non-logged in users can't edit messages. Maybe I might consider adding some review queue for them instead, too, in the future
+                            break 'check false;
+                        }
+                    },
+                    original_message_poster_id: initial_message_version.user_id.clone(),
+                })
+                .await
+                .map_err(InternalAppError::new)?
+            },
         };
         thread_messages.push(tm);
     }
@@ -226,6 +242,17 @@ pub async fn post(
         return Ok(redirect_to(current_url.clone().to_string()));
     }
 
+    if !can_access_this_forum_thread(CanAccessThisForumThreadInput {
+        db_pool: db_pool.clone(),
+        user_id: session.user_id.clone(),
+        thread_id: thread_id.clone(),
+    })
+    .await
+    .map_err(InternalAppError::new)?
+    {
+        println!("User doesn't have permissions to access this thread");
+        return Ok(redirect_to("/".to_string()));
+    }
     match forum::find_thread(db_pool.clone(), thread_id.clone())
         .await
         .map_err(InternalAppError::new)?
@@ -257,10 +284,13 @@ pub async fn post(
     forum::add_message(db_pool.clone(), message, session.user_id, thread_id.clone())
         .await
         .map_err(InternalAppError::new)?;
-    let total_pages =
-        forum::get_count_thread_pages(db_pool.clone(), thread_id.clone(), forum_structs::MESSAGES_PER_PAGE)
-            .await
-            .map_err(InternalAppError::new)?;
+    let total_pages = forum::get_count_thread_pages(
+        db_pool.clone(),
+        thread_id.clone(),
+        forum_structs::MESSAGES_PER_PAGE,
+    )
+    .await
+    .map_err(InternalAppError::new)?;
     let mut redir_url = current_url.clone();
     redir_url
         .query

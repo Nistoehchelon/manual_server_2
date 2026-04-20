@@ -20,7 +20,7 @@ pub async fn get(
     router_data.base_template_data.title = "Your Dashboard".to_string();
     let user_can_manage_site_pages = abac::can_manage_site_pages(abac::CanManageSitePagesInput {
         db_pool,
-        session_id: session.id.clone(),
+        user_id: user.id.clone(),
     })
     .await
     .map_err(InternalAppError::new)?;

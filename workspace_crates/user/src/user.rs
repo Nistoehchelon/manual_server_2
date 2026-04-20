@@ -9,7 +9,7 @@ pub async fn get_user_by_user_id(
     db_pool: sqlx::PgPool,
     user_id: String,
 ) -> Result<User, error_structs::ExpectedToGetButFailed> {
-    match find_user_by_user_id(user_id, db_pool)
+    match find_user_by_user_id( db_pool,user_id,)
         .await
         .map_err(ExpectedToGetButFailed::new)?
     {
@@ -18,8 +18,8 @@ pub async fn get_user_by_user_id(
     }
 }
 pub async fn find_user_by_user_id(
-    user_id: String,
     db_pool: sqlx::PgPool,
+     user_id: String,
 ) -> Result<Option<User>, DbError> {
     let user_opt = storage_specific_get_user_by_user_id(user_id, db_pool).await?;
     Ok(user_opt)

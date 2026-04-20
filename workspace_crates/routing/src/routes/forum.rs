@@ -1,3 +1,4 @@
+use abac::{CanAccessThisForumInput, can_access_this_forum};
 use error_structs::InternalAppError;
 use forum::find_forum_by_id;
 use html_templating::html_template_structs::{self};
@@ -42,7 +43,11 @@ pub async fn get(
         }
     };
 
-    let user_opt = find_user_by_user_id(session.user_id.clone(), db_pool.clone())
+        if !can_access_this_forum(CanAccessThisForumInput{ db_pool:db_pool.clone(), user_id: session.user_id.clone(), forum_id: forum_id.clone() }).await.map_err(InternalAppError::new)? {
+        println!("User doesn't have permissions to access this forum");
+        return Ok(redirect_to("/".to_string()));
+    }
+    let user_opt = find_user_by_user_id( db_pool.clone(),session.user_id.clone(),)
         .await
         .map_err(InternalAppError::new)?;
 

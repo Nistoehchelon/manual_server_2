@@ -1,3 +1,4 @@
+use abac::{CanAccessThisForumInput, can_access_this_forum};
 use error_structs::InternalAppError;
 use html_templating::{html_template_structs::CreateForumTemplate, render};
 use http_stuff::{
@@ -86,6 +87,10 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         let _parent_forum = forum::get_forum_by_id(rt.db_pool.clone(), parent_forum_id.clone())
             .await
             .map_err(InternalAppError::new)?;
+    }
+    if !can_access_this_forum(CanAccessThisForumInput{ db_pool:rt.db_pool.clone(), user_id: rt.session.user_id.clone(), forum_id: parent_forum_id.clone() }).await.map_err(InternalAppError::new)? {
+        println!("User doesn't have permissions to access this forum");
+        return Ok(redirect_to("/".to_string()));
     }
     let newly_created_forum_id =
         forum::create_forum(rt.db_pool.clone(), parent_forum_id, id_source, name.clone())

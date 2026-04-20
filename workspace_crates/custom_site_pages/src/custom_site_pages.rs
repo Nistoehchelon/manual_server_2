@@ -2,7 +2,7 @@ use db_manager::DbError;
 use error_structs::SomeSortOfError;
 use forum::ForumThread;
 
-pub const KEY: &str = "custom_site_pages";
+pub const FORUM_ID: &str = "custom_site_pages";
 
 pub type SitePage = ForumThread;
 pub async fn list_of_site_pages(
@@ -10,7 +10,7 @@ pub async fn list_of_site_pages(
     _pagination_page: i64,
     _pagination_records_per_page: i64,
 ) -> Result<Vec<SitePage>, SomeSortOfError> {
-    let site_pages = forum::get_forum_threads(db_pool.clone(),KEY.to_string())
+    let site_pages = forum::get_forum_threads(db_pool.clone(),FORUM_ID.to_string())
         .await
         .map_err(SomeSortOfError::new)?;
     Ok(site_pages)

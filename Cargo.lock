@@ -6,8 +6,10 @@ version = 4
 name = "abac"
 version = "0.1.0"
 dependencies = [
+ "custom_site_pages",
  "db_manager",
  "error_structs",
+ "forum",
  "session",
  "session_structs_and_so_on",
  "sqlx",

@@ -1,4 +1,6 @@
+use abac::CanEditForumThreadMessageInput;
 use error_structs::{self, InternalAppError};
+use forum::forum_structs;
 use html_templating;
 use html_templating::html_template_structs;
 use html_templating::html_template_structs::Paginator;
@@ -13,7 +15,7 @@ use user::find_user_by_user_id;
 
 use crate::RouterData;
 
-pub const MESSAGES_PER_PAGE: u64 = 15;
+
 
 pub async fn get(
     mut router_data: RouterData,
@@ -71,11 +73,11 @@ pub async fn get(
         }
     };
 
-    let _user_opt = find_user_by_user_id(session.user_id.clone(), db_pool.clone())
+    let user_opt = find_user_by_user_id(session.user_id.clone(), db_pool.clone())
         .await
         .map_err(InternalAppError::new)?;
 
-    let limit_per_page = MESSAGES_PER_PAGE;
+    let limit_per_page = forum_structs::MESSAGES_PER_PAGE;
     let thread_message_ids = forum::get_thread_message_ids(
         db_pool.clone(),
         thread_id.clone(),
@@ -113,7 +115,7 @@ pub async fn get(
             forum::get_initial_message_version(db_pool.clone(), msg_id.clone())
                 .await
                 .map_err(InternalAppError::new)?;
-        let user_id = initial_message_version.user_id;
+        let user_id = initial_message_version.user_id.clone();
         let username = user::get_user_by_user_id(db_pool.clone(), user_id.clone())
             .await
             .map_err(InternalAppError::new)?
@@ -130,9 +132,19 @@ pub async fn get(
             id: msg_id,
             content,
             created_at,
-            user_id,
+            user_id: user_id.clone(),
             user_username: username,
             modifications_count,
+            the_viewing_user_can_edit_it: 'check: {
+                abac::can_edit_forum_thread_message(CanEditForumThreadMessageInput { user_id: {
+                if let Some(ref user) = user_opt {
+                    user.id.clone()
+                } else {
+                    // non-logged in users can't edit messages. Maybe I might consider adding some review queue for them instead, too, in the future
+                    break 'check false;
+                }
+            }, original_message_poster_id: initial_message_version.user_id.clone() }).await.map_err(InternalAppError::new)?
+        }
         };
         thread_messages.push(tm);
     }
@@ -246,7 +258,7 @@ pub async fn post(
         .await
         .map_err(InternalAppError::new)?;
     let total_pages =
-        forum::get_count_thread_pages(db_pool.clone(), thread_id.clone(), MESSAGES_PER_PAGE)
+        forum::get_count_thread_pages(db_pool.clone(), thread_id.clone(), forum_structs::MESSAGES_PER_PAGE)
             .await
             .map_err(InternalAppError::new)?;
     let mut redir_url = current_url.clone();

@@ -20,9 +20,13 @@ Viewing page {{ thread_page }}<br>
   {% for message in thread_messages %}
     <div id="message_{{ message.id }}"></div>
     <a href = "/user?id={{ message.user_id }}">{{ message.user_username }}</a>
-  [ <a href = "/forum_thread_message_versions?message_id={{ message.id }}&thread_page={{ thread_page }}">version history</a> ]{% if message.modifications_count > 1 %}
+  [ <a href = "/forum_thread_message_versions?message_id={{ message.id }}&amp;thread_page={{ thread_page }}">version history</a> {% if message.modifications_count > 1 %}
     ({{ message.modifications_count }})
+  {% endif %} 
+  {% if message.the_viewing_user_can_edit_it %}
+    <a href="/edit_forum_thread_message?id={{ message.id }}">Edit message</a>
   {% endif %}
+  ]
  <br>  
     {{ message.content }}
     <br>

@@ -244,6 +244,7 @@ pub async fn add_message(
     tx.commit().await.map_err(DbError::new)?;
     Ok(())
 }
+
 pub async fn get_modifications_count(
     db_pool: sqlx::PgPool,
     msg_id: String,

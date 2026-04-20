@@ -121,16 +121,22 @@ pub async fn route(
             ("GET", "/edit_forum_thread_message") => {
                 routes::edit_forum_thread_message::get(router_data.clone()).await.unwrap_or(internal_server_error_500())
             },
+            ("POST", "/edit_forum_thread_message") => {
+                routes::edit_forum_thread_message::post(router_data.clone()).await.unwrap_or(internal_server_error_500())
+            },
             ("POST", "/dump_request") => routes::dump_request::dump_request(router_data.clone())
                 .unwrap_or(internal_server_error_500()),
+
             ("GET", "/manage_site_pages") => routes::manage_custom_site_pages::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            (_method, path) => {
+            (method, path) => {
                 let mut path = path.to_string();
                 path.remove(0); // remove slash
-                if !path.is_empty() && let Ok(_thread) = forum::find_thread(db_pool.clone(), path.clone()).await {
+                if !path.is_empty() && let Ok(_thread) = forum::get_thread(db_pool.clone(), path.clone()).await {
                     routes::view_custom_site_page::get(router_data.clone(), path).await.unwrap_or(internal_server_error_500())
+                } else if !path.is_empty() {
+                    routes::not_found::not_found(router_data.clone(), method.to_string(), path.clone())
                 } else {
                 routes::index::get(router_data.clone())
                 .await

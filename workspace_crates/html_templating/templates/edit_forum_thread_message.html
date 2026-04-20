@@ -1,17 +1,13 @@
 {% extends "template_base.html" %}
 
 {% block content %}
-<a href="/forum_thread?id={{ thread.id }}&amp;page={{ thread_page }}">Back to thread</a><br>
+<a href="/forum_thread?id={{ thread.id }}&amp;page={{ thread_page }}">Back to thread "{{ thread.name }}"</a><br>
 
 {% include "includes/notifications.html" %}
-<form method="POST" action="/create_thread">
-    {% if can_set_custom_id %}
-    Thread id (leave "[auto]" for auto generation):<br> <input name="custom_id" value = "{{ draft_thread_custom_id }}"><br>
-    {% endif %}
-    Thread name:<br> <input name="name" value = "{{ draft_thread_name }}"><br>
-    Thread content:<br> <textarea name="content">{{ draft_thread_content }}</textarea><br>
-    <button type="submit">Submit</button><br>
-    <input type="hidden" name="forum_id" value="{{ forum.id }}">
+<form method="POST" action="/edit_forum_thread_message">
+<p>Message:<br> <textarea name="message">{{ message_content }}</textarea><br></p>
+   <p> <button type="submit">Submit</button><br></p>
+    <input type="hidden" name="message_id" value="{{ message_id }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
 </form>

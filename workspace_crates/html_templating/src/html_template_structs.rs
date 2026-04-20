@@ -51,11 +51,20 @@ pub struct ForumThreadMessageCombinedData {
     pub user_id: String,
     pub user_username: String,
     pub modifications_count: i64,
+    pub the_viewing_user_can_edit_it: bool,
 }
 
 pub struct Paginator {
     pub name: String,
     pub elements: Vec<PaginationElement>,
+}
+
+#[derive(Template)]
+#[template(path = "not_found.html")]
+pub struct NotFoundTemplate {
+    pub main_info: BaseTemplateData,
+    pub path: String,
+    pub method: String,
 }
 
 #[derive(Template)]
@@ -177,3 +186,16 @@ pub struct CreateThreadTemplate {
     pub can_set_custom_id: bool,
     pub csrf_token: String,
 }
+
+#[derive(Template)]
+#[template(path = "edit_forum_thread_message.html")]
+pub struct EditForumThreadMessageTemplate {
+    pub main_info: BaseTemplateData,
+    pub thread: ForumThreadIdAndName,
+    pub thread_page: String,
+    pub message_content: String,
+    pub message_id: String,
+    pub csrf_token: String,
+}
+
+// thread.id, thread.name, thread_page, message_content, message_id, csrf_token

@@ -13,3 +13,5 @@ pub mod manage_custom_site_pages;
 pub mod view_custom_site_page;
 pub mod signup;
 pub mod stylesheet;
+
+pub mod not_found;

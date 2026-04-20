@@ -3,6 +3,12 @@
 {% block content %}
 {% include "includes/notifications.html" %}
 
+{% if let Some(p) = parent_forum %}
+   <p><a href="/forum?id={{ p.id}}">Go to parent forum "{{ p.name }}"</a></p>
+{% endif %}
+
+<p>Forum "{{ forum.name }}"</p>
+
 {% if user_can_create_forum %}
  <a href="/create_forum?parent_id={{ forum.id }}">Create a forum</a><br>
  {% endif %}
@@ -15,7 +21,9 @@
  {% if subforums.len() == 0 %}
     This forum has no subforums.
     {% else %} 
-    
+      {% for subforum in subforums %}
+      <a href = "/forum?id={{ subforum.id }}">[Forum] {{ subforum.name }}</a><br>
+    {% endfor %}
  {% endif %}
  <br>
  <span class = "center">Threads</span><br>  

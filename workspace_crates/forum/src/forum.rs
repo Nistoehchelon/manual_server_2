@@ -5,12 +5,57 @@ use crate::{
 use db_manager::DbError;
 use error_structs::{ExpectedToGetButFailed, SomeSortOfError};
 
+pub enum ForumIdSource {
+    Auto,
+    Custom(UniqueForumId),
+}
+pub struct UniqueForumId {
+    inner: String,
+}
+impl UniqueForumId {
+    pub async fn parse(db_pool: sqlx::PgPool, id: String) -> Result<UniqueForumId, SomeSortOfError> {
+        let forum = find_forum_by_id(db_pool.clone(), id.clone()).await.map_err(SomeSortOfError::new)?;
+        if forum.is_some() {
+            return Err(SomeSortOfError::new("Could not parse String into UniqueForumId: the provided id is not unique, a forum with this id already exists"))
+        }
+        Ok(UniqueForumId { inner: id })
+    }
+    pub fn get(self) -> String {
+        self.inner.clone()
+    }
+}
+pub async fn create_forum(
+    db_pool: sqlx::PgPool,
+    parent_forum_id: String,
+    id_source: ForumIdSource,
+    name: String,
+) -> Result<String, SomeSortOfError> {
+    let id = match id_source {
+        ForumIdSource::Auto => {
+            generate_unique_forum_id(db_pool.clone())
+                .await
+                .map_err(SomeSortOfError::new)?
+        }
+        ForumIdSource::Custom(unique_id) => unique_id.get(),
+    };
 
+    sqlx::query!(
+        "INSERT INTO forums (id, parent_id, name) VALUES ($1, $2, $3)",
+        id,
+        parent_forum_id,
+        name
+    )
+    .execute(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?;
+    
+    Ok(id)
+}
 pub async fn generate_unique_thread_id(db_pool: sqlx::PgPool) -> Result<String, DbError> {
     let max_iterations = 20;
     for _ in 0..max_iterations {
         let id = id_generator::generate_unique_id();
-        
+
         let exists = sqlx::query_scalar!(
             r#"SELECT EXISTS(SELECT 1 FROM forum_threads WHERE id = $1) as "exists!""#,
             id
@@ -24,9 +69,34 @@ pub async fn generate_unique_thread_id(db_pool: sqlx::PgPool) -> Result<String, 
         }
     }
 
-    Err(DbError::new("Failed to generate a unique thread ID after 20 attempts"))
-
+    Err(DbError::new(
+        "Failed to generate a unique thread ID after 20 attempts",
+    ))
 }
+
+pub async fn generate_unique_forum_id(db_pool: sqlx::PgPool) -> Result<String, DbError> {
+    let max_iterations = 20;
+    for _ in 0..max_iterations {
+        let id = id_generator::generate_unique_id();
+
+        let exists = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM forums WHERE id = $1) as "exists!""#,
+            id
+        )
+        .fetch_one(&db_pool)
+        .await
+        .map_err(DbError::new)?;
+
+        if !exists {
+            return Ok(id);
+        }
+    }
+
+    Err(DbError::new(
+        "Failed to generate a unique thread ID after 20 attempts",
+    ))
+}
+
 pub async fn find_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Option<Forum>, DbError> {
     if id == "0" {
         return Ok(Some(Forum {
@@ -36,6 +106,13 @@ pub async fn find_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Optio
         }));
     }
     storage_specific_get_forum_by_id(db_pool, id.clone()).await
+}
+pub async fn get_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Forum, DbError> {
+    let f = find_forum_by_id(db_pool, id.clone()).await?;
+    match f {
+        Some(f) => Ok(f),
+        None => Err(DbError::new(format!("Forum \"{id}\" not found"))),
+    }
 }
 
 pub async fn get_count_thread_pages(
@@ -294,7 +371,7 @@ pub async fn create_thread(
     user_id: String,
     forum_id: String,
 ) -> Result<String, DbError> {
-    storage_specific_create_thread( db_pool,id, name, content, user_id, forum_id).await
+    storage_specific_create_thread(db_pool, id, name, content, user_id, forum_id).await
 }
 
 async fn storage_specific_create_thread(
@@ -307,9 +384,15 @@ async fn storage_specific_create_thread(
 ) -> Result<String, DbError> {
     let mut tx = db_pool.begin().await.map_err(DbError::new)?;
 
-
-
-    let thread_id_result = sqlx::query!("INSERT INTO forum_threads (id, name, forum_id) VALUES ($1, $2, $3) RETURNING id", id, name, forum_id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
+    let thread_id_result = sqlx::query!(
+        "INSERT INTO forum_threads (id, name, forum_id) VALUES ($1, $2, $3) RETURNING id",
+        id,
+        name,
+        forum_id
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(DbError::new)?;
 
     let message_id = id_generator::generate_unique_id();
     let message_id_result = sqlx::query!("INSERT INTO forum_thread_messages (id, thread_id, user_id) VALUES ($1, $2, $3) RETURNING ID", message_id, thread_id_result.id.clone(), user_id.clone()).fetch_one(&mut *tx).await.map_err(DbError::new)?;
@@ -324,17 +407,18 @@ async fn storage_specific_get_forum_by_id(
     db_pool: sqlx::PgPool,
     id: String,
 ) -> Result<Option<Forum>, DbError> {
-    let forum = match sqlx::query!(r#"SELECT id, name FROM public.forums WHERE id = $1"#, id)
+    let forum = match sqlx::query!(r#"SELECT id, name, parent_id FROM public.forums WHERE id = $1"#, id)
         .fetch_optional(&db_pool)
         .await
     {
         Ok(Some(f)) => {
             let id = f.id;
             let name = f.name;
+            let parent_id  = f.parent_id;
             let f = Forum {
                 id,
                 name,
-                parent_id: "".to_string(),
+                parent_id,
             };
             Some(f)
         }

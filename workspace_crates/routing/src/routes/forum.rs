@@ -71,6 +71,19 @@ pub async fn get(
         .await
         .map_err(InternalAppError::new)?;
     }
+    println!("Dumping forum: {:#?}", forum);
+    let parent_forum: Option<html_template_structs::Forum> = {
+        if forum.parent_id == "0" || forum.parent_id == "none" {
+            None
+        } else {
+            Some(
+                forum::get_forum_by_id(db_pool.clone(), forum.parent_id.clone())
+                    .await
+                    .map_err(InternalAppError::new)?
+                    .into(),
+            )
+        }
+    };
 
     router_data.base_template_data.title = title;
 
@@ -79,6 +92,7 @@ pub async fn get(
         user_can_create_forum,
         user_can_create_thread,
         forum: forum.into(),
+        parent_forum,
         subforums: into_vec(subforums),
         forum_threads: into_vec(forum_threads),
         forum_threads_pagination: vec![],

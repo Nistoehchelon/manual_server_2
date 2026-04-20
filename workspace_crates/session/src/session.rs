@@ -98,6 +98,14 @@ pub async fn add_session_notification_info(
 let _ = add_session_notification(db_pool, SessionNotification { session_id, message, notification_type: SessionNotificationType::Information }).await.map_err(DbError::new);
 
 }
+pub async fn add_session_notification_success(
+    db_pool: sqlx::PgPool,
+    session_id: String,
+    message: String,
+)  {
+let _ = add_session_notification(db_pool, SessionNotification { session_id, message, notification_type: SessionNotificationType::Success }).await.map_err(DbError::new);
+
+}
 
 pub async fn read_and_delete_session_notifications(
     db_pool: sqlx::PgPool,

@@ -8,12 +8,14 @@ pub struct User {
 pub struct Forum {
     pub id: String,
     pub name: String,
+    pub parent_id: String,
 }
 impl From<forum::Forum> for Forum {
     fn from(f: forum::Forum) -> Self {
         Self {
             id: f.id,
             name: f.name,
+            parent_id: f.parent_id,
         }
     }
 }
@@ -167,6 +169,7 @@ pub struct ManageSitePagesTemplate {
 #[template(path = "forum.html")]
 pub struct ForumTemplate {
     pub main_info: BaseTemplateData,
+    pub parent_forum: Option<Forum>,
     pub user_can_create_forum: bool,
     pub user_can_create_thread: bool,
     pub forum: Forum,
@@ -198,4 +201,10 @@ pub struct EditForumThreadMessageTemplate {
     pub csrf_token: String,
 }
 
-// thread.id, thread.name, thread_page, message_content, message_id, csrf_token
+#[derive(Template)]
+#[template(path = "create_forum.html")]
+pub struct CreateForumTemplate {
+    pub main_info: BaseTemplateData,
+    pub csrf_token: String,
+    pub parent_forum_id: String,
+}

@@ -3,6 +3,7 @@ pub mod dashboard;
 pub mod dump_request;
 pub mod favicon;
 pub mod forum;
+pub mod create_forum;
 pub mod forum_thread;
 pub mod forum_thread_message_versions;
 pub mod edit_forum_thread_message;

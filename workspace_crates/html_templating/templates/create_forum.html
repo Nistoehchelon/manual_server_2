@@ -1,0 +1,13 @@
+{% extends "template_base.html" %}
+
+{% block content%}
+{% include "includes/notifications.html" %}
+<form action="/create_forum" method="POST">
+    <p> Custom forum id (leave [auto] for auto-generation): <input name="custom_id" type="text" value="[auto]"></p>
+    <p> Forum name: <input name="name" type="text"></p>
+    <p><button>Send</button></p>
+    <input type="hidden" name="parent_forum_id" value="{{parent_forum_id}}">
+    <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+
+</form>
+{%endblock%}

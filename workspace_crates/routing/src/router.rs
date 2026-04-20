@@ -124,6 +124,12 @@ pub async fn route(
             ("POST", "/edit_forum_thread_message") => {
                 routes::edit_forum_thread_message::post(router_data.clone()).await.unwrap_or(internal_server_error_500())
             },
+            ("GET", "/create_forum") => {
+                routes::create_forum::get(router_data.clone()).await.unwrap_or(internal_server_error_500())
+            },
+            ("POST", "/create_forum") => {
+                routes::create_forum::post(router_data.clone()).await.unwrap_or(internal_server_error_500())
+            },
             ("POST", "/dump_request") => routes::dump_request::dump_request(router_data.clone())
                 .unwrap_or(internal_server_error_500()),
 

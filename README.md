@@ -42,20 +42,10 @@ From https://www.postgresql.org/download/linux/ubuntu/:
 
 1.1. 
 ```bash
-sudo apt install -y postgresql-common && sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && sudo apt install postgresql-18 -y
+sudo apt install -y postgresql-common && sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && sudo apt install postgresql-18 -y && sudo -u postgres psql
 ```
-Press Enter when prompted
+Remember to press Enter when prompted (todo: automate the pointless interactions somehow)
 
-^ The above pulls postgres's up to date repo. Typically, a fresh Ubuntu VPS will have an outdated Postgres  like 16 (current latest is 18, at the moment I write this)
-Then, of course, the latest postgres is available (replace 18 with needed version):
-
-Then setup db and user:
-1.2. 
-```bash
-sudo -u postgres psql
-```
-
-^ login as postgres user
 
 1.3. 
 ```sql
@@ -94,17 +84,13 @@ WARNING: password file "/home/username/manual_server/pgsql_backups/.pgpass" has 
 ```bash
 cd pgsql_backups
 chmod 600 .pgpass
+# import schema into the newly installed pgsql db
 bash push.sh --schema
-```
-
-In manual_server root folder:
-```bash
 cd ..
+# set up env as you wish
 cp .env.example .env
 ```
-Then configure it as you wish.
 
-Run app:
 ```bash
 cargo run
 ```

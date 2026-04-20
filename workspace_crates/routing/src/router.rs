@@ -136,6 +136,9 @@ pub async fn route(
             ("GET", "/manage_site_pages") => routes::manage_custom_site_pages::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
+            ("POST", "/webhook") => {
+                routes::webhooks::post(router_data.clone()).await.unwrap_or(internal_server_error_500())
+            },
             (method, path) => {
                 let mut path = path.to_string();
                 path.remove(0); // remove slash

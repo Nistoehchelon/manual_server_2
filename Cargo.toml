@@ -9,7 +9,7 @@ members = ["workspace_crates/*"]
 [workspace.dependencies]
 
 # internal workspace crates
-
+webhooks = { path = "workspace_crates/webhooks" }
 cloudflare_turnstile = { path = "workspace_crates/cloudflare_turnstile" }
 custom_site_pages = { path = "workspace_crates/custom_site_pages" }
 db_manager = { path = "workspace_crates/db_manager" }

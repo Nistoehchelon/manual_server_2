@@ -49,7 +49,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
                 .map_err(InternalAppError::new)?;
             println!("website_fund_xmr webhook success");
             let resp = ok(
-                "Success".to_string().into_bytes(),
+                "Add success".to_string().into_bytes(),
                 http_stuff::http_response::ContentType::TextPlain,
                 Some(Charset::Utf8),
             );
@@ -69,7 +69,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
                 .map_err(InternalAppError::new)?;
             println!("website_fund_xmr webhook success");
             let resp = ok(
-                "Success".to_string().into_bytes(),
+                "Subtract success".to_string().into_bytes(),
                 http_stuff::http_response::ContentType::TextPlain,
                 Some(Charset::Utf8),
             );

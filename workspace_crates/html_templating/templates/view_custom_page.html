@@ -3,5 +3,5 @@
 {% block content%}
 <h1>{{ page.name }}</h1>
 {% include "includes/notifications.html" %}
-{{ page.content }}
-{%endblock%}
+{{ page.content | safe }}
+{% endblock %}

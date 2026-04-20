@@ -10,7 +10,7 @@ pub async fn list_of_site_pages(
     _pagination_page: i64,
     _pagination_records_per_page: i64,
 ) -> Result<Vec<SitePage>, SomeSortOfError> {
-    let site_pages = forum::get_forum_threads(db_pool.clone(),FORUM_ID.to_string())
+    let site_pages = forum::get_forum_threads(db_pool.clone(), FORUM_ID.to_string())
         .await
         .map_err(SomeSortOfError::new)?;
     Ok(site_pages)
@@ -80,7 +80,16 @@ pub async fn replace_variables_with_contents(
 
                 // Push replacement
                 let var_name = &output[content_start..content_end];
-                new_text.push_str(cache.get(var_name).unwrap_or(&"none".to_string()));
+                // maybe this hardcoding is a sign that I should abandon the "dynamic custom pages" idea and just  hardcode each in a template?
+                if var_name == "website_fund_xmr" {
+                    let s = cache.get(var_name).unwrap_or(&"0".to_string()).to_string();
+                    let s = s.parse::<u64>().map_err(DbError::new)?;
+                    let s = webhooks::XMRAmount::from_atomic(s);
+                    let s = s.to_xmr_string_trimmed();
+                    new_text.push_str(s.as_str());
+                } else {
+                    new_text.push_str(cache.get(var_name).unwrap_or(&"none".to_string()));
+                }
 
                 cursor = end;
                 last_end = end;

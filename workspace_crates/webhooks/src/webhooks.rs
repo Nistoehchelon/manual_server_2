@@ -9,7 +9,7 @@ pub struct WebhooksToken {
 pub struct XMRAmount(u64);
 
 impl XMRAmount {
-//    const ATOMIC_PER_XMR: u64 = 1_000_000_000_000;
+    const ATOMIC_PER_XMR: u64 = 1_000_000_000_000;
 
     pub fn from_atomic(a: u64) -> Self {
         Self(a)
@@ -17,6 +17,20 @@ impl XMRAmount {
 
     pub fn as_atomic(&self) -> u64 {
         self.0
+    }
+     pub fn to_xmr_string_trimmed(&self) -> String {
+        let whole = self.0 / Self::ATOMIC_PER_XMR;
+        let fractional = self.0 % Self::ATOMIC_PER_XMR;
+
+        if fractional == 0 {
+            return whole.to_string();
+        }
+
+        let frac_str = format!("{:012}", fractional)
+            .trim_end_matches('0')
+            .to_string();
+
+        format!("{}.{}", whole, frac_str)
     }
 }
 pub async fn validate_token(db_pool: sqlx::PgPool, token: String) -> Result<bool, SomeSortOfError> {

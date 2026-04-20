@@ -554,6 +554,7 @@ dependencies = [
  "error_structs",
  "forum",
  "sqlx",
+ "webhooks",
 ]
 
 [[package]]

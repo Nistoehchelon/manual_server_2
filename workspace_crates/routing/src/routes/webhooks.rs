@@ -55,6 +55,26 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
             );
             Ok(resp)
         }
+        "website_fund_xmr_subtract" => {
+
+            let amount = body_params
+                .get("amount")
+                .map(|s| s.as_str())
+                .unwrap_or("")
+                .to_string();
+            let amount = amount.parse::<u64>().map_err(InternalAppError::new)?;
+            let amount = webhooks::XMRAmount::from_atomic(amount);
+            webhooks::subtract_website_fund_xmr(rt.db_pool.clone(), amount)
+                .await
+                .map_err(InternalAppError::new)?;
+            println!("website_fund_xmr webhook success");
+            let resp = ok(
+                "Success".to_string().into_bytes(),
+                http_stuff::http_response::ContentType::TextPlain,
+                Some(Charset::Utf8),
+            );
+            Ok(resp)
+        }
         _ => {
             println!("Invalid action");
             let mut resp = ok(

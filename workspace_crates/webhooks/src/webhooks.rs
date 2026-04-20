@@ -1,4 +1,4 @@
-use error_structs::SomeSortOfError;
+use error_structs::{ SomeSortOfError};
 
 pub struct WebhooksToken {
     pub primary_key: i64,
@@ -18,7 +18,7 @@ impl XMRAmount {
     pub fn as_atomic(&self) -> u64 {
         self.0
     }
-     pub fn to_xmr_string_trimmed(&self) -> String {
+    pub fn to_xmr_string_trimmed(&self) -> String {
         let whole = self.0 / Self::ATOMIC_PER_XMR;
         let fractional = self.0 % Self::ATOMIC_PER_XMR;
 
@@ -34,21 +34,86 @@ impl XMRAmount {
     }
 }
 pub async fn validate_token(db_pool: sqlx::PgPool, token: String) -> Result<bool, SomeSortOfError> {
-    let token = sqlx::query_as!(WebhooksToken, "SELECT primary_key, token, designated_purpose FROM webhook_tokens WHERE token = $1", token).fetch_optional(&db_pool).await.map_err(SomeSortOfError::new)?;
+    let token = sqlx::query_as!(
+        WebhooksToken,
+        "SELECT primary_key, token, designated_purpose FROM webhook_tokens WHERE token = $1",
+        token
+    )
+    .fetch_optional(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?;
     Ok(token.is_some())
-
 }
 
-pub async fn add_website_fund_xmr(db_pool: sqlx::PgPool, amount: XMRAmount) -> Result<(), SomeSortOfError> {
+pub async fn add_website_fund_xmr(
+    db_pool: sqlx::PgPool,
+    amount: XMRAmount,
+) -> Result<(), SomeSortOfError> {
     let name = "website_fund_xmr";
     let add_amount = amount.as_atomic().to_string();
-    let current_amount = sqlx::query!("SELECT value FROM custom_site_variables WHERE name = $1", name).fetch_one(&db_pool).await.map_err(SomeSortOfError::new)?.value;
+    let current_amount = sqlx::query!(
+        "SELECT value FROM custom_site_variables WHERE name = $1",
+        name
+    )
+    .fetch_one(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?
+    .value;
     let new_amount = {
         let add_amount = add_amount.parse::<i64>().map_err(SomeSortOfError::new)?;
-        let current_amount = current_amount.parse::<i64>().map_err(SomeSortOfError::new)?;
+        let current_amount = current_amount
+            .parse::<i64>()
+            .map_err(SomeSortOfError::new)?;
         current_amount + add_amount
-    }.to_string();
+    }
+    .to_string();
 
-    sqlx::query!("UPDATE custom_site_variables SET value = $1 WHERE name = $2", new_amount, name).execute(&db_pool).await.map_err(SomeSortOfError::new)?;
+    sqlx::query!(
+        "UPDATE custom_site_variables SET value = $1 WHERE name = $2",
+        new_amount,
+        name
+    )
+    .execute(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?;
     Ok(())
+}
+pub async fn subtract_website_fund_xmr(
+    db_pool: sqlx::PgPool,
+    amount: XMRAmount,
+) -> Result<String, SomeSortOfError> {
+    let name = "website_fund_xmr";
+    let sub_amount = amount.as_atomic().to_string();
+    let current_amount = sqlx::query!(
+        "SELECT value FROM custom_site_variables WHERE name = $1",
+        name
+    )
+    .fetch_one(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?
+    .value;
+    let new_amount = {
+        let sub_amount = sub_amount.parse::<u64>().map_err(SomeSortOfError::new)?;
+        let current_amount = current_amount
+            .parse::<u64>()
+            .map_err(SomeSortOfError::new)?;
+        current_amount.checked_sub(sub_amount)
+    };
+    match new_amount {
+        Some(new_amount) => {
+            let new_amount = i64::try_from(new_amount).map_err(SomeSortOfError::new)?.to_string();
+            sqlx::query!(
+                "UPDATE custom_site_variables SET value = $1 WHERE name = $2",
+                new_amount,
+                name
+            )
+            .execute(&db_pool)
+            .await
+            .map_err(SomeSortOfError::new)?;
+            Ok("Subtracted".to_string())
+        },
+        None => {
+            Ok("Could not subtract, amount is greater than available balance".to_string())
+        }
+    }
 }

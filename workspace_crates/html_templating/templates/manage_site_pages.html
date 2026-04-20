@@ -12,8 +12,8 @@
 {% for page in site_pages %}
 <p>Page "{{ page.name }}"</p>
 <p><a href="/{{ page.id }}">View</a></p>
-<p><a href="/edit_site_page?id={{ page.id }}">Edit</a></p>
-<p><a href="/site_page_history_of_edits?id={{ page.id }}">History of edits</a></p>
+<p><a href="/edit_forum_thread_message?id={{ page.id }}">Edit</a></p>
+<p><a href="/forum_thread_message_versions?id={{ page.id }}">History of edits</a></p>
 {% endfor %}
 
 {%endblock%}

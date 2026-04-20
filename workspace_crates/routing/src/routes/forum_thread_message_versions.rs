@@ -1,3 +1,4 @@
+use abac::{CanAccessThisForumThreadInput, can_access_this_forum_thread};
 use error_structs::InternalAppError;
 use html_templating::{
     html_template_structs::{self},
@@ -87,6 +88,18 @@ pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, Intern
     let thread = forum::get_thread(db_pool.clone(), msg.thread_id.clone())
         .await
         .map_err(InternalAppError::new)?;
+
+        if !can_access_this_forum_thread(CanAccessThisForumThreadInput {
+        db_pool: db_pool.clone(),
+        user_id: session.user_id.clone(),
+        thread_id: thread.id.clone(),
+    })
+    .await
+    .map_err(InternalAppError::new)?
+    {
+        println!("User doesn't have permissions to access this thread");
+        return Ok(redirect_to("/".to_string()));
+    }
 
     const VERSIONS_PER_PAGE: u64 = 15;
 

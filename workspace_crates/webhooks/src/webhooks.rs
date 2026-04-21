@@ -1,6 +1,6 @@
 use error_structs::{ SomeSortOfError};
 
-pub struct WebhooksToken {
+pub struct WebhookToken {
     pub primary_key: i64,
     pub token: String,
     pub designated_purpose: String,
@@ -37,7 +37,7 @@ impl XMRAtomicUnit {
 }
 pub async fn validate_token(db_pool: sqlx::PgPool, token: String) -> Result<bool, SomeSortOfError> {
     let token = sqlx::query_as!(
-        WebhooksToken,
+        WebhookToken,
         "SELECT primary_key, token, designated_purpose FROM webhook_tokens WHERE token = $1",
         token
     )

@@ -22,19 +22,21 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         .map_err(InternalAppError::new)?;
     if !validity_of_the_token {
         println!("Invalid token provided.");
-         let mut resp = ok(
-                "Invalid token provided".to_string().into_bytes(),
-                http_stuff::http_response::ContentType::TextPlain,
-                Some(Charset::Utf8),
-            );
-            resp.status_code = http_stuff::http_response::StatusCode::Code404NotFound;
-            return Ok(resp);
+        let mut resp = ok(
+            "Invalid token provided".to_string().into_bytes(),
+            http_stuff::http_response::ContentType::TextPlain,
+            Some(Charset::Utf8),
+        );
+        resp.status_code = http_stuff::http_response::StatusCode::Code404NotFound;
+        return Ok(resp);
     }
-  call_webhook(rt.db_pool, body_params).await
+    call_action(rt.db_pool, body_params).await
 }
 
-pub async fn call_webhook(db_pool: sqlx::PgPool, body_params: HashMap<String, String>) -> Result<HttpResponseData, InternalAppError> {
-      
+pub async fn call_action(
+    db_pool: sqlx::PgPool,
+    body_params: HashMap<String, String>,
+) -> Result<HttpResponseData, InternalAppError> {
     let action = body_params
         .get("action")
         .map(|s| s.as_str())
@@ -55,7 +57,33 @@ pub async fn call_webhook(db_pool: sqlx::PgPool, body_params: HashMap<String, St
                 .map_err(InternalAppError::new)?;
             println!("website_fund_xmr webhook success");
             let resp = ok(
-                "Add success".to_string().into_bytes(),
+                "Add success\n".to_string().into_bytes(),
+                http_stuff::http_response::ContentType::TextPlain,
+                Some(Charset::Utf8),
+            );
+            Ok(resp)
+        }
+        "add_admin_permissions_to_user" => {
+            let user_id = body_params
+                .get("user_id")
+                .map(|s| s.as_str())
+                .unwrap_or("0")
+                .to_string();
+            let user = user::get_user_by_user_id(db_pool.clone(), user_id.clone()).await;
+            if user.is_err() {
+                let mut resp = ok(
+                    "User not found\n".to_string().into_bytes(),
+                    http_stuff::http_response::ContentType::TextPlain,
+                    Some(Charset::Utf8),
+                );
+                resp.status_code = http_stuff::http_response::StatusCode::Code404NotFound;
+                return Ok(resp);
+            }
+            abac::add_admin_permissions_to_user(db_pool.clone(), user_id.clone()).await;
+
+            let content = format!("Permissions added for user_id \"{user_id}\"\n");
+            let resp = ok(
+                content.into_bytes(),
                 http_stuff::http_response::ContentType::TextPlain,
                 Some(Charset::Utf8),
             );
@@ -64,7 +92,7 @@ pub async fn call_webhook(db_pool: sqlx::PgPool, body_params: HashMap<String, St
         _ => {
             println!("Invalid action");
             let mut resp = ok(
-                "Invalid action".to_string().into_bytes(),
+                "Invalid action\n".to_string().into_bytes(),
                 http_stuff::http_response::ContentType::TextPlain,
                 Some(Charset::Utf8),
             );

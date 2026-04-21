@@ -1,4 +1,4 @@
-use error_structs::{ SomeSortOfError};
+use error_structs::SomeSortOfError;
 
 pub struct WebhookToken {
     pub primary_key: i64,
@@ -53,11 +53,16 @@ pub async fn set_website_fund_xmr(
 ) -> Result<(), SomeSortOfError> {
     let atomic_var_name = "website_fund_xmr_balance_atomic_units";
     let visual_var_name = "website_fund_xmr_balance_visual";
-    let amount_visual = amount.to_xmr_string_trimmed(); 
+    let amount_visual = amount.to_xmr_string_trimmed();
     let amount_atomic = amount.as_atomic().to_string();
     let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
     sqlx::query!(
-        "UPDATE custom_site_variables SET value = $1 WHERE name = $2",
+        r#"
+        INSERT INTO custom_site_variables (name, value)
+        VALUES ($1, $2)
+        ON CONFLICT (name)
+        DO UPDATE SET value = EXCLUDED.value
+        "#,
         amount_atomic,
         atomic_var_name
     )
@@ -65,7 +70,12 @@ pub async fn set_website_fund_xmr(
     .await
     .map_err(SomeSortOfError::new)?;
     sqlx::query!(
-        "UPDATE custom_site_variables SET value = $1 WHERE name = $2",
+        r#"
+        INSERT INTO custom_site_variables (name, value)
+        VALUES ($1, $2)
+        ON CONFLICT (name)
+        DO UPDATE SET value = EXCLUDED.value
+        "#,
         amount_visual,
         visual_var_name
     )

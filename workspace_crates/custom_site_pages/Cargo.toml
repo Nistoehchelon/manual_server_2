@@ -9,3 +9,5 @@ sqlx = { workspace = true }
 error_structs = { workspace = true }
 forum = { workspace = true }
 webhooks = { workspace = true }
+regex = { workspace = true }
+once_cell = { workspace = true }

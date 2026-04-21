@@ -63,8 +63,8 @@ pub async fn set_website_fund_xmr(
         ON CONFLICT (name)
         DO UPDATE SET value = EXCLUDED.value
         "#,
+        atomic_var_name,
         amount_atomic,
-        atomic_var_name
     )
     .execute(&mut *tx)
     .await
@@ -76,8 +76,9 @@ pub async fn set_website_fund_xmr(
         ON CONFLICT (name)
         DO UPDATE SET value = EXCLUDED.value
         "#,
+        visual_var_name,
         amount_visual,
-        visual_var_name
+        
     )
     .execute(&mut *tx)
     .await

@@ -16,88 +16,54 @@ pub async fn list_of_site_pages(
     Ok(site_pages)
 }
 
-// Gemini generated this. Supposedly, a simple parser to replace [[varname]] with db-defined vars or none if not found. To be used in site pages. So, I can update something dynamically, like contact number and stuff. Seems to work well.
+use regex::Regex;
+use std::collections::{HashSet};
+
 pub async fn replace_variables_with_contents(
     db_pool: sqlx::PgPool,
     input: String,
 ) -> Result<String, DbError> {
-    let db_pool = &db_pool;
     let input = input.as_str();
+ // match [[variable_name]]
+    let re = Regex::new(r"\[\[(.*?)\]\]").unwrap();
+
     let mut output = input.to_string();
-    let max_depth = 5;
-    let mut depth = 0;
 
-    while depth < max_depth {
-        let mut names = Vec::new();
-        let mut cursor = 0;
+    // 1. Collect unique variable names
+    let mut names = HashSet::new();
+    for cap in re.captures_iter(input) {
+        let name = cap[1].trim().to_lowercase();
+        names.insert(name);
+    }
 
-        // 1. Manual extraction scan
-        while let Some(start_idx) = output[cursor..].find("[[") {
-            let start = cursor + start_idx + 2;
-            if let Some(end_idx) = output[start..].find("]]") {
-                let end = start + end_idx;
-                names.push(&output[start..end]);
-                cursor = end + 2;
-            } else {
-                break; // Unclosed tag
-            }
-        }
+    // 2. Fetch each variable individually
+    let mut cache = std::collections::HashMap::new();
 
-        if names.is_empty() {
-            break;
-        }
-        names.sort_unstable();
-        names.dedup();
-
-        // 1. Convert the &str names into owned Strings
-        let names_owned: Vec<String> = names.into_iter().map(String::from).collect();
-        // 2. Database Fetch (Same as before)
-        let rows = sqlx::query!(
-            r#"SELECT name, value FROM custom_site_variables WHERE  name = ANY($1)"#,
-            &names_owned[..]
+    for name in names {
+        let row = sqlx::query!(
+            r#"SELECT value FROM custom_site_variables WHERE name = $1"#,
+            name
         )
-        .fetch_all(db_pool)
+        .fetch_optional(&db_pool)
         .await
         .map_err(DbError::new)?;
-        println!("{:#?} {:#?} {:#?}", rows, names_owned, &names_owned[..]);
 
-        let cache: std::collections::HashMap<_, _> =
-            rows.into_iter().map(|r| (r.name, r.value)).collect();
-
-        // 3. Manual Build/Replace
-        let mut new_text = String::with_capacity(output.len());
-        let mut last_end = 0;
-        cursor = 0;
-
-        while let Some(start_idx) = output[cursor..].find("[[") {
-            let start = cursor + start_idx;
-            let content_start = start + 2;
-            if let Some(end_idx) = output[content_start..].find("]]") {
-                let content_end = content_start + end_idx;
-                let end = content_end + 2;
-
-                // Push text before the tag
-                new_text.push_str(&output[last_end..start]);
-
-                // Push replacement
-                let var_name = &output[content_start..content_end];
-                // maybe this hardcoding is a sign that I should abandon the "dynamic custom pages" idea and just  hardcode each in a template?
-                new_text.push_str(cache.get(var_name).unwrap_or(&"none".to_string()));
-
-                cursor = end;
-                last_end = end;
-            } else {
-                break;
-            }
+        if let Some(r) = row {
+            cache.insert(name, r.value);
         }
-        new_text.push_str(&output[last_end..]);
-
-        if output == new_text {
-            break;
-        }
-        output = new_text;
-        depth += 1;
     }
+
+    // 3. Replace using regex
+    output = re
+        .replace_all(&output, |caps: &regex::Captures| {
+            let key = caps[1].trim().to_lowercase();
+            cache
+                .get(&key)
+                .map(|s| s.as_str())
+                .unwrap_or("none")
+                .to_string()
+        })
+        .to_string();
 
     Ok(output)
 }

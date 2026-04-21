@@ -51,16 +51,27 @@ pub async fn set_website_fund_xmr(
     db_pool: sqlx::PgPool,
     amount: XMRAtomicUnit,
 ) -> Result<(), SomeSortOfError> {
-    let name = "website_fund_xmr";
-    let amount = amount.to_xmr_string_trimmed(); 
-
+    let atomic_var_name = "website_fund_xmr_balance_atomic_units";
+    let visual_var_name = "website_fund_xmr_balance_visual";
+    let amount_visual = amount.to_xmr_string_trimmed(); 
+    let amount_atomic = amount.as_atomic().to_string();
+    let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
     sqlx::query!(
         "UPDATE custom_site_variables SET value = $1 WHERE name = $2",
-        amount,
-        name
+        amount_atomic,
+        atomic_var_name
     )
-    .execute(&db_pool)
+    .execute(&mut *tx)
     .await
     .map_err(SomeSortOfError::new)?;
+    sqlx::query!(
+        "UPDATE custom_site_variables SET value = $1 WHERE name = $2",
+        amount_visual,
+        visual_var_name
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(SomeSortOfError::new)?;
+    tx.commit().await.map_err(SomeSortOfError::new)?;
     Ok(())
 }

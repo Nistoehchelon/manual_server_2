@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::parse_body_into_string_form_input_params,
@@ -28,6 +30,11 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
             resp.status_code = http_stuff::http_response::StatusCode::Code404NotFound;
             return Ok(resp);
     }
+  call_webhook(rt.db_pool, body_params).await
+}
+
+pub async fn call_webhook(db_pool: sqlx::PgPool, body_params: HashMap<String, String>) -> Result<HttpResponseData, InternalAppError> {
+      
     let action = body_params
         .get("action")
         .map(|s| s.as_str())
@@ -35,41 +42,20 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         .to_string();
 
     match action.as_str() {
-        "website_fund_xmr_add" => {
-
+        "set_website_fund_xmr" => {
             let amount = body_params
                 .get("amount")
                 .map(|s| s.as_str())
-                .unwrap_or("")
+                .unwrap_or("0")
                 .to_string();
             let amount = amount.parse::<u64>().map_err(InternalAppError::new)?;
-            let amount = webhooks::XMRAmount::from_atomic(amount);
-            webhooks::add_website_fund_xmr(rt.db_pool.clone(), amount)
+            let amount = webhooks::XMRAtomicUnit::from_atomic(amount);
+            webhooks::set_website_fund_xmr(db_pool.clone(), amount)
                 .await
                 .map_err(InternalAppError::new)?;
             println!("website_fund_xmr webhook success");
             let resp = ok(
                 "Add success".to_string().into_bytes(),
-                http_stuff::http_response::ContentType::TextPlain,
-                Some(Charset::Utf8),
-            );
-            Ok(resp)
-        }
-        "website_fund_xmr_subtract" => {
-
-            let amount = body_params
-                .get("amount")
-                .map(|s| s.as_str())
-                .unwrap_or("")
-                .to_string();
-            let amount = amount.parse::<u64>().map_err(InternalAppError::new)?;
-            let amount = webhooks::XMRAmount::from_atomic(amount);
-            webhooks::subtract_website_fund_xmr(rt.db_pool.clone(), amount)
-                .await
-                .map_err(InternalAppError::new)?;
-            println!("website_fund_xmr webhook success");
-            let resp = ok(
-                "Subtract success".to_string().into_bytes(),
                 http_stuff::http_response::ContentType::TextPlain,
                 Some(Charset::Utf8),
             );

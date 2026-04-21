@@ -80,16 +80,7 @@ pub async fn replace_variables_with_contents(
 
                 // Push replacement
                 let var_name = &output[content_start..content_end];
-                // maybe this hardcoding is a sign that I should abandon the "dynamic custom pages" idea and just  hardcode each in a template?
-                if var_name == "website_fund_xmr" {
-                    let s = cache.get(var_name).unwrap_or(&"0".to_string()).to_string();
-                    let s = s.parse::<u64>().map_err(DbError::new)?;
-                    let s = webhooks::XMRAmount::from_atomic(s);
-                    let s = s.to_xmr_string_trimmed();
-                    new_text.push_str(s.as_str());
-                } else {
-                    new_text.push_str(cache.get(var_name).unwrap_or(&"none".to_string()));
-                }
+                new_text.push_str(cache.get(var_name).unwrap_or(&"none".to_string()));
 
                 cursor = end;
                 last_end = end;

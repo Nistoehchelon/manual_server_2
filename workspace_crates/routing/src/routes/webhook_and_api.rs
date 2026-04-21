@@ -57,7 +57,7 @@ pub async fn call_action(
                 .map_err(InternalAppError::new)?;
             println!("website_fund_xmr webhook success");
             let resp = ok(
-                "Add success\n".to_string().into_bytes(),
+                "Set success\n".to_string().into_bytes(),
                 http_stuff::http_response::ContentType::TextPlain,
                 Some(Charset::Utf8),
             );

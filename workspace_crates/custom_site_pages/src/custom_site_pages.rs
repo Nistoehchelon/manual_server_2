@@ -59,6 +59,7 @@ pub async fn replace_variables_with_contents(
         .fetch_all(db_pool)
         .await
         .map_err(DbError::new)?;
+        println!("{:#?} {:#?} {:#?}", rows, names_owned, &names_owned[..]);
 
         let cache: std::collections::HashMap<_, _> =
             rows.into_iter().map(|r| (r.name, r.value)).collect();
@@ -80,6 +81,7 @@ pub async fn replace_variables_with_contents(
 
                 // Push replacement
                 let var_name = &output[content_start..content_end];
+                // maybe this hardcoding is a sign that I should abandon the "dynamic custom pages" idea and just  hardcode each in a template?
                 new_text.push_str(cache.get(var_name).unwrap_or(&"none".to_string()));
 
                 cursor = end;

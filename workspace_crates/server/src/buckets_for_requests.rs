@@ -5,10 +5,13 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
+#[derive(Debug)]
 pub struct TokenAndTimeBuckets {
     pub token_bucket: TokenBucket,
     pub time_bucket: TimeBucket,
 }
+
+#[derive(Debug)]
 pub struct TokenAndTimeBucketsAndLastSeen {
     pub token_bucket: TokenBucket,
     pub time_bucket: TimeBucket,

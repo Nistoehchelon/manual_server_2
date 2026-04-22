@@ -38,29 +38,31 @@ use tokio_stream::StreamExt;
 
 use std::io::Error;
 
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use tracing_subscriber::EnvFilter;
+use tracing::{Span, field, info, span::Id};
+use tracing_appender::non_blocking::{NonBlocking};
 use tracing_appender::rolling;
-use tracing_appender::non_blocking;
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-pub fn init_tracing(enable_stdout: bool) {
-    // File appender (rotates daily)
-    let file_appender = rolling::daily("logs", "app.log");
-    let (file_writer, _guard) = non_blocking(file_appender);
+pub fn init_tracing(enable_stdout: bool, file_writer: NonBlocking) {
+  
 
     let file_layer = tracing_subscriber::fmt::layer()
+       
         .with_writer(file_writer)
-        .with_ansi(false); // important for files
+        .with_ansi(false)
+        .with_target(true)
+        .with_line_number(true); // important for files
 
     // Optional stdout layer
-    let stdout_layer = tracing_subscriber::fmt::layer();
+    let stdout_layer = tracing_subscriber::fmt::layer()
+   
+        .with_target(true)
+        .with_line_number(true);
 
-    let filter = EnvFilter::from_default_env()
-        .add_directive("info".parse().unwrap());
+    let filter = EnvFilter::from_default_env().add_directive("info".parse().unwrap());
 
-    let subscriber = tracing_subscriber::registry()
-        .with(filter)
-        .with(file_layer);
+    let subscriber = tracing_subscriber::registry().with(filter).with(file_layer);
 
     if enable_stdout {
         subscriber.with(stdout_layer).init();
@@ -69,11 +71,12 @@ pub fn init_tracing(enable_stdout: bool) {
     }
 }
 
-
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
-
-
+      // File appender (rotates daily)
+    let file_appender = rolling::daily("logs", "app.log");
+    let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
+    init_tracing(true, file_writer);
 
     let server_config = config_reader::read_config(PathBuf::from(".env"));
 
@@ -91,10 +94,7 @@ async fn main() -> std::io::Result<()> {
                 server_config.ip_and_port.clone()
             )
         });
-    println!(
-        "Server listening on {}",
-        server_config.ip_and_port.clone()
-    );
+    println!("Server listening on {}", server_config.ip_and_port.clone());
 
     // for rate limiting
     let global_bucket: GlobalBuckets = Arc::new(Mutex::new(TokenAndTimeBuckets {
@@ -128,7 +128,6 @@ async fn main() -> std::io::Result<()> {
             };
         });
     }
-
     loop {
         let global_bucket = global_bucket.clone();
         let ip_buckets = ip_buckets.clone();
@@ -228,6 +227,7 @@ async fn main() -> std::io::Result<()> {
     }
 }
 
+#[tracing::instrument(skip_all, fields(path = field::Empty, remote_ip = field::Empty, user_id = field::Empty, span_id = field::Empty))]
 pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     reader: &mut BufReader<S>,
     db_pool: sqlx::PgPool,
@@ -235,12 +235,16 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     global_bucket: GlobalBuckets,
     ip_buckets: IpBuckets,
     server_config: Config,
-) {
+) { 
+    Span::current().record("span_id", Span::current().id().unwrap_or(Id::from_u64(1)).to_owned().into_u64().to_string());
+    info!(target: "request", "New Connection...");
     let keep_alive_max_requests_per_connection =
         server_config.keep_alive_max_requests_per_connection;
     let mut requests_count = 0;
+    let mut ip: Option<IpAddr> = None;
     loop {
-        dbg!("Peer with IP ", peer_ip, "just issued a request");
+        //dbg!("Peer with IP ", peer_ip, "just issued a request");
+        tracing::info!(target: "request", "Processing a request");
         if let Err(error_response) = check_and_consume_buckets(
             Instant::now(),
             &peer_ip,
@@ -270,7 +274,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         {
             Ok(Ok(data)) => data,
             Ok(Err(e)) => {
-                dbg!(e.clone());
+               info!("{}", e.clone());
                 write_http_parsing_error(e, reader, server_config.common_stream_timeout).await;
                 break;
             }
@@ -285,6 +289,26 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
                 break;
             }
         };
+      match ip {
+        None => {
+            ip = Some(request_data.x_real_ip);
+            info!(target: "request", "Retrieved the user IP {}", request_data.x_real_ip);
+            Span::current().record("remote_ip", request_data.x_real_ip.to_string());
+        },
+        Some(ip_unwrapped) => {
+            if request_data.x_real_ip != ip_unwrapped {
+                // I mean, I dunno if this can even happen in one kept-alive connection or if it will just drop and a new one, unrelated to current will be init'ed... But this can't hurt? Maybe? I dunno 
+                info!("User ip changed from {} to {}!", ip_unwrapped, request_data.x_real_ip);
+                ip = Some(request_data.x_real_ip);
+                Span::current().record("remote_ip", ip_unwrapped.to_string());
+                
+            }
+        }
+      }
+      info!(target: "request", "User is accessing GET path at {}", request_data.path_and_query.clone());
+      Span::current().record("path", request_data.path_and_query.clone());
+
+
         requests_count += 1;
         let response_data = generate_response(
             request_data,
@@ -319,7 +343,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             true
         };
         if server_wants_to_close {
-            dbg!("server told me to close, closing",);
+            tracing::info!(target: "request", "Server instructed me to close, so closing the connection");
             break;
         }
     }
@@ -459,8 +483,7 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             );
         }
         HttpRequestParsingError::ClientSentNothing => {
-            println!("{}", HttpRequestParsingError::ClientSentNothing);
-            println!("Doing nothing, because client connected but sent nothing...");
+            info!("Doing nothing, because client connected but sent nothing...");
         }
         hm => {
             eprintln!("main error, could not parse request {:?}", hm);

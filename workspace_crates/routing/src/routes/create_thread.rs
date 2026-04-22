@@ -1,6 +1,6 @@
 use abac::{CanAccessThisForumInput, CanCreateThreadInput, CanSetCustomThreadIdWhenCreatingItInput, can_access_this_forum};
 use error_structs::InternalAppError;
-use forum::{self, ValidForumThreadMessageVersionContent, ValidForumThreadName};
+use forum::{self, ValidForumThreadMessageContent, ValidForumThreadName};
 use forum::find_forum_by_id;
 use html_templating::html_template_structs;
 use http_stuff::{
@@ -153,18 +153,18 @@ pub async fn post(
     if !is_csrf_token_valid {
         return Ok(bad_request_400());
     }
-    let content = match ValidForumThreadMessageVersionContent::parse(content) {
+    let content = match ValidForumThreadMessageContent::parse(content) {
         Ok(c) => c,
         Err(e) => {
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
-            return Ok(redirect_to(session::get_custom_data_or_empty_string(db_pool.clone(), session.id.clone(), "previous_page".to_string()).await.map_err(InternalAppError::new)?));
+            return Ok(redirect_to(session.previous_get_page.clone()));
         }
     };
     let name = match ValidForumThreadName::parse(name) {
         Ok(c) => c,
         Err(e) => {
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
-            return Ok(redirect_to(session::get_custom_data_or_empty_string(db_pool.clone(), session.id.clone(), "previous_page".to_string()).await.map_err(InternalAppError::new)?));
+            return Ok(redirect_to(session.previous_get_page.clone()));
         }
     };
     let forum = find_forum_by_id(db_pool.clone(), forum_id.clone())

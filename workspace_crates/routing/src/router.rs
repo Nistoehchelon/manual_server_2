@@ -257,7 +257,7 @@ pub async fn generate_response_data(
     let r = add_some_headers(request_data.clone(), response_data, server_config, nonce);
 
    if request_data.method == HttpMethod::Get {
-        let _ = session::set_custom_data(db_pool.clone(), session.id.clone(), "previous_page".to_string(), request_data.path_and_query.clone()).await;
+        let _ = session::set_previous_get_page(db_pool.clone(), session.id.clone(), request_data.path_and_query.clone()).await;
     }
     r
 }

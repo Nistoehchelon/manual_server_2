@@ -10,11 +10,13 @@ pub struct Session {
     pub user_id: String,
     pub logged_in: bool,
     pub previous_page_load_time_ms: i64,
+    pub previous_get_page: String,
 }
 
 impl Session {
     pub fn default_with_id(id: String) -> Self {
         Self {
+            previous_get_page: String::new(),
             id,
             user_id: String::new(),
             logged_in: false,

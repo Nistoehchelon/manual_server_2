@@ -2,6 +2,7 @@ use abac::CanEditForumThreadMessageInput;
 use abac::CanAccessThisForumThreadInput;
 use abac::can_access_this_forum_thread;
 use error_structs::{self, InternalAppError};
+use forum::ValidForumThreadMessageContent;
 use forum::forum_structs;
 use html_templating;
 use html_templating::html_template_structs;
@@ -12,6 +13,7 @@ use http_stuff::http_response::ok_html;
 use http_stuff::http_response::{HttpResponseData, redirect_to};
 use pagination::pagination::Pagination;
 use session::add_session_notification;
+use session::add_session_notification_error;
 use url::Url;
 use user::find_user_by_user_id;
 
@@ -281,6 +283,13 @@ pub async fn post(
         return Ok(bad_request_400());
     }
 
+    let message = match ValidForumThreadMessageContent::parse(message) {
+        Ok(m) => m,
+        Err(e) => {
+            add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
+            return Ok(redirect_to(session.previous_get_page));
+        }
+    };
     forum::add_message(db_pool.clone(), message, session.user_id, thread_id.clone())
         .await
         .map_err(InternalAppError::new)?;

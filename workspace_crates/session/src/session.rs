@@ -63,6 +63,23 @@ pub async fn set_previous_page_load_time_ms(
         Err(e) => Err(DbError::new(e)),
     }
 }
+pub async fn set_previous_get_page(
+    db_pool: sqlx::PgPool,
+    session_id: String,
+    new_value: String,
+) -> Result<(), DbError> {
+    match sqlx::query!(
+        "UPDATE sessions SET previous_get_page = $1 WHERE id = $2",
+        new_value,
+        session_id
+    )
+    .execute(&db_pool)
+    .await
+    {
+        Ok(_) => Ok(()),
+        Err(e) => Err(DbError::new(e)),
+    }
+}
 pub async fn add_session_notification(
     db_pool: sqlx::PgPool,
     session_notification: SessionNotification,
@@ -240,7 +257,7 @@ async fn storage_specific_get_session_by_session_id(
 ) -> Result<Option<Session>, db_manager::DbError> {
     let retrieved = match sqlx::query_as!(
         Session,
-        r#"SELECT id, user_id as user_id, logged_in, previous_page_load_time_ms FROM sessions WHERE id = $1"#,
+        r#"SELECT id, user_id as user_id, logged_in, previous_get_page, previous_page_load_time_ms FROM sessions WHERE id = $1"#,
         session_id
     )
     .fetch_optional(&db_pool)

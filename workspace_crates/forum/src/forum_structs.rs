@@ -23,11 +23,11 @@ pub struct ForumThreadMessageVersion {
     pub created_at: OffsetDateTime,
 }
 #[derive(Clone, Debug)]
-pub struct ValidForumThreadMessageVersionContent {
+pub struct ValidForumThreadMessageContent {
     inner: String,
 }
 pub const MAX_LENGTH_FORUM_MESSAGE: u64 = 10000; 
-impl ValidForumThreadMessageVersionContent {
+impl ValidForumThreadMessageContent {
     pub fn parse(s: String) -> Result<Self, PublicError> {
         if count_string_length(s.clone()) > MAX_LENGTH_FORUM_MESSAGE.try_into().map_err(PublicError::new)? {
             return Err(PublicError::new(format!("Max allowed forum message length is {} but {} given.", MAX_LENGTH_FORUM_MESSAGE, count_string_length(s.clone()))));
@@ -38,7 +38,7 @@ impl ValidForumThreadMessageVersionContent {
     }
    
 }
-impl std::fmt::Display for ValidForumThreadMessageVersionContent {
+impl std::fmt::Display for ValidForumThreadMessageContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.inner)
     }

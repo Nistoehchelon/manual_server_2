@@ -1,5 +1,5 @@
 use crate::{
-    ForumThreadMessage, ValidForumThreadMessageVersionContent, ValidForumThreadName, forum_structs::{Forum, ForumThread, ForumThreadMessageVersion}
+    ForumThreadMessage, ValidForumThreadMessageContent, ValidForumThreadName, forum_structs::{Forum, ForumThread, ForumThreadMessageVersion}
 };
 use db_manager::DbError;
 use error_structs::{ExpectedToGetButFailed, SomeSortOfError};
@@ -307,7 +307,7 @@ pub async fn get_initial_message_version(
 
 pub async fn add_message(
     db_pool: sqlx::PgPool,
-    message: String,
+    message_content: ValidForumThreadMessageContent,
     user_id: String,
     thread_id: String,
 ) -> Result<(), DbError> {
@@ -315,7 +315,7 @@ pub async fn add_message(
 
     let message_id_result = sqlx::query!("INSERT INTO forum_thread_messages (id, thread_id, user_id) VALUES (gen_random_uuid(), $1, $2) RETURNING ID", thread_id.clone(), user_id.clone()).fetch_one(&mut *tx).await.map_err(DbError::new)?;
 
-    let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), message, message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
+    let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), message_content.to_string(), message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
 
     tx.commit().await.map_err(DbError::new)?;
     Ok(())
@@ -366,7 +366,7 @@ pub async fn create_thread(
     db_pool: sqlx::PgPool,
     id: String,
     name: ValidForumThreadName,
-    content: ValidForumThreadMessageVersionContent,
+    content: ValidForumThreadMessageContent,
     user_id: String,
     forum_id: String,
 ) -> Result<String, DbError> {
@@ -377,7 +377,7 @@ async fn storage_specific_create_thread(
     db_pool: sqlx::PgPool,
     id: String,
     name: ValidForumThreadName,
-    content: ValidForumThreadMessageVersionContent,
+    content: ValidForumThreadMessageContent,
     user_id: String,
     forum_id: String,
 ) -> Result<String, DbError> {

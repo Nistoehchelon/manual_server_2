@@ -14,6 +14,7 @@ async fn test_read_write() {
         .await
         .expect("No pool :(");
     let session = session::Session {
+        previous_get_page: "".to_string(),
         id: "32ed32".to_string(),
         user_id: "user_id_1232".to_string(),
         logged_in: false,
@@ -40,6 +41,7 @@ async fn test_read_write() {
     .unwrap();
 
     let retrieved_session = session::Session {
+        previous_get_page: "".to_string(),
         id: retrieved.id,
         user_id: retrieved.user_id,
         logged_in: retrieved.logged_in,

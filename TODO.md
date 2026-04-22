@@ -9,3 +9,9 @@ Generally, the permissions system can be improved...
 
 
 3. Maybe proxy the custom site pages management like edit and view history so they appear to have their own pages for convenience.
+
+4. Improve logging/tracing
+
+5. Refactor code
+
+6. Remove all tls/ssl stuff from the rust server since I am generally going to go for using nginx as reverse proxy for this, so the tls stuff only adds clutter to the Rust code.

@@ -1,7 +1,7 @@
 
 use abac::CanEditForumThreadMessageInput;
 use error_structs::InternalAppError;
-use forum::{forum_structs, get_thread};
+use forum::{ValidForumThreadMessageContent, forum_structs, get_thread};
 use html_templating::html_template_structs::EditForumThreadMessageTemplate;
 use http_stuff::{http_request_parsing, http_response::{self, HttpResponseData, bad_request_400, redirect_to}};
 use url::Url;
@@ -89,13 +89,20 @@ pub async fn post(
             return Ok(bad_request_400());
         }
     };
+    let message = match ValidForumThreadMessageContent::parse(message) {
+        Ok(m)=>m,
+        Err(e) => {
+            session::add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
+            return Ok(redirect_to(session.previous_get_page.clone()));
+        }
+    };
     let msg = forum::forum_thread_message::get_message(router_data.db_pool.clone(), message_id.clone()).await.map_err(InternalAppError::new)?;
     let curr_msg_content = forum::get_latest_message_version(db_pool.clone(), msg.id.clone()).await.map_err(InternalAppError::new)?;
     let op_msg = forum::get_initial_message_version(router_data.db_pool.clone(), msg.id.clone()).await.map_err(InternalAppError::new)?;
      let return_url = {
         format!("/forum_thread?id={}&page={}", msg.thread_id, forum::forum_thread_message::get_message_page(db_pool.clone(),msg.id, forum_structs::MESSAGES_PER_PAGE).await.map_err(InternalAppError::new)?)
     };
-    if message == curr_msg_content.content {
+    if message.to_string() == curr_msg_content.content {
         session::add_session_notification_info(db_pool.clone(), session.id.clone(), "The text you submitted is identical to the current one. Thus no changes were made.".to_string()).await;
         return Ok(redirect_to(return_url));
     }
@@ -128,7 +135,7 @@ pub async fn post(
     }
 
     println!("Entering edit_forum_thread_message");
-    forum::forum_thread_message::edit_forum_thread_message(db_pool.clone(), message_id, message, user.id).await.map_err(InternalAppError::new)?;
+    forum::forum_thread_message::edit_forum_thread_message(db_pool.clone(), message_id, message.to_string(), user.id).await.map_err(InternalAppError::new)?;
     
    
     Ok(redirect_to(return_url))

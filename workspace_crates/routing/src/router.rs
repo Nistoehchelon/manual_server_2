@@ -159,7 +159,7 @@ pub async fn route(
             key: session::get_name_of_cookie_containing_session_id(),
             value: session.id.clone(),
             path: "/".to_string(),
-            secure: server_config.use_tls,
+            secure: server_config.using_https,
         };
         dbg!(ch.clone());
         match response_data.set_cookie {
@@ -278,7 +278,7 @@ pub fn add_some_headers(
     // I guess this will disable sts whenever I run this without ssl, right?..
     response_data.headers.insert(
         "Strict-Transport-Security",
-        if server_config.use_tls {
+        if server_config.using_https {
             "max-age=99999999; includeSubDomains; preload"
         } else {
             "max-age=0"

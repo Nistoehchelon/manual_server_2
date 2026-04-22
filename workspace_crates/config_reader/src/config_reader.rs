@@ -1,8 +1,10 @@
 use password_hashing::{PasswordHasherConfig, PasswordHasherConfigParams};
-use std::{fs::read_to_string, path::PathBuf, str::FromStr, time::Duration};
+use std::{fs::read_to_string, path::PathBuf, time::Duration};
 
 #[derive(Debug, Clone)]
 pub struct Config {
+    pub using_https: bool,
+
     pub rust_log: String,
     pub rust_log_directory_path: String, 
 
@@ -14,9 +16,7 @@ pub struct Config {
     pub port: u64,
     pub ip: String,
     pub database_str: String,
-    pub domain_name: String,
 
-    pub use_tls: bool,
 
     pub server_global_requests_token_bucket_capacity: f64,
     pub server_global_requests_token_bucket_refill_rate_per_millis: f64,
@@ -35,9 +35,7 @@ pub struct Config {
     pub max_total_body_size_bytes: u64,
     pub max_request_path_length: u64,
     pub max_cookies_count: u64,
-    pub environment: Environment,
-    pub lets_encrypt_production: bool,
-    pub lets_encrypt_contact_email: String,
+
     pub server_time_credits_refill_rate_per_millis: Duration,
     pub server_time_credits_capacity: Duration,
     pub per_ip_time_credits_refill_rate_per_millis: Duration,
@@ -45,25 +43,13 @@ pub struct Config {
 
     pub password_hasher_config: PasswordHasherConfig,
 }
-#[derive(Debug, PartialEq, Clone)]
-pub enum Environment {
-    Local,
-    Production,
-}
-impl FromStr for Environment {
-    type Err = String;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "local" => Ok(Environment::Local),
-            "production" => Ok(Environment::Production),
-            any_other_input => Err(format!("Invalid environment {any_other_input}")),
-        }
-    }
-}
+
 pub fn read_config(config_file_path: PathBuf) -> Config {
     let contents = read_to_string(&config_file_path)
         .unwrap_or_else(|_| panic!("Could not find path config {config_file_path:#?}"));
+
+    let mut using_https: Option<bool> = None;
 
     let mut rust_log: Option<String> = None;
     let mut rust_log_directory_path: Option<String> = None;
@@ -75,12 +61,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let mut ip: Option<String> = None;
     let mut port: Option<u64> = None;
     let mut db_url: Option<String> = None;
-    let mut use_tls: Option<bool> = None;
 
-    let mut domain_name: Option<String> = None;
-    let mut environment: Option<Environment> = None;
-    let mut lets_encrypt_production: Option<bool> = None;
-    let mut lets_encrypt_contact_email: Option<String> = None;
 
     let mut server_token_bucket_capacity: Option<f64> = None;
     let mut server_token_bucket_refill_rate: Option<f64> = None;
@@ -126,6 +107,10 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         let value = value.trim().to_string();
 
         match key {
+
+            "USING_HTTPS" => {
+                using_https = Some(value.parse().unwrap())
+            }
             "RUST_LOG" => {
                 rust_log = Some(value.parse().unwrap())
             }
@@ -173,13 +158,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
             "IP" => ip = Some(value),
             "PORT" => port = Some(value.parse().unwrap()),
             "DATABASE_URL" => db_url = Some(value),
-            "USE_TLS" => use_tls = Some(value.parse().unwrap()),
-            "DOMAIN_NAME" => domain_name = Some(value),
-            "ENVIRONMENT" => environment = Some(value.parse().unwrap()),
-            "LETS_ENCRYPT_PRODUCTION" => lets_encrypt_production = Some(value.parse().unwrap()),
-            "LETS_ENCRYPT_CONTACT_EMAIL" => {
-                lets_encrypt_contact_email = Some(value.parse().unwrap())
-            }
+
             "SERVER_TOKEN_BUCKET_CAPACITY" => {
                 let value = value
                     .parse::<f64>()
@@ -272,6 +251,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         );
     }
 
+    let using_https = using_https.expect("MISSING USING_HTTPS");
     let rust_log =
         rust_log.expect("Missing RUST_LOG");
 
@@ -312,8 +292,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let ip = ip.expect("Missing IP in env file");
     let port = port.expect("Missing PORT in env file");
     let db_url = db_url.expect("Missing DATABASE_URL in env file");
-    let domain_name = domain_name.expect("Missing DOMAIN_NAME in env file");
-    let use_tls = use_tls.expect("Missing USE_TLS in env file");
+   
     let server_token_bucket_capacity =
         server_token_bucket_capacity.expect("Missing SERVER_TOKEN_BUCKET_CAPACITY in config");
     let server_token_bucket_refill_rate = server_token_bucket_refill_rate
@@ -340,17 +319,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         max_request_path_length.expect("Missing MAX_REQUEST_PATH_LENGTH in env file");
     let max_cookies_count = max_cookies_count.expect("Missing MAX_COOKIES_COUNT in env file");
 
-    let environment = environment.expect("Missing ENVIRONMENT in env file");
 
-    let lets_encrypt_production =
-        lets_encrypt_production.expect("Missing LETS_ENCRYPT_PRODUCTION in env file");
-
-    let lets_encrypt_contact_email =
-        lets_encrypt_contact_email.expect("Missing LETS_ENCRYPT_CONTACT_EMAIL in env file");
-
-    if !use_tls && port == 443 {
-        panic!("USE_TLS is set to `false` but port is set to 443. Change port to something else.");
-    }
 
     let password_hasher_config_m_cost_kib =
         password_hasher_config_m_cost_kib.expect("Missing PASSWORD_HASHER_CONFIG[m_cost_kib]");
@@ -365,6 +334,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     });
 
     Config {
+        using_https,
         rust_log,
         rust_log_directory_path,
         cloudflare_turnstile_enabled,
@@ -374,8 +344,6 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         port,
         ip_and_port: format!("{ip}:{port}"),
         database_str: db_url.to_string(),
-        domain_name,
-        use_tls,
         server_global_requests_token_bucket_capacity: server_token_bucket_capacity,
         server_global_requests_token_bucket_refill_rate_per_millis: server_token_bucket_refill_rate,
         per_ip_token_bucket_capacity,
@@ -388,9 +356,6 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         max_headers_count,
         max_request_path_length,
         max_total_headers_size_bytes,
-        environment,
-        lets_encrypt_production,
-        lets_encrypt_contact_email,
         keep_alive_idle_timeout,
         keep_alive_max_requests_per_connection,
         keep_alive_enabled,

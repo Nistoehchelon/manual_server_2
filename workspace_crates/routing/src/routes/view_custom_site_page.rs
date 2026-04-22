@@ -12,7 +12,7 @@ let session = router_data.session.clone();
  let thread_id = path.clone();
 let thread = match forum::get_thread(db_pool.clone(), thread_id.clone()).await {
   Ok(t) => t,
-  Err(_) => {  session::add_session_notification_error(db_pool.clone(), session.id.clone(), format!("Could not find the requested page `{path}`")).await.map_err(InternalAppError::new)?;
+  Err(_) => {  session::add_session_notification_error(db_pool.clone(), session.id.clone(), format!("Could not find the requested page `{path}`")).await;
     return Ok(redirect_to("/".to_string()));}
 };
 let content: String = {

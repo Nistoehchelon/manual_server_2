@@ -1,6 +1,5 @@
 use crate::{
-    ForumThreadMessage,
-    forum_structs::{Forum, ForumThread, ForumThreadMessageVersion},
+    ForumThreadMessage, ValidForumThreadMessageVersionContent, ValidForumThreadName, forum_structs::{Forum, ForumThread, ForumThreadMessageVersion}
 };
 use db_manager::DbError;
 use error_structs::{ExpectedToGetButFailed, SomeSortOfError};
@@ -366,8 +365,8 @@ pub async fn get_thread_message_ids(
 pub async fn create_thread(
     db_pool: sqlx::PgPool,
     id: String,
-    name: String,
-    content: String,
+    name: ValidForumThreadName,
+    content: ValidForumThreadMessageVersionContent,
     user_id: String,
     forum_id: String,
 ) -> Result<String, DbError> {
@@ -377,8 +376,8 @@ pub async fn create_thread(
 async fn storage_specific_create_thread(
     db_pool: sqlx::PgPool,
     id: String,
-    name: String,
-    content: String,
+    name: ValidForumThreadName,
+    content: ValidForumThreadMessageVersionContent,
     user_id: String,
     forum_id: String,
 ) -> Result<String, DbError> {
@@ -387,7 +386,7 @@ async fn storage_specific_create_thread(
     let thread_id_result = sqlx::query!(
         "INSERT INTO forum_threads (id, name, forum_id) VALUES ($1, $2, $3) RETURNING id",
         id,
-        name,
+        name.to_string(),
         forum_id
     )
     .fetch_one(&mut *tx)
@@ -397,7 +396,7 @@ async fn storage_specific_create_thread(
     let message_id = id_generator::generate_unique_id();
     let message_id_result = sqlx::query!("INSERT INTO forum_thread_messages (id, thread_id, user_id) VALUES ($1, $2, $3) RETURNING ID", message_id, thread_id_result.id.clone(), user_id.clone()).fetch_one(&mut *tx).await.map_err(DbError::new)?;
 
-    let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), content, message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
+    let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), content.to_string(), message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
 
     tx.commit().await.map_err(DbError::new)?;
     Ok(thread_id_result.id.clone())

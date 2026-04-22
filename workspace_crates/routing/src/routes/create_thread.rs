@@ -1,13 +1,14 @@
 use abac::{CanAccessThisForumInput, CanCreateThreadInput, CanSetCustomThreadIdWhenCreatingItInput, can_access_this_forum};
 use error_structs::InternalAppError;
-use forum;
+use forum::{self, ValidForumThreadMessageVersionContent, ValidForumThreadName};
 use forum::find_forum_by_id;
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::{self},
     http_response::{HttpResponseData, bad_request_400, ok_html, redirect_to},
 };
-use session::{SessionNotification, add_session_notification};
+use session::{SessionNotification, add_session_notification, add_session_notification_error};
+
 
 use crate::RouterData;
 
@@ -152,6 +153,20 @@ pub async fn post(
     if !is_csrf_token_valid {
         return Ok(bad_request_400());
     }
+    let content = match ValidForumThreadMessageVersionContent::parse(content) {
+        Ok(c) => c,
+        Err(e) => {
+            add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
+            return Ok(redirect_to(session::get_custom_data_or_empty_string(db_pool.clone(), session.id.clone(), "previous_page".to_string()).await.map_err(InternalAppError::new)?));
+        }
+    };
+    let name = match ValidForumThreadName::parse(name) {
+        Ok(c) => c,
+        Err(e) => {
+            add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
+            return Ok(redirect_to(session::get_custom_data_or_empty_string(db_pool.clone(), session.id.clone(), "previous_page".to_string()).await.map_err(InternalAppError::new)?));
+        }
+    };
     let forum = find_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
         .map_err(InternalAppError::new)?;
@@ -160,7 +175,7 @@ pub async fn post(
         db_pool.clone(),
         session.id.clone(),
         "draft_forum_thread_name".to_string(),
-        name.clone(),
+        name.clone().to_string(),
     )
     .await
     .map_err(InternalAppError::new)?;
@@ -168,7 +183,7 @@ pub async fn post(
         db_pool.clone(),
         session.id.clone(),
         "draft_forum_thread_content".to_string(),
-        content.clone(),
+        content.clone().to_string(),
     )
     .await
     .map_err(InternalAppError::new)?;
@@ -178,8 +193,7 @@ pub async fn post(
             session.id.clone(),
             "Could not find forum with specified id".to_string(),
         )
-        .await
-        .map_err(InternalAppError::new)?;
+        .await;
         return Ok(redirect_to(format!("/create_thread?forum_id={forum_id}")));
     }
 

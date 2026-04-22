@@ -252,9 +252,14 @@ pub async fn generate_response_data(
     .await
     .unwrap_or(internal_server_error_500());
 
-    let response_data = add_elapsed(response_data, session, request_start, db_pool).await;
+    let response_data = add_elapsed(response_data, session.clone(), request_start, db_pool.clone()).await;
 
-    add_some_headers(request_data, response_data, server_config, nonce)
+    let r = add_some_headers(request_data.clone(), response_data, server_config, nonce);
+
+   if request_data.method == "GET" {
+        let _ = session::set_custom_data(db_pool.clone(), session.id.clone(), "previous_page".to_string(), request_data.path_and_query.clone()).await;
+    }
+    r
 }
 
 pub fn add_some_headers(

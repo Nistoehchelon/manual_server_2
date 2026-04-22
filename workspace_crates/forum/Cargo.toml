@@ -7,4 +7,5 @@ edition = "2024"
 db_manager = { workspace = true }
 sqlx = { workspace = true }
 error_structs = { workspace = true }
-id_generator = {workspace= true}
+id_generator = { workspace = true }
+count_string_length = { workspace = true }

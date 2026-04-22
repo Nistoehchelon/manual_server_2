@@ -79,15 +79,8 @@ pub async fn add_session_notification_error(
     db_pool: sqlx::PgPool,
     session_id: String,
     message: String,
-) -> Result<(), DbError> {
-match add_session_notification(db_pool, SessionNotification { session_id, message, notification_type: SessionNotificationType::Error }).await.map_err(DbError::new) {
-    Ok(_) => {
-        Ok(())
-    },
-    Err(e) =>{
-        Err(DbError::new(e))
-    }
- }
+)  {
+let _ = add_session_notification(db_pool, SessionNotification { session_id, message, notification_type: SessionNotificationType::Error }).await;
 
 }
 pub async fn add_session_notification_info(

@@ -4,7 +4,7 @@ use http_stuff::{
     http_request_parsing::{self},
     http_response::{HttpResponseData, ok_html, redirect_to},
 };
-use session::{SessionNotification, add_session_notification, edit_session};
+use session::{SessionNotification, add_session_notification, add_session_notification_success, edit_session};
 use user_creation::try_to_create_new_user;
 
 use crate::RouterData;
@@ -173,6 +173,8 @@ pub async fn post(
             edit_session(db_pool.clone(), session.id.clone(), modified_session)
                 .await
                 .map_err(InternalAppError::new)?;
+            add_session_notification_success(db_pool.clone(), session.id.clone(), "Congratulations! You have been successfully registered.".to_string()).await;
+            tracing::info!("User with id {} was registered.", user.id.clone());
         }
         Err(e) => {
             add_session_notification(

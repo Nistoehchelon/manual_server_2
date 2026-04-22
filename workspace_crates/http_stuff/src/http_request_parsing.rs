@@ -340,6 +340,7 @@ pub struct ParsedHeaderStream {
     pub headers: Vec<u8>,
 }
 
+#[tracing::instrument(skip_all)]
 pub fn parse_body_into_string_form_input_params(
     body: Vec<u8>,
 ) -> Result<HashMap<String, String>, String> {
@@ -347,7 +348,7 @@ pub fn parse_body_into_string_form_input_params(
         Ok(b) => b,
         Err(e) => return Err(format!("Could not parse body into valid utf8, {e:#?}")),
     };
-    dbg!("body raw unparsed string", body.clone());
+    tracing::debug!("body raw unparsed string {:#?}", body.clone());
 
     let body_clone = body.clone();
     let split: Vec<&str> = body_clone.split('&').collect();
@@ -377,6 +378,7 @@ pub fn parse_body_into_string_form_input_params(
 
         params.insert(key.to_string(), value.to_string());
     }
+    tracing::debug!("Parsed params: {:#?}", params);
     Ok(params)
 }
 

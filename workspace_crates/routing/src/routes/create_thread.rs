@@ -135,7 +135,6 @@ pub async fn post(
     }
     let params = http_request_parsing::parse_body_into_string_form_input_params(body_bytes)
         .map_err(InternalAppError::new)?;
-    dbg!(params.clone());
 
     let name = params.get("name").cloned();
     let content = params.get("content").cloned();

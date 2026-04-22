@@ -49,7 +49,7 @@ pub async fn validate_turnstile(
         }
     };
 
-    println!(
+    tracing::info!(
         "Turnstile validation result: {} {:#?}",
         response.success, response.error_codes,
     );

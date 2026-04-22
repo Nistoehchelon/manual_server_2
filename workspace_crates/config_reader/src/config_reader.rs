@@ -4,6 +4,7 @@ use std::{fs::read_to_string, path::PathBuf, str::FromStr, time::Duration};
 #[derive(Debug, Clone)]
 pub struct Config {
     pub rust_log: String,
+    pub rust_log_directory_path: String, 
 
     pub cloudflare_turnstile_enabled: bool,
     pub cloudflare_turnstile_site_key: String,
@@ -65,6 +66,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         .unwrap_or_else(|_| panic!("Could not find path config {config_file_path:#?}"));
 
     let mut rust_log: Option<String> = None;
+    let mut rust_log_directory_path: Option<String> = None;
 
     let mut cloudflare_turnstile_enabled: Option<bool> = None;
     let mut cloudflare_turnstile_site_key: Option<String> = None;
@@ -126,6 +128,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         match key {
             "RUST_LOG" => {
                 rust_log = Some(value.parse().unwrap())
+            }
+            "RUST_LOG_DIRECTORY_PATH" => {
+                rust_log_directory_path = Some(value.parse().unwrap())
             }
             "CLOUDFLARE_TURNSTILE_ENABLED" => {
                 cloudflare_turnstile_enabled = Some(value.parse().unwrap())
@@ -270,6 +275,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let rust_log =
         rust_log.expect("Missing RUST_LOG");
 
+    let rust_log_directory_path =
+        rust_log_directory_path.expect("Missing RUST_LOG_DIRECTORY_PATH");
+
     let cloudflare_turnstile_enabled =
         cloudflare_turnstile_enabled.expect("Missing CLOUDFLARE_TURNSTILE_ENABLED");
     let cloudflare_turnstile_site_key =
@@ -358,7 +366,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
 
     Config {
         rust_log,
-
+        rust_log_directory_path,
         cloudflare_turnstile_enabled,
         cloudflare_turnstile_secret_key,
         cloudflare_turnstile_site_key,

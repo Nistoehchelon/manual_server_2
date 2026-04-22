@@ -93,14 +93,15 @@ pub fn init_tracing(enable_stdout: bool, file_writer: NonBlocking) {
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok(); 
+    let server_config = config_reader::read_config(PathBuf::from(".env"));
+
 
     // File appender (rotates daily)
-    let file_appender = rolling::daily("logs", "app.log");
+    let file_appender = rolling::daily(std::env::var("RUST_LOG_DIRECTORY_PATH").unwrap(), "app.log");
     let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
     init_tracing(true, file_writer);
 
-    let server_config = config_reader::read_config(PathBuf::from(".env"));
-
+   
     let state = generate_acme_state(server_config.clone());
     let challenge_rustls_config = state.challenge_rustls_config();
     let default_rustls_config = state.default_rustls_config();

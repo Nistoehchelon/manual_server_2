@@ -1,4 +1,4 @@
-use config_reader::{Config, config_reader::Environment};
+use config_reader::Config;
 use http_stuff::{
     http_request_parsing::{
         HttpParserConfig, HttpRequestData, HttpRequestParsingError, parse_http_request,
@@ -13,12 +13,9 @@ use server::{
         GlobalBuckets, IpBuckets, TimeBucket, TokenAndTimeBuckets, TokenAndTimeBucketsAndLastSeen,
         TokenBucket,
     },
-    check_and_consume_buckets::check_and_consume_buckets,
-    http_to_https_redirect::http_to_https_redirect,
-    load_local_cert::load_local_tls_config, log_tracing,
+    check_and_consume_buckets::check_and_consume_buckets, log_tracing,
 };
 
-use tokio_rustls::{LazyConfigAcceptor, TlsAcceptor};
 
 use std::{
     collections::HashMap,
@@ -28,15 +25,12 @@ use std::{
     time::{Duration, Instant},
 };
 
-use rustls_acme::{AcmeConfig, AcmeState, caches::DirCache, is_tls_alpn_challenge};
 use tokio::{
     io::{AsyncRead, AsyncWrite, AsyncWriteExt, BufReader},
     sync::Mutex,
     time::timeout,
 };
-use tokio_stream::StreamExt;
 
-use std::io::Error;
 
 use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
@@ -396,15 +390,4 @@ async fn write_http_parsing_error<S: AsyncRead + AsyncWrite + Unpin>(
             .await;
         }
     }
-}
-
-pub fn generate_acme_state(server_config: Config) -> AcmeState<Error> {
-    AcmeConfig::new([server_config.domain_name.clone()])
-        .contact([format!(
-            "mailto:{}",
-            server_config.lets_encrypt_contact_email.clone()
-        )])
-        .cache_option(Some(DirCache::new("./rustls_acme_cache")))
-        .directory_lets_encrypt(server_config.lets_encrypt_production)
-        .state()
 }

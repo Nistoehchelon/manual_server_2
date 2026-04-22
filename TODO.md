@@ -14,4 +14,4 @@ Generally, the permissions system can be improved...
 
 5. Refactor code
 
-6. Remove all tls/ssl stuff from the rust server since I am generally going to go for using nginx as reverse proxy for this, so the tls stuff only adds clutter to the Rust code.
+6. Remove all tls/ssl stuff from the Rust server since I am generally going to go for using nginx as reverse proxy for this, so the tls stuff only adds clutter to the Rust code.

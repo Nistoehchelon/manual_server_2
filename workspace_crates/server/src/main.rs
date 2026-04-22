@@ -54,13 +54,6 @@ async fn main() -> std::io::Result<()> {
     let file_appender = rolling::daily(std::env::var("RUST_LOG_DIRECTORY_PATH").unwrap(), "app.log");
     let _guard = self::log_tracing::init_tracing(true, file_appender);
 
-   
-    let state = generate_acme_state(server_config.clone());
-    let challenge_rustls_config = state.challenge_rustls_config();
-    let default_rustls_config = state.default_rustls_config();
-    if server_config.environment == Environment::Production {
-        cert_auto_renewal(state);
-    }
     let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone())
         .await
         .unwrap_or_else(|_| {
@@ -88,21 +81,6 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("I expected pool construction to succeed :)");
 
-    // redirect from http  to https
-    // but only if the main port is 443, since if it isn't then there is no point, I think? Not sure
-    if server_config.port == 443 {
-        let server_config = server_config.clone();
-        let global_bucket = global_bucket.clone();
-        let ip_buckets = ip_buckets.clone();
-        tokio::spawn(async move {
-            match http_to_https_redirect(server_config, global_bucket, ip_buckets).await {
-                Ok(_) => {}
-                Err(e) => {
-                    dbg!(e);
-                }
-            };
-        });
-    }
     loop {
         let global_bucket = global_bucket.clone();
         let ip_buckets = ip_buckets.clone();
@@ -120,69 +98,6 @@ async fn main() -> std::io::Result<()> {
                 }
             };
 
-        match (server_config.environment.clone(), server_config.use_tls) {
-            (Environment::Local, true) => {
-                let local_tls_config = load_local_tls_config();
-                let local_tls_acceptor = TlsAcceptor::from(local_tls_config);
-
-                tokio::spawn(async move {
-                    let stream = match local_tls_acceptor.accept(tcp).await {
-                        Ok(s) => s,
-                        Err(e) => {
-                            dbg!("Local TLS fail", e);
-                            return;
-                        }
-                    };
-                    let mut reader = BufReader::new(stream);
-
-                    handle_stream(
-                        &mut reader,
-                        db_pool,
-                        peer_ip.ip(),
-                        global_bucket,
-                        ip_buckets,
-                        server_config.clone(),
-                    )
-                    .await;
-                });
-            }
-            (Environment::Production, true) => {
-                let challenge_rustls_config = challenge_rustls_config.clone();
-                let default_rustls_config = default_rustls_config.clone();
-
-                tokio::spawn(async move {
-                    let start_handshake = LazyConfigAcceptor::new(Default::default(), tcp)
-                        .await
-                        .unwrap();
-
-                    if is_tls_alpn_challenge(&start_handshake.client_hello()) {
-                        println!(
-                            "Yay, received a TLS-ALPN-01 validation request. Time to destroy the planet."
-                        );
-                        let mut tls = start_handshake
-                            .into_stream(challenge_rustls_config)
-                            .await
-                            .unwrap();
-                        tls.shutdown().await.unwrap();
-                    } else {
-                        let stream = start_handshake
-                            .into_stream(default_rustls_config)
-                            .await
-                            .unwrap();
-                        let mut reader = BufReader::new(stream);
-                        handle_stream(
-                            &mut reader,
-                            db_pool,
-                            peer_ip.ip(),
-                            global_bucket,
-                            ip_buckets,
-                            server_config.clone(),
-                        )
-                        .await;
-                    }
-                });
-            }
-            (_, false) => {
                 tokio::spawn(async move {
                     let stream = tcp;
                     let mut reader = BufReader::new(stream);
@@ -197,8 +112,6 @@ async fn main() -> std::io::Result<()> {
                     )
                     .await;
                 });
-            }
-        }
     }
 }
 
@@ -494,15 +407,4 @@ pub fn generate_acme_state(server_config: Config) -> AcmeState<Error> {
         .cache_option(Some(DirCache::new("./rustls_acme_cache")))
         .directory_lets_encrypt(server_config.lets_encrypt_production)
         .state()
-}
-pub fn cert_auto_renewal(mut state: AcmeState<Error>) {
-    // Spawns... the loop that updates the certs from Let's Encrypt if needed and so on, I think?
-    tokio::spawn(async move {
-        loop {
-            match state.next().await.unwrap() {
-                Ok(ok) => println!("event: {:#?}", ok),
-                Err(err) => println!("error: {:#?}", err),
-            }
-        }
-    });
 }

@@ -38,8 +38,43 @@ use tokio_stream::StreamExt;
 
 use std::io::Error;
 
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::EnvFilter;
+use tracing_appender::rolling;
+use tracing_appender::non_blocking;
+
+pub fn init_tracing(enable_stdout: bool) {
+    // File appender (rotates daily)
+    let file_appender = rolling::daily("logs", "app.log");
+    let (file_writer, _guard) = non_blocking(file_appender);
+
+    let file_layer = tracing_subscriber::fmt::layer()
+        .with_writer(file_writer)
+        .with_ansi(false); // important for files
+
+    // Optional stdout layer
+    let stdout_layer = tracing_subscriber::fmt::layer();
+
+    let filter = EnvFilter::from_default_env()
+        .add_directive("info".parse().unwrap());
+
+    let subscriber = tracing_subscriber::registry()
+        .with(filter)
+        .with(file_layer);
+
+    if enable_stdout {
+        subscriber.with(stdout_layer).init();
+    } else {
+        subscriber.init();
+    }
+}
+
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
+
+
+
     let server_config = config_reader::read_config(PathBuf::from(".env"));
 
     let state = generate_acme_state(server_config.clone());

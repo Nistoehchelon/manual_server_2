@@ -42,7 +42,12 @@ From https://www.postgresql.org/download/linux/ubuntu/:
 
 1.1. 
 ```bash
-sudo apt install -y postgresql-common && sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && sudo apt install postgresql-18 -y && sudo -u postgres psql
+sudo apt install -y postgresql-common && sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && sudo apt install postgresql-18 -y && sudo -u postgres psql && cd pgsql_backups && chmod 600 .pgpass
+# import schema into the newly installed pgsql db
+bash push.sh --schema
+cd ..
+# set up env as you wish
+cp .env.example .env
 ```
 Remember to press Enter when prompted (todo: automate the pointless interactions somehow)
 
@@ -81,15 +86,7 @@ cd into manual_server/pgsql_backups
 and use below, without the chmod 600 a warning that prevents script execution occurs:
 WARNING: password file "/home/username/manual_server/pgsql_backups/.pgpass" has group or world access; permissions should be u=rw (0600) or less
 
-```bash
-cd pgsql_backups
-chmod 600 .pgpass
-# import schema into the newly installed pgsql db
-bash push.sh --schema
-cd ..
-# set up env as you wish
-cp .env.example .env
-```
+
 
 ```bash
 cargo run

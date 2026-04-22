@@ -15,7 +15,7 @@ use server::{
     },
     check_and_consume_buckets::check_and_consume_buckets,
     http_to_https_redirect::http_to_https_redirect,
-    load_local_cert::load_local_tls_config,
+    load_local_cert::load_local_tls_config, log_tracing,
 };
 
 use tokio_rustls::{LazyConfigAcceptor, TlsAcceptor};
@@ -39,56 +39,10 @@ use tokio_stream::StreamExt;
 use std::io::Error;
 
 use tracing::{Span, field, info, span::Id};
-use tracing_appender::non_blocking::NonBlocking;
 use tracing_appender::rolling;
-use tracing_subscriber::EnvFilter;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 
-use tracing_subscriber::fmt;
 
-// purpose: fix duplication when using multiple formatters (in this case fileout and stdout)
-// found in https://github.com/tokio-rs/tracing/issues/1372#issuecomment-2109411275
-// Define two distinct types even if they do the same thing
-#[derive(Default)]
-struct StdoutFields(fmt::format::DefaultFields);
-#[derive(Default)]
-struct FileFields(fmt::format::DefaultFields);
-
-// Implement the trait for both (boilerplate)
-impl<'writer> fmt::FormatFields<'writer> for StdoutFields {
-    fn format_fields<R>(&self, w: fmt::format::Writer<'writer>, f: R) -> std::fmt::Result 
-    where R: tracing_subscriber::field::RecordFields { self.0.format_fields(w, f) }
-}
-impl<'writer> fmt::FormatFields<'writer> for FileFields {
-    fn format_fields<R>(&self, w: fmt::format::Writer<'writer>, f: R) -> std::fmt::Result 
-    where R: tracing_subscriber::field::RecordFields { self.0.format_fields(w, f) }
-}
-
-pub fn init_tracing(enable_stdout: bool, file_writer: NonBlocking) {
-    
-    let file_layer = tracing_subscriber::fmt::layer()
-        .with_writer(file_writer)
-        .with_ansi(false)
-        .with_target(true)
-        .with_line_number(true)
-        .fmt_fields(FileFields::default()); // important for files
-
-    // Optional stdout layer
-    let stdout_layer = tracing_subscriber::fmt::layer()
-        .with_target(true)
-        .with_line_number(true).fmt_fields(StdoutFields::default());
-
-    let filter = EnvFilter::from_default_env().add_directive("info".parse().unwrap());
-
-    let subscriber = tracing_subscriber::registry().with(filter).with(file_layer);
-
-    if enable_stdout {
-        subscriber.with(stdout_layer).init();
-    } else {
-        subscriber.init();
-    }
-}
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
@@ -98,8 +52,7 @@ async fn main() -> std::io::Result<()> {
 
     // File appender (rotates daily)
     let file_appender = rolling::daily(std::env::var("RUST_LOG_DIRECTORY_PATH").unwrap(), "app.log");
-    let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
-    init_tracing(true, file_writer);
+    let _guard = self::log_tracing::init_tracing(true, file_appender);
 
    
     let state = generate_acme_state(server_config.clone());
@@ -249,7 +202,7 @@ async fn main() -> std::io::Result<()> {
     }
 }
 
-#[tracing::instrument(skip_all, target = "shared_context", fields(path = field::Empty, remote_ip = field::Empty, user_id = field::Empty, span_id = field::Empty))]
+#[tracing::instrument(skip_all, target = "shared_context", fields(path = field::Empty, remote_ip = field::Empty, user_id = field::Empty, span_id = field::Empty, method = field::Empty))]
 pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     reader: &mut BufReader<S>,
     db_pool: sqlx::PgPool,
@@ -337,8 +290,9 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
         }
-        info!( "User is accessing GET path at {}", request_data.path_and_query.clone());
+        info!( "User is accessing method {} and path {}", request_data.method.clone(), request_data.path_and_query.clone());
         Span::current().record("path", request_data.path_and_query.clone());
+        Span::current().record("method", request_data.method.clone());
 
         requests_count += 1;
         let response_data = generate_response(

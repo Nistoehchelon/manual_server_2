@@ -78,7 +78,6 @@ pub async fn route(
             http_request_data: request_data.clone(),
             base_template_data,
         };
-        dbg!(format!("Entering routing for {method} {path}"));
         match (method.as_str(), path.as_str()) {
             ("GET", "/signup") => routes::signup::get(router_data.clone())
                 .await

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-
+tracing = { workspace = true }
 webhooks = { workspace = true }
 custom_site_pages = { workspace = true }
 cloudflare_turnstile = { workspace = true }

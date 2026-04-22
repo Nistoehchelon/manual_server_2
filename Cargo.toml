@@ -38,6 +38,7 @@ encoding = { path = "workspace_crates/encoding" }
 
 # third-party external crates
 
+dotenvy = "0.15.7"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["fmt", "env-filter", "json"] }
 tracing-appender = "0.2.5"

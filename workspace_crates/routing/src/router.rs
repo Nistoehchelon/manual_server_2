@@ -418,10 +418,11 @@ pub fn is_requesting_static_resource(path: String) -> bool {
     static_paths.contains(&path.as_str())
 }
 
+//#[tracing::instrument]
 pub fn generate_static_response(request_data: HttpRequestData) -> HttpResponseData {
     let HttpRequestData { method, path, .. } = request_data;
     assert!(is_requesting_static_resource(path.clone()));
-    dbg!(format!("Entering static routing for {method} {path}"));
+    tracing::info!("Entering static routing for {method} {path}");
 
     match (method.as_str(), path.as_str()) {
         // static resources

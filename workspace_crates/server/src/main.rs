@@ -39,26 +39,43 @@ use tokio_stream::StreamExt;
 use std::io::Error;
 
 use tracing::{Span, field, info, span::Id};
-use tracing_appender::non_blocking::{NonBlocking};
+use tracing_appender::non_blocking::NonBlocking;
 use tracing_appender::rolling;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-pub fn init_tracing(enable_stdout: bool, file_writer: NonBlocking) {
-  
 
+use tracing_subscriber::fmt;
+
+// Define two distinct types even if they do the same thing
+#[derive(Default)]
+struct StdoutFields(fmt::format::DefaultFields);
+#[derive(Default)]
+struct FileFields(fmt::format::DefaultFields);
+
+// Implement the trait for both (boilerplate)
+impl<'writer> fmt::FormatFields<'writer> for StdoutFields {
+    fn format_fields<R>(&self, w: fmt::format::Writer<'writer>, f: R) -> std::fmt::Result 
+    where R: tracing_subscriber::field::RecordFields { self.0.format_fields(w, f) }
+}
+impl<'writer> fmt::FormatFields<'writer> for FileFields {
+    fn format_fields<R>(&self, w: fmt::format::Writer<'writer>, f: R) -> std::fmt::Result 
+    where R: tracing_subscriber::field::RecordFields { self.0.format_fields(w, f) }
+}
+
+pub fn init_tracing(enable_stdout: bool, file_writer: NonBlocking) {
+    
     let file_layer = tracing_subscriber::fmt::layer()
-       
         .with_writer(file_writer)
         .with_ansi(false)
         .with_target(true)
-        .with_line_number(true); // important for files
+        .with_line_number(true)
+        .fmt_fields(FileFields::default()); // important for files
 
     // Optional stdout layer
     let stdout_layer = tracing_subscriber::fmt::layer()
-   
         .with_target(true)
-        .with_line_number(true);
+        .with_line_number(true).fmt_fields(StdoutFields::default());
 
     let filter = EnvFilter::from_default_env().add_directive("info".parse().unwrap());
 
@@ -73,7 +90,9 @@ pub fn init_tracing(enable_stdout: bool, file_writer: NonBlocking) {
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
-      // File appender (rotates daily)
+    dotenvy::dotenv().ok(); 
+
+    // File appender (rotates daily)
     let file_appender = rolling::daily("logs", "app.log");
     let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
     init_tracing(true, file_writer);
@@ -227,7 +246,7 @@ async fn main() -> std::io::Result<()> {
     }
 }
 
-#[tracing::instrument(skip_all, fields(path = field::Empty, remote_ip = field::Empty, user_id = field::Empty, span_id = field::Empty))]
+#[tracing::instrument(skip_all, target = "shared_context", fields(path = field::Empty, remote_ip = field::Empty, user_id = field::Empty, span_id = field::Empty))]
 pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     reader: &mut BufReader<S>,
     db_pool: sqlx::PgPool,
@@ -235,16 +254,24 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     global_bucket: GlobalBuckets,
     ip_buckets: IpBuckets,
     server_config: Config,
-) { 
-    Span::current().record("span_id", Span::current().id().unwrap_or(Id::from_u64(1)).to_owned().into_u64().to_string());
-    info!(target: "request", "New Connection...");
+) {
+    Span::current().record(
+        "span_id",
+        Span::current()
+            .id()
+            .unwrap_or(Id::from_u64(1))
+            .to_owned()
+            .into_u64()
+            .to_string(),
+    );
+    info!( "New Connection...");
     let keep_alive_max_requests_per_connection =
         server_config.keep_alive_max_requests_per_connection;
     let mut requests_count = 0;
     let mut ip: Option<IpAddr> = None;
     loop {
         //dbg!("Peer with IP ", peer_ip, "just issued a request");
-        tracing::info!(target: "request", "Processing a request");
+        tracing::info!( "Processing a request");
         if let Err(error_response) = check_and_consume_buckets(
             Instant::now(),
             &peer_ip,
@@ -274,7 +301,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         {
             Ok(Ok(data)) => data,
             Ok(Err(e)) => {
-               info!("{}", e.clone());
+                info!("{}", e.clone());
                 write_http_parsing_error(e, reader, server_config.common_stream_timeout).await;
                 break;
             }
@@ -289,25 +316,26 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
                 break;
             }
         };
-      match ip {
-        None => {
-            ip = Some(request_data.x_real_ip);
-            info!(target: "request", "Retrieved the user IP {}", request_data.x_real_ip);
-            Span::current().record("remote_ip", request_data.x_real_ip.to_string());
-        },
-        Some(ip_unwrapped) => {
-            if request_data.x_real_ip != ip_unwrapped {
-                // I mean, I dunno if this can even happen in one kept-alive connection or if it will just drop and a new one, unrelated to current will be init'ed... But this can't hurt? Maybe? I dunno 
-                info!("User ip changed from {} to {}!", ip_unwrapped, request_data.x_real_ip);
+        match ip {
+            None => {
                 ip = Some(request_data.x_real_ip);
-                Span::current().record("remote_ip", ip_unwrapped.to_string());
-                
+                info!( "Retrieved the user IP {}", request_data.x_real_ip);
+                Span::current().record("remote_ip", request_data.x_real_ip.to_string());
+            }
+            Some(ip_unwrapped) => {
+                if request_data.x_real_ip != ip_unwrapped {
+                    // I mean, I dunno if this can even happen in one kept-alive connection or if it will just drop and a new one, unrelated to current will be init'ed... But this can't hurt? Maybe? I dunno
+                    info!(
+                        "User ip changed from {} to {}!",
+                        ip_unwrapped, request_data.x_real_ip
+                    );
+                    ip = Some(request_data.x_real_ip);
+                    Span::current().record("remote_ip", ip_unwrapped.to_string());
+                }
             }
         }
-      }
-      info!(target: "request", "User is accessing GET path at {}", request_data.path_and_query.clone());
-      Span::current().record("path", request_data.path_and_query.clone());
-
+        info!( "User is accessing GET path at {}", request_data.path_and_query.clone());
+        Span::current().record("path", request_data.path_and_query.clone());
 
         requests_count += 1;
         let response_data = generate_response(
@@ -343,7 +371,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             true
         };
         if server_wants_to_close {
-            tracing::info!(target: "request", "Server instructed me to close, so closing the connection");
+            tracing::info!( "Server instructed me to close, so closing the connection");
             break;
         }
     }

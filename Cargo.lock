@@ -2143,6 +2143,7 @@ dependencies = [
  "serde",
  "session",
  "sqlx",
+ "tracing",
  "url 0.1.0",
  "user",
  "user_creation",
@@ -2436,6 +2437,7 @@ version = "0.1.0"
 dependencies = [
  "config_reader",
  "db_manager",
+ "dotenvy",
  "forum",
  "html_templating",
  "http_stuff",

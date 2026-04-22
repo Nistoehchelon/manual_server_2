@@ -47,6 +47,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use tracing_subscriber::fmt;
 
+// purpose: fix duplication when using multiple formatters (in this case fileout and stdout)
+// found in https://github.com/tokio-rs/tracing/issues/1372#issuecomment-2109411275
 // Define two distinct types even if they do the same thing
 #[derive(Default)]
 struct StdoutFields(fmt::format::DefaultFields);

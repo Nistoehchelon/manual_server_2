@@ -1,5 +1,6 @@
 use config_reader::Config;
 use encoding::decode_request_string;
+use error_structs::SomeSortOfError;
 use indexmap::IndexMap;
 use std::net::IpAddr;
 use std::{
@@ -100,7 +101,10 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
         ));
         return Err(HttpRequestParsingError::BadRequest);
     }
-    let method = first_line_split[0].to_string();
+    let method = HttpMethod::parse(first_line_split[0].to_string()).map_err(|e| {
+                dbg!(e);
+                HttpRequestParsingError::BadRequest
+            })?;
     let path_and_query = first_line_split[1].to_string();
     let http_version = first_line_split[2].to_string();
 
@@ -133,7 +137,7 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
     if content_length > parser_config.max_body_len {
         dbg!(content_length, "exceeds", parser_config.max_body_len);
         return Err(HttpRequestParsingError::ContentTooLarge);
-    } else if method == "POST" && content_length > 0 {
+    } else if method == HttpMethod::Post && content_length > 0 {
         let mut body_bytes_exact = vec![0; content_length.try_into().unwrap()];
         match timeout(
             parser_config.read_timeout,
@@ -281,12 +285,39 @@ async fn parse_headers_from_stream<S: AsyncRead + Unpin>(
     })
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum HttpMethod {
+    Get,
+    Post,
+}
+impl HttpMethod {
+    pub fn parse(s: String) -> Result<Self, SomeSortOfError> {
+        match s.as_str() {
+            "GET" => Ok(Self::Get),
+            "POST" => Ok(Self::Post),
+            _ => Err(SomeSortOfError::new(format!(
+                "Invalid http method {} given",
+                s
+            ))),
+        }
+    }
+}
+impl std::fmt::Display for HttpMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            HttpMethod::Get => "GET".to_string(),
+            HttpMethod::Post => "POST".to_string(),
+        };
+        write!(f, "{}", s)
+    }
+}
+
 /// Holds all the parsed information from an HTTP request.
 #[derive(Clone, Debug)]
 pub struct HttpRequestData {
     pub x_real_ip: IpAddr,
     pub headers: Headers,
-    pub method: String,
+    pub method: HttpMethod,
     pub path: String,
     pub query: Query,
     pub path_and_query: String,

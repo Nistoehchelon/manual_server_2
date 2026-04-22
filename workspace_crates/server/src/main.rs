@@ -199,7 +199,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         }
         info!( "User is accessing method {} and path {}", request_data.method.clone(), request_data.path_and_query.clone());
         Span::current().record("path", request_data.path_and_query.clone());
-        Span::current().record("method", request_data.method.clone());
+        Span::current().record("method", request_data.method.clone().to_string());
 
         requests_count += 1;
         let response_data = generate_response(

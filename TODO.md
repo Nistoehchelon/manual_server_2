@@ -18,4 +18,4 @@ Generally, the permissions system can be improved...
 
 7. Use Nginx for serving static files and stop serving static files in the Rust App
 
-8. Change request_data.method from String into an enum, because it being a string is ridiculously brittle
+8. [DONE, I think] Change request_data.method from String into an enum, because it being a string is ridiculously brittle

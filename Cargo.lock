@@ -1120,6 +1120,7 @@ version = "0.1.0"
 dependencies = [
  "config_reader",
  "encoding",
+ "error_structs",
  "indexmap",
  "tokio",
  "tracing",

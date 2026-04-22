@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use error_structs::InternalAppError;
 use http_stuff::{
-    http_request_parsing::HttpRequestData,
+    http_request_parsing::{HttpMethod, HttpRequestData},
     http_response::{
         self, Charset, ContentType, HttpResponseData, KeepAliveOrClose, SetCookieHeader,
         StatusCode, internal_server_error_500, redirect_to, standalone_response,
@@ -78,64 +78,64 @@ pub async fn route(
             http_request_data: request_data.clone(),
             base_template_data,
         };
-        match (method.as_str(), path.as_str()) {
-            ("GET", "/signup") => routes::signup::get(router_data.clone())
+        match (method, path.as_str()) {
+            (HttpMethod::Get, "/signup") => routes::signup::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("POST", "/signup") => routes::signup::post(router_data.clone())
+            (HttpMethod::Post, "/signup") => routes::signup::post(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("GET", "/dashboard") => routes::dashboard::get(router_data.clone())
+            (HttpMethod::Get, "/dashboard") => routes::dashboard::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("GET", "/logout") => routes::logout::get(router_data.clone())
+            (HttpMethod::Get, "/logout") => routes::logout::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("GET", "/login") => routes::login::get(router_data.clone())
+            (HttpMethod::Get, "/login") => routes::login::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("POST", "/login") => routes::login::post(router_data.clone())
+            (HttpMethod::Post, "/login") => routes::login::post(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("GET", "/forum") => routes::forum::get(router_data.clone())
+            (HttpMethod::Get, "/forum") => routes::forum::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("GET", "/create_thread") => routes::create_thread::get(router_data.clone())
+            (HttpMethod::Get, "/create_thread") => routes::create_thread::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("POST", "/create_thread") => routes::create_thread::post(router_data.clone())
+            (HttpMethod::Post, "/create_thread") => routes::create_thread::post(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("GET", "/forum_thread") => routes::forum_thread::get(router_data.clone())
+            (HttpMethod::Get, "/forum_thread") => routes::forum_thread::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("POST", "/forum_thread") => routes::forum_thread::post(router_data.clone())
+            (HttpMethod::Post, "/forum_thread") => routes::forum_thread::post(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("GET", "/forum_thread_message_versions") => {
+            (HttpMethod::Get, "/forum_thread_message_versions") => {
                 routes::forum_thread_message_versions::get(router_data.clone())
                     .await
                     .unwrap_or(internal_server_error_500())
             },
-            ("GET", "/edit_forum_thread_message") => {
+            (HttpMethod::Get, "/edit_forum_thread_message") => {
                 routes::edit_forum_thread_message::get(router_data.clone()).await.unwrap_or(internal_server_error_500())
             },
-            ("POST", "/edit_forum_thread_message") => {
+            (HttpMethod::Post, "/edit_forum_thread_message") => {
                 routes::edit_forum_thread_message::post(router_data.clone()).await.unwrap_or(internal_server_error_500())
             },
-            ("GET", "/create_forum") => {
+            (HttpMethod::Get, "/create_forum") => {
                 routes::create_forum::get(router_data.clone()).await.unwrap_or(internal_server_error_500())
             },
-            ("POST", "/create_forum") => {
+            (HttpMethod::Post, "/create_forum") => {
                 routes::create_forum::post(router_data.clone()).await.unwrap_or(internal_server_error_500())
             },
-            ("POST", "/dump_request") => routes::dump_request::dump_request(router_data.clone())
+            (HttpMethod::Post, "/dump_request") => routes::dump_request::dump_request(router_data.clone())
                 .unwrap_or(internal_server_error_500()),
 
-            ("GET", "/manage_site_pages") => routes::manage_custom_site_pages::get(router_data.clone())
+            (HttpMethod::Get, "/manage_site_pages") => routes::manage_custom_site_pages::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            ("POST", "/webhook_and_api") => {
+            (HttpMethod::Post, "/webhook_and_api") => {
                 routes::webhook_and_api::post(router_data.clone()).await.unwrap_or(internal_server_error_500())
             },
             (method, path) => {
@@ -256,7 +256,7 @@ pub async fn generate_response_data(
 
     let r = add_some_headers(request_data.clone(), response_data, server_config, nonce);
 
-   if request_data.method == "GET" {
+   if request_data.method == HttpMethod::Get {
         let _ = session::set_custom_data(db_pool.clone(), session.id.clone(), "previous_page".to_string(), request_data.path_and_query.clone()).await;
     }
     r
@@ -428,13 +428,13 @@ pub fn generate_static_response(request_data: HttpRequestData) -> HttpResponseDa
     assert!(is_requesting_static_resource(path.clone()));
     tracing::info!("Entering static routing for {method} {path}");
 
-    match (method.as_str(), path.as_str()) {
+    match (method, path.as_str()) {
         // static resources
-        ("GET", "/stylesheet.css") => {
+        (HttpMethod::Get, "/stylesheet.css") => {
             routes::stylesheet::get().unwrap_or(internal_server_error_500())
         }
-        ("GET", "/favicon.ico") => routes::favicon::get().unwrap_or(internal_server_error_500()),
-        ("GET", "/app.js") => {
+        (HttpMethod::Get, "/favicon.ico") => routes::favicon::get().unwrap_or(internal_server_error_500()),
+        (HttpMethod::Get, "/app.js") => {
             let appjs =
                 read_on_dev_embed_on_release::read_to_string_on_dev_embed_on_release("app.js");
 

@@ -1,5 +1,6 @@
 use crate::{
-    ForumThreadMessage, ValidForumThreadMessageContent, ValidForumThreadName, forum_structs::{Forum, ForumThread, ForumThreadMessageVersion}
+    ForumThreadMessage, ValidForumThreadMessageContent, ValidForumThreadName,
+    forum_structs::{Forum, ForumThread, ForumThreadMessageVersion},
 };
 use db_manager::DbError;
 use error_structs::{ExpectedToGetButFailed, SomeSortOfError};
@@ -12,10 +13,17 @@ pub struct UniqueForumId {
     inner: String,
 }
 impl UniqueForumId {
-    pub async fn parse(db_pool: sqlx::PgPool, id: String) -> Result<UniqueForumId, SomeSortOfError> {
-        let forum = find_forum_by_id(db_pool.clone(), id.clone()).await.map_err(SomeSortOfError::new)?;
+    pub async fn parse(
+        db_pool: sqlx::PgPool,
+        id: String,
+    ) -> Result<UniqueForumId, SomeSortOfError> {
+        let forum = find_forum_by_id(db_pool.clone(), id.clone())
+            .await
+            .map_err(SomeSortOfError::new)?;
         if forum.is_some() {
-            return Err(SomeSortOfError::new("Could not parse String into UniqueForumId: the provided id is not unique, a forum with this id already exists"))
+            return Err(SomeSortOfError::new(
+                "Could not parse String into UniqueForumId: the provided id is not unique, a forum with this id already exists",
+            ));
         }
         Ok(UniqueForumId { inner: id })
     }
@@ -30,11 +38,9 @@ pub async fn create_forum(
     name: String,
 ) -> Result<String, SomeSortOfError> {
     let id = match id_source {
-        ForumIdSource::Auto => {
-            generate_unique_forum_id(db_pool.clone())
-                .await
-                .map_err(SomeSortOfError::new)?
-        }
+        ForumIdSource::Auto => generate_unique_forum_id(db_pool.clone())
+            .await
+            .map_err(SomeSortOfError::new)?,
         ForumIdSource::Custom(unique_id) => unique_id.get(),
     };
 
@@ -47,7 +53,7 @@ pub async fn create_forum(
     .execute(&db_pool)
     .await
     .map_err(SomeSortOfError::new)?;
-    
+
     Ok(id)
 }
 pub async fn generate_unique_thread_id(db_pool: sqlx::PgPool) -> Result<String, DbError> {
@@ -135,7 +141,22 @@ pub async fn get_thread_message_versions(
     let limit = i64::try_from(records_per_page).map_err(SomeSortOfError::new)?;
     let page = i64::try_from(page).map_err(SomeSortOfError::new)?;
     let offset = (page - 1) * limit;
-    let msg_vers = sqlx::query_as!(ForumThreadMessageVersion, "SELECT primary_key, id, user_id, message_id, content, created_at FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY primary_key DESC LIMIT $2 OFFSET $3", message_id, limit, offset).fetch_all(&db_pool).await.map_err(SomeSortOfError::new)?;
+    let msg_vers = sqlx::query!("SELECT primary_key, id, user_id, message_id, content, created_at FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY primary_key DESC LIMIT $2 OFFSET $3", message_id, limit, offset).fetch_all(&db_pool).await.map_err(SomeSortOfError::new)?;
+    let msg_vers = {
+        let mut converted: Vec<ForumThreadMessageVersion> = vec![];
+        for r in msg_vers {
+            converted.push(ForumThreadMessageVersion {
+                primary_key: r.primary_key,
+                id: r.id,
+                message_id: r.message_id,
+                user_id: r.user_id,
+                content: ValidForumThreadMessageContent::parse(r.content)
+                    .map_err(SomeSortOfError::new)?,
+                created_at: r.created_at,
+            });
+        }
+        converted
+    };
 
     Ok(msg_vers)
 }
@@ -294,14 +315,32 @@ pub async fn get_latest_message_version(
     db_pool: sqlx::PgPool,
     msg_id: String,
 ) -> Result<ForumThreadMessageVersion, SomeSortOfError> {
-    let result = sqlx::query_as!(ForumThreadMessageVersion, "SELECT primary_key, id, user_id, content, created_at, message_id FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY created_at DESC LIMIT 1", msg_id).fetch_one(&db_pool).await.map_err(SomeSortOfError::new)?;
+    let result = sqlx::query!("SELECT primary_key, id, user_id, content, created_at, message_id FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY created_at DESC LIMIT 1", msg_id).fetch_one(&db_pool).await.map_err(SomeSortOfError::new)?;
+    let result = ForumThreadMessageVersion {
+        primary_key: result.primary_key,
+        id: result.id,
+        message_id: result.message_id,
+        user_id: result.user_id,
+        content: ValidForumThreadMessageContent::parse(result.content)
+            .map_err(SomeSortOfError::new)?,
+        created_at: result.created_at,
+    };
     Ok(result)
 }
 pub async fn get_initial_message_version(
     db_pool: sqlx::PgPool,
     msg_id: String,
 ) -> Result<ForumThreadMessageVersion, SomeSortOfError> {
-    let result = sqlx::query_as!(ForumThreadMessageVersion, "SELECT primary_key, id, user_id, content, created_at, message_id FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY created_at ASC LIMIT 1", msg_id).fetch_one(&db_pool).await.map_err(SomeSortOfError::new)?;
+    let result = sqlx::query!("SELECT primary_key, id, user_id, content, created_at, message_id FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY created_at ASC LIMIT 1", msg_id).fetch_one(&db_pool).await.map_err(SomeSortOfError::new)?;
+    let result = ForumThreadMessageVersion {
+        primary_key: result.primary_key,
+        id: result.id,
+        message_id: result.message_id,
+        user_id: result.user_id,
+        content: ValidForumThreadMessageContent::parse(result.content)
+            .map_err(SomeSortOfError::new)?,
+        created_at: result.created_at,
+    };
     Ok(result)
 }
 
@@ -406,14 +445,17 @@ async fn storage_specific_get_forum_by_id(
     db_pool: sqlx::PgPool,
     id: String,
 ) -> Result<Option<Forum>, DbError> {
-    let forum = match sqlx::query!(r#"SELECT id, name, parent_id FROM public.forums WHERE id = $1"#, id)
-        .fetch_optional(&db_pool)
-        .await
+    let forum = match sqlx::query!(
+        r#"SELECT id, name, parent_id FROM public.forums WHERE id = $1"#,
+        id
+    )
+    .fetch_optional(&db_pool)
+    .await
     {
         Ok(Some(f)) => {
             let id = f.id;
             let name = f.name;
-            let parent_id  = f.parent_id;
+            let parent_id = f.parent_id;
             let f = Forum {
                 id,
                 name,

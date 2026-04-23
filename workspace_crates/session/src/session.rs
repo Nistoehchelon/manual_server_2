@@ -238,10 +238,11 @@ async fn storage_specific_add_session(
     db_pool: sqlx::PgPool,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
     match sqlx::query!(
-        r#"INSERT INTO public.sessions (id, user_id, logged_in) VALUES ($1, $2, $3)"#,
+        r#"INSERT INTO public.sessions (id, user_id, logged_in, previous_get_page) VALUES ($1, $2, $3, $4)"#,
         session.id,
         session.user_id,
-        session.logged_in
+        session.logged_in,
+        session.previous_get_page,
     )
     .execute(&db_pool)
     .await
@@ -331,10 +332,11 @@ async fn storage_specific_edit_session(
     modified_session: Session,
 ) -> Result<DbSuccess, DbError> {
     let rows_modified = match sqlx::query!(
-        r#"UPDATE public.sessions SET user_id = $1, logged_in = $2, id = $3 WHERE id = $4"#,
+        r#"UPDATE public.sessions SET user_id = $1, logged_in = $2, id = $3, previous_get_page = $4 WHERE id = $5"#,
         modified_session.user_id,
         modified_session.logged_in,
         modified_session.id,
+        modified_session.previous_get_page,
         session_id,
     )
     .execute(&db_pool)

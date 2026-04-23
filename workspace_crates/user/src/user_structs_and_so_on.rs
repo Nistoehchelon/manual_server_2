@@ -1,3 +1,6 @@
+use count_string_length::count_string_length::count_string_length;
+use error_structs::PublicError;
+
 #[derive(Clone, Debug, Default)]
 pub struct User {
     pub primary_key: i64,
@@ -5,4 +8,54 @@ pub struct User {
     pub username: String,
     pub password_hash: String,
     pub bio: String,
+}
+
+
+pub const MIN_LENGTH_USERNAME: usize = 1;
+pub const MAX_LENGTH_USERNAME: usize = 50;
+#[derive(Clone, Debug, PartialEq, Eq)]
+
+pub struct ValidUsername {
+    inner: String,
+}
+impl ValidUsername {
+    pub fn parse(s: String) -> Result<Self, PublicError> {
+        let len = count_string_length(s.clone());
+        if !(MIN_LENGTH_USERNAME..=MAX_LENGTH_USERNAME).contains(&len) {
+            return Err(PublicError::new(format!("Username length must be between {} to {} characters but {} given.", MAX_LENGTH_USERNAME, MAX_LENGTH_USERNAME, len)));
+        }
+        Ok(Self {
+            inner: s,
+        })
+    }
+   
+}
+impl std::fmt::Display for ValidUsername {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner)
+    }
+}
+pub const MIN_LENGTH_PASSWORD: usize = 10;
+pub const MAX_LENGTH_PASSWORD: usize = 40;
+#[derive(Clone, Debug, PartialEq, Eq)]
+
+pub struct ValidPassword {
+    inner: String,
+}
+impl ValidPassword {
+    pub fn parse(s: String) -> Result<Self, PublicError> {
+        let len = count_string_length(s.clone());
+        if !(MIN_LENGTH_PASSWORD..=MAX_LENGTH_PASSWORD).contains(&len) {
+            return Err(PublicError::new(format!("Password must be {} to {} characters but {} given.", MIN_LENGTH_PASSWORD, MAX_LENGTH_PASSWORD, len)));
+        }
+        Ok(Self {
+            inner: s,
+        })
+    }
+   
+}
+impl std::fmt::Display for ValidPassword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner)
+    }
 }

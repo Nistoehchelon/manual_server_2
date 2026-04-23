@@ -19,10 +19,11 @@ pub struct ForumThreadMessageVersion {
     pub id: String,
     pub message_id: String,
     pub user_id: String,
-    pub content: String,
+    pub content: ValidForumThreadMessageContent,
     pub created_at: OffsetDateTime,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+
 pub struct ValidForumThreadMessageContent {
     inner: String,
 }

@@ -137,7 +137,7 @@ pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, Intern
         message_versions_to_render.push(html_template_structs::ForumThreadMessageVersion {
             user_id: user.id.clone(),
             user_username: user.username,
-            content: msg.content,
+            content: msg.content.to_string(),
             created_at: msg.created_at.to_string(),
         });
     }

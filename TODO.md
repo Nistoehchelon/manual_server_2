@@ -14,8 +14,10 @@ Generally, the permissions system can be improved...
 
 5. Refactor code
 
-6. Remove all tls/ssl stuff from the Rust server since I am generally going to go for using nginx as reverse proxy for this, so the tls stuff only adds clutter to the Rust code.
+6.[Kinda done, TODO: remove unused tls crates?] Remove all tls/ssl stuff from the Rust server since I am generally going to go for using nginx as reverse proxy for this, so the tls stuff only adds clutter to the Rust code.
 
 7. Use Nginx for serving static files and stop serving static files in the Rust App
 
 8. [DONE, I think] Change request_data.method from String into an enum, because it being a string is ridiculously brittle
+
+9. Change session flow: make sessions only contain session id, and make a table session_data with session id and key and value.

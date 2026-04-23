@@ -143,7 +143,7 @@ pub async fn get(
 
         let tm = html_templating::html_template_structs::ForumThreadMessageCombinedData {
             id: msg_id,
-            content,
+            content: content.to_string(),
             created_at,
             user_id: user_id.clone(),
             user_username: username,

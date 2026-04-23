@@ -55,7 +55,7 @@ pub async fn get(
         main_info: router_data.base_template_data,
         thread: thread.into(),
         thread_page,
-        message_content: current_message_version.content.clone(),
+        message_content: current_message_version.content.to_string(),
         message_id: msg_id.clone(),
         csrf_token,
     };
@@ -97,12 +97,12 @@ pub async fn post(
         }
     };
     let msg = forum::forum_thread_message::get_message(router_data.db_pool.clone(), message_id.clone()).await.map_err(InternalAppError::new)?;
-    let curr_msg_content = forum::get_latest_message_version(db_pool.clone(), msg.id.clone()).await.map_err(InternalAppError::new)?;
+    let curr_msg_content: forum::ForumThreadMessageVersion = forum::get_latest_message_version(db_pool.clone(), msg.id.clone()).await.map_err(InternalAppError::new)?;
     let op_msg = forum::get_initial_message_version(router_data.db_pool.clone(), msg.id.clone()).await.map_err(InternalAppError::new)?;
      let return_url = {
         format!("/forum_thread?id={}&page={}", msg.thread_id, forum::forum_thread_message::get_message_page(db_pool.clone(),msg.id, forum_structs::MESSAGES_PER_PAGE).await.map_err(InternalAppError::new)?)
     };
-    if message.to_string() == curr_msg_content.content {
+    if message == curr_msg_content.content {
         session::add_session_notification_info(db_pool.clone(), session.id.clone(), "The text you submitted is identical to the current one. Thus no changes were made.".to_string()).await;
         return Ok(redirect_to(return_url));
     }

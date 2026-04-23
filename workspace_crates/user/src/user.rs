@@ -3,7 +3,7 @@ use error_structs::{ExpectedToGetButFailed, PublicError, SomeSortOfError};
 use password_hashing::password_hashing::PasswordHasherConfig;
 use sqlx::{Postgres, Transaction};
 
-use crate::user_structs_and_so_on::User;
+use crate::{ValidPassword, ValidUsername, user_structs_and_so_on::User};
 
 pub async fn get_user_by_user_id(
     db_pool: sqlx::PgPool,
@@ -30,17 +30,17 @@ pub struct CheckingError {
 }
 pub async fn try_to_create_new_user(
     tx: &mut Transaction<'_, Postgres>,
-    username: String,
-    password: String,
+    username: ValidUsername,
+    password: ValidPassword,
     hasher_config: PasswordHasherConfig,
 ) -> Result<Result<User, PublicError>, SomeSortOfError> {
-    if username.clone().trim().is_empty() || password.clone().trim().is_empty() {
+    if username.clone().to_string().trim().is_empty() || password.clone().to_string().trim().is_empty() {
         return Ok(Err(PublicError::new(
             "Please enter username and password or the world will be destroyed!".to_string(),
         )));
     }
 
-    let username_available = is_username_available(username.clone(), tx)
+    let username_available = is_username_available(username.clone().to_string(), tx)
         .await
         .map_err(SomeSortOfError::new)?;
 
@@ -50,7 +50,7 @@ pub async fn try_to_create_new_user(
         )));
     }
 
-    let hash = match password_hashing::hash_password(password, hasher_config) {
+    let hash = match password_hashing::hash_password(password.to_string(), hasher_config) {
         Ok(h) => h,
         Err(e) => {
             return Err(SomeSortOfError::new(e));
@@ -59,7 +59,7 @@ pub async fn try_to_create_new_user(
     let new_user = User {
         primary_key: 0,
         id: generate_user_id(),
-        username,
+        username: username.to_string(),
         password_hash: hash,
         bio: "Default bio".to_string(),
     };

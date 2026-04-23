@@ -3262,6 +3262,7 @@ checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 name = "user"
 version = "0.1.0"
 dependencies = [
+ "count_string_length",
  "db_manager",
  "error_structs",
  "id_generator",

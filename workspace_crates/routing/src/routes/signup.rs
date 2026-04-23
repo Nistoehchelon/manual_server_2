@@ -4,7 +4,8 @@ use http_stuff::{
     http_request_parsing::{self},
     http_response::{HttpResponseData, ok_html, redirect_to},
 };
-use session::{SessionNotification, add_session_notification, add_session_notification_success, edit_session};
+use session::{SessionNotification, add_session_notification, add_session_notification_error, add_session_notification_success, edit_session};
+use user::{ValidPassword, ValidUsername};
 use user_creation::try_to_create_new_user;
 
 use crate::RouterData;
@@ -157,6 +158,20 @@ pub async fn post(
         return Ok(redirect_to("/signup".to_string()));
     }
 
+    let username = match ValidUsername::parse(username) {
+        Ok(u) => u,
+        Err(e) => {
+            add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
+            return Ok(redirect_to(session.previous_get_page.clone()));
+        }
+    };
+    let password = match ValidPassword::parse(password) {
+        Ok(u) => u,
+        Err(e) => {
+            add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
+            return Ok(redirect_to(session.previous_get_page.clone()));
+        }
+    };
     let user_creation_result = try_to_create_new_user(
         db_pool.clone(),
         username,

@@ -22,7 +22,7 @@ let content: String = {
     let msg_id = msg_id[0].to_string();
     let msg = forum::get_latest_message_version(db_pool.clone(), msg_id.clone()).await.map_err(InternalAppError::new)?;
     let msg_content = msg.content;
-    custom_site_pages::replace_variables_with_contents(db_pool.clone(), msg_content).await.map_err(InternalAppError::new)?
+    custom_site_pages::replace_variables_with_contents(db_pool.clone(), msg_content.to_string()).await.map_err(InternalAppError::new)?
 
 };
 

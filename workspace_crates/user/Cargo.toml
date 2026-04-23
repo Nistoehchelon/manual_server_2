@@ -9,3 +9,4 @@ id_generator = { workspace = true }
 error_structs = { workspace = true }
 sqlx = { workspace = true }
 db_manager = { workspace = true }
+count_string_length = { workspace = true }

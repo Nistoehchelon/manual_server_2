@@ -10,7 +10,6 @@ tracing-appender = { workspace = true }
 
 dotenvy = { workspace = true }
 tokio = { workspace = true }
-tokio-stream = { workspace = true }
 urlencoding = {workspace = true}
 routing = { workspace = true }
 http_stuff = { workspace = true }
@@ -22,8 +21,4 @@ user = { workspace = true }
 forum = { workspace = true }
 into_vec = { workspace = true }
 sqlx = { workspace = true }
-tokio-rustls = { workspace = true }
-rustls = { workspace = true }
-rustls-pemfile = { workspace = true }
-rustls-acme = { workspace = true }
 

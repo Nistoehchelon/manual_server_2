@@ -63,11 +63,7 @@ indexmap = "2.14.0"
 sqlx = { version = "0.8.6", features = ["postgres", "macros", "runtime-tokio", "time", "tls-rustls-aws-lc-rs"] }
 
 tokio = { version = "1.51.1", features = ["full", "tracing"] }
-tokio-rustls = "0.26.4"
-tokio-stream = { version = "0.1.18", features = ["net"] }
-rustls = { version = "0.23.38", features = ["prefer-post-quantum"]}
-rustls-pemfile = "2.2.0"
-rustls-acme = { version = "0.15.1", features = ["tokio"]}
+
 
 askama = { version = "0.15.6", features = ["std", "derive"] }
 

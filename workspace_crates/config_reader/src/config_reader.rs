@@ -3,6 +3,8 @@ use std::{fs::read_to_string, path::PathBuf, time::Duration};
 
 #[derive(Debug, Clone)]
 pub struct Config {
+    
+    pub tokio_worker_threads: u64,
     pub using_https: bool,
 
     pub rust_log: String,
@@ -49,6 +51,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     let contents = read_to_string(&config_file_path)
         .unwrap_or_else(|_| panic!("Could not find path config {config_file_path:#?}"));
 
+    let mut tokio_worker_threads: Option<u64> = None;
     let mut using_https: Option<bool> = None;
 
     let mut rust_log: Option<String> = None;
@@ -108,6 +111,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
 
         match key {
 
+            "TOKIO_WORKER_THREADS" => {
+                tokio_worker_threads = Some(value.parse().unwrap())
+            }
             "USING_HTTPS" => {
                 using_https = Some(value.parse().unwrap())
             }
@@ -251,7 +257,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         );
     }
 
-    let using_https = using_https.expect("MISSING USING_HTTPS");
+    let tokio_worker_threads = tokio_worker_threads.expect("Missing TOKIO_WORKER_THREADS");
+    let using_https = using_https.expect("Missing USING_HTTPS");
     let rust_log =
         rust_log.expect("Missing RUST_LOG");
 
@@ -334,6 +341,7 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     });
 
     Config {
+        tokio_worker_threads,
         using_https,
         rust_log,
         rust_log_directory_path,

@@ -34,15 +34,10 @@ use tokio::{
 use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
-
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
-    let tokio_metrics = tokio::runtime::Handle::current().metrics();
-    println!(
-        "[TOKIO] Num of worker threads: {}",
-        tokio_metrics.num_workers()
-    );
+
     let server_config = config_reader::read_config(PathBuf::from(".env"));
 
     // File appender (rotates daily)
@@ -50,6 +45,8 @@ async fn main() -> std::io::Result<()> {
         rolling::daily(std::env::var("RUST_LOG_DIRECTORY_PATH").unwrap(), "app.log");
     let _guard = self::log_tracing::init_tracing(true, file_appender);
 
+    let tokio_metrics = tokio::runtime::Handle::current().metrics();
+    tracing::info!("Num of Tokio worker threads: {}", tokio_metrics.num_workers());
     let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone())
         .await
         .unwrap_or_else(|_| {
@@ -58,7 +55,7 @@ async fn main() -> std::io::Result<()> {
                 server_config.ip_and_port.clone()
             )
         });
-    println!("Server listening on {}", server_config.ip_and_port.clone());
+    tracing::info!("Server listening on {}", server_config.ip_and_port.clone());
 
     // for rate limiting
     let global_bucket: GlobalBuckets = Arc::new(Mutex::new(TokenAndTimeBuckets {

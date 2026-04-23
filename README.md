@@ -42,7 +42,12 @@ From https://www.postgresql.org/download/linux/ubuntu/:
 
 1.1. 
 ```bash
-sudo apt install -y postgresql-common && sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && sudo apt install postgresql-18 -y && sudo -u postgres psql && cd ~/manual_server/pgsql_backups && chmod 600 .pgpass
+sudo apt install -y postgresql-common
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+sudo apt install postgresql-18 -y
+sudo -u postgres psql
+cd ~/manual_server_2/pgsql_backups
+chmod 600 .pgpass
 # import schema into the newly installed pgsql db
 bash push.sh --schema
 cd ..

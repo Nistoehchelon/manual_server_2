@@ -6,7 +6,7 @@ opt-level = 3
 lto = "fat"
 
 # Single codegen unit allows for more global optimizations
-codegen_units = 1
+codegen-units = 1
 
 # hmm... do I want this?
 overflow-checks = true

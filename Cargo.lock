@@ -2478,6 +2478,7 @@ dependencies = [
  "id_generator",
  "session_structs_and_so_on",
  "sqlx",
+ "tracing",
 ]
 
 [[package]]

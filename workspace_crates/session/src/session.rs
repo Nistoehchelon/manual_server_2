@@ -92,12 +92,16 @@ pub async fn add_session_notification(
         }
     }
 }
+
+#[tracing::instrument]
 pub async fn add_session_notification_error(
     db_pool: sqlx::PgPool,
     session_id: String,
     message: String,
 )  {
-let _ = add_session_notification(db_pool, SessionNotification { session_id, message, notification_type: SessionNotificationType::Error }).await;
+let _ = add_session_notification(db_pool, SessionNotification { session_id, message, notification_type: SessionNotificationType::Error }).await.map_err(|e| {
+    tracing::error!("{:#?}", e);
+});
 
 }
 pub async fn add_session_notification_info(

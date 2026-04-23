@@ -185,5 +185,10 @@ fn get_html(mut base_template: BaseTemplateData, csrf_token: String) -> String {
     html_templating::render(html_template_structs::LoginTemplate {
         csrf_token,
         main_info: base_template,
+        username_length_min: user::MIN_LENGTH_USERNAME,
+        username_length_max: user::MAX_LENGTH_USERNAME,
+        password_length_min: user::MIN_LENGTH_PASSWORD,
+        password_length_max: user::MAX_LENGTH_PASSWORD,
+        
     })
 }

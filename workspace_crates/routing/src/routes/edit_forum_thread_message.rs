@@ -58,6 +58,7 @@ pub async fn get(
         message_content: current_message_version.content.to_string(),
         message_id: msg_id.clone(),
         csrf_token,
+        thread_message_length_max: forum::MAX_LENGTH_FORUM_MESSAGE,
     };
     Ok(http_response::ok_html(html_templating::render(template)))
         

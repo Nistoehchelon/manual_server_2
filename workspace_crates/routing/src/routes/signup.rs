@@ -50,6 +50,10 @@ fn get_signup_html(mut base_template_data: BaseTemplateData, csrf_token: String)
     html_templating::render(html_template_structs::SignupTemplate {
         main_info: base_template_data,
         csrf_token,
+        username_length_min: user::MIN_LENGTH_USERNAME,
+        username_length_max: user::MAX_LENGTH_USERNAME,
+        password_length_min: user::MIN_LENGTH_PASSWORD,
+        password_length_max: user::MAX_LENGTH_PASSWORD,
     })
 }
 

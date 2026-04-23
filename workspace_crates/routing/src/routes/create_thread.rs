@@ -79,6 +79,7 @@ pub async fn get(
             db_pool.clone(),
             session.id.clone(),
             "draft_forum_thread_content".to_string(),
+            
         )
         .await
         .map_err(InternalAppError::new)?,
@@ -114,6 +115,9 @@ pub async fn get(
         )
         .await
         .map_err(InternalAppError::new)?,
+        thread_name_length_max: forum::MAX_LENGTH_FORUM_THREAD_NAME,
+        thread_message_length_max: forum::MAX_LENGTH_FORUM_MESSAGE,
+        
     });
     Ok(ok_html(html))
 }

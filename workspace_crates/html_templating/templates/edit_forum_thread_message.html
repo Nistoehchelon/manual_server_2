@@ -5,7 +5,7 @@
 
 {% include "includes/notifications.html" %}
 <form method="POST" action="/edit_forum_thread_message">
-<p>Message:<br> <textarea name="message">{{ message_content }}</textarea><br></p>
+<p>Message:<br> <textarea name="message" maxlength="{{ thread_message_length_max }}">{{ message_content }}</textarea><br></p>
    <p> <button type="submit">Submit</button><br></p>
     <input type="hidden" name="message_id" value="{{ message_id }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

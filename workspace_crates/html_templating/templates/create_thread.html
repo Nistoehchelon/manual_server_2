@@ -6,10 +6,12 @@
 {% include "includes/notifications.html" %}
 <form method="POST" action="/create_thread">
     {% if can_set_custom_id %}
-    Thread id (leave "[auto]" for auto generation):<br> <input name="custom_id" value = "{{ draft_thread_custom_id }}"><br>
+    Thread id (leave "[auto]" for auto generation):<br> <input name="custom_id"
+        value="{{ draft_thread_custom_id }}"><br>
     {% endif %}
-    Thread name:<br> <input name="name" value = "{{ draft_thread_name }}"><br>
-    Thread content:<br> <textarea name="content">{{ draft_thread_content }}</textarea><br>
+    Thread name:<br> <input name="name" value="{{ draft_thread_name }}" maxlength="{{ thread_name_length_max }}"><br>
+    Thread content:<br> <textarea name="content"
+        maxlength="{{ thread_message_length_max }}">{{ draft_thread_content }}</textarea><br>
     <button type="submit">Submit</button><br>
     <input type="hidden" name="forum_id" value="{{ forum.id }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

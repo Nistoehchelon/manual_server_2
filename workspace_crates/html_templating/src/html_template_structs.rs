@@ -5,6 +5,7 @@ pub struct User {
     pub username: String,
 }
 
+
 pub struct Forum {
     pub id: String,
     pub name: String,
@@ -136,10 +137,14 @@ pub struct IndexLoggedInTemplate {
 pub struct IndexNotLoggedInTemplate {
     pub main_info: BaseTemplateData,
 }
-
+ 
 #[derive(Template)]
 #[template(path = "signup.html")]
 pub struct SignupTemplate {
+    pub username_length_min: usize,
+    pub username_length_max: usize,
+    pub password_length_min: usize,
+    pub password_length_max: usize,
     pub main_info: BaseTemplateData,
     pub csrf_token: String,
 }
@@ -147,6 +152,10 @@ pub struct SignupTemplate {
 #[derive(Template)]
 #[template(path = "login.html")]
 pub struct LoginTemplate {
+    pub username_length_min: usize,
+    pub username_length_max: usize,
+    pub password_length_min: usize,
+    pub password_length_max: usize,
     pub csrf_token: String,
     pub main_info: BaseTemplateData,
 }
@@ -182,6 +191,8 @@ pub struct ForumTemplate {
 #[derive(Template)]
 #[template(path = "create_thread.html")]
 pub struct CreateThreadTemplate {
+    pub thread_name_length_max: usize,
+    pub thread_message_length_max: usize,
     pub main_info: BaseTemplateData,
     pub forum: Forum,
     pub draft_thread_name: String,
@@ -189,11 +200,12 @@ pub struct CreateThreadTemplate {
     pub draft_thread_custom_id: String,
     pub can_set_custom_id: bool,
     pub csrf_token: String,
-}
+} 
 
 #[derive(Template)]
 #[template(path = "edit_forum_thread_message.html")]
 pub struct EditForumThreadMessageTemplate {
+    pub thread_message_length_max: usize, 
     pub main_info: BaseTemplateData,
     pub thread: ForumThreadIdAndName,
     pub thread_page: String,

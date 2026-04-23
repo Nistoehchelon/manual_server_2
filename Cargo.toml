@@ -1,6 +1,16 @@
-# let's see if this improves compile times...
-[profile.dev]
-debug = "line-tables-only"
+[profile.release]
+# Maximum optimization level for speed
+opt-level = 3
+
+# Full Link Time Optimization (LTO) across all crates
+lto = "fat"
+
+# Single codegen unit allows for more global optimizations
+codegen_units = 1
+
+# hmm... do I want this?
+overflow-checks = true
+
 
 [workspace]
 resolver = "3"

@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ main_info.title }} - Base {% endblock %}</title>
-    <link rel="stylesheet" href="/stylesheet.css">
-    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/static/stylesheet.css">
+    <link rel="icon" href="/static/favicon.ico">
     {% block head %} {% endblock %}
 </head>
 
@@ -19,7 +19,7 @@
 <div id="content">
       {% block content%}
       {%endblock%}
-      <script src="/app.js" nonce="{{ main_info.nonce }}"></script>
+      <script src="/static/app.js" nonce="{{ main_info.nonce }}"></script>
 </div>
 <div id = "footer">
     <p>© 2094-2142</p>

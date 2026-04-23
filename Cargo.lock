@@ -2028,10 +2028,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "read_on_dev_embed_on_release"
-version = "0.1.0"
-
-[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2149,7 +2145,6 @@ dependencies = [
  "id_generator",
  "into_vec",
  "pagination",
- "read_on_dev_embed_on_release",
  "reqwest",
  "serde",
  "session",
@@ -2453,7 +2448,6 @@ dependencies = [
  "html_templating",
  "http_stuff",
  "into_vec",
- "read_on_dev_embed_on_release",
  "routing",
  "rustls",
  "rustls-acme",

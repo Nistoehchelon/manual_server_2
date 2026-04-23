@@ -188,17 +188,6 @@ pub async fn generate_response_data(
     server_config: Config,
 ) -> HttpResponseData {
     let nonce = id_generator::generate_random_alphanumeric_id(50).to_string();
-    if is_requesting_static_resource(request_data.path.clone()) {
-        let response_data = generate_static_response(request_data.clone());
-        let response_data = add_some_headers(
-            request_data,
-            response_data,
-            server_config.clone(),
-            nonce.clone(),
-        );
-        return response_data;
-    }
-
     let request_start = Instant::now();
     let cookies = request_data.cookies.clone();
     let (session, created_new_session) =
@@ -415,35 +404,4 @@ Page loading took {elapsed_ms} ms<br>
     }
 
     response_data
-}
-
-pub fn is_requesting_static_resource(path: String) -> bool {
-    let static_paths = ["/stylesheet.css", "/favicon.ico", "/app.js"];
-    static_paths.contains(&path.as_str())
-}
-
-//#[tracing::instrument]
-pub fn generate_static_response(request_data: HttpRequestData) -> HttpResponseData {
-    let HttpRequestData { method, path, .. } = request_data;
-    assert!(is_requesting_static_resource(path.clone()));
-    tracing::info!("Entering static routing for {method} {path}");
-
-    match (method, path.as_str()) {
-        // static resources
-        (HttpMethod::Get, "/stylesheet.css") => {
-            routes::stylesheet::get().unwrap_or(internal_server_error_500())
-        }
-        (HttpMethod::Get, "/favicon.ico") => routes::favicon::get().unwrap_or(internal_server_error_500()),
-        (HttpMethod::Get, "/app.js") => {
-            let appjs =
-                read_on_dev_embed_on_release::read_to_string_on_dev_embed_on_release("app.js");
-
-            http_stuff::http_response::ok(
-                appjs.into_bytes(),
-                http_response::ContentType::TextJavascript,
-                Some(Charset::Utf8),
-            )
-        }
-        _ => unreachable!("Should not happen"),
-    }
 }

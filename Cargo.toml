@@ -30,7 +30,6 @@ forum = { path = "workspace_crates/forum" }
 html_templating = { path = "workspace_crates/html_templating" }
 id_generator = { path = "workspace_crates/id_generator" }
 password_hashing = { path = "workspace_crates/password_hashing" }
-read_on_dev_embed_on_release = { path = "workspace_crates/read_on_dev_embed_on_release" }
 server = { path = "workspace_crates/server" }
 session = { path = "workspace_crates/session" }
 session_structs_and_so_on = { path = "workspace_crates/session_structs_and_so_on" }

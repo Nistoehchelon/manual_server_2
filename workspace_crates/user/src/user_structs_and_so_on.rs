@@ -1,4 +1,4 @@
-use count_string_length::count_string_length::{count_string_length, validate_string_length};
+use count_string_length::count_string_length::{count_string_length, valid_string_length};
 use error_structs::PublicError;
 
 #[derive(Clone, Debug, Default)]
@@ -21,8 +21,8 @@ pub struct ValidUsername {
 impl ValidUsername {
     pub fn parse(s: String) -> Result<Self, PublicError> {
         let len = count_string_length(s.clone());
-        if validate_string_length(s.clone(), MIN_LENGTH_USERNAME, MAX_LENGTH_USERNAME) {
-            return Err(PublicError::new(format!("Username length must be between {} to {} characters but {} given.", MAX_LENGTH_USERNAME, MAX_LENGTH_USERNAME, len)));
+        if !valid_string_length(s.clone(), MIN_LENGTH_USERNAME, MAX_LENGTH_USERNAME) {
+            return Err(PublicError::new(format!("Username length must be between {} to {} characters but {} given.", MIN_LENGTH_USERNAME, MAX_LENGTH_USERNAME, len)));
         }
         Ok(Self {
             inner: s,
@@ -35,7 +35,7 @@ impl std::fmt::Display for ValidUsername {
         write!(f, "{}", self.inner)
     }
 }
-pub const MIN_LENGTH_PASSWORD: usize = 10;
+pub const MIN_LENGTH_PASSWORD: usize = 1;
 pub const MAX_LENGTH_PASSWORD: usize = 40;
 #[derive(Clone, Debug, PartialEq, Eq)]
 
@@ -45,7 +45,7 @@ pub struct ValidPassword {
 impl ValidPassword {
     pub fn parse(s: String) -> Result<Self, PublicError> {
         let len = count_string_length(s.clone());
-        if validate_string_length(s.clone(), MIN_LENGTH_PASSWORD, MAX_LENGTH_PASSWORD) {
+        if !valid_string_length(s.clone(), MIN_LENGTH_PASSWORD, MAX_LENGTH_PASSWORD) {
             return Err(PublicError::new(format!("Password must be {} to {} characters but {} given.", MIN_LENGTH_PASSWORD, MAX_LENGTH_PASSWORD, len)));
         }
         Ok(Self {

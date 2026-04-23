@@ -1,5 +1,5 @@
 
-use count_string_length::count_string_length::{count_string_length, validate_string_length};
+use count_string_length::count_string_length::{count_string_length, valid_string_length};
 use error_structs::PublicError;
 use sqlx::types::time::OffsetDateTime;
 
@@ -31,7 +31,7 @@ pub const MIN_LENGTH_FORUM_MESSAGE: usize = 0; // Might change later, depends
 pub const MAX_LENGTH_FORUM_MESSAGE: usize = 10000; 
 impl ValidForumThreadMessageContent {
     pub fn parse(s: String) -> Result<Self, PublicError> {
-        if validate_string_length(s.clone(), MIN_LENGTH_FORUM_MESSAGE, MAX_LENGTH_FORUM_MESSAGE){
+        if !valid_string_length(s.clone(), MIN_LENGTH_FORUM_MESSAGE, MAX_LENGTH_FORUM_MESSAGE){
             return Err(PublicError::new(format!("Couldn't validate message length. Allowed forum message length is between {} to {} characters but {} given.", MIN_LENGTH_FORUM_MESSAGE, MAX_LENGTH_FORUM_MESSAGE, count_string_length(s.clone()))));
         }
         Ok(Self {
@@ -56,7 +56,7 @@ pub const MIN_LENGTH_FORUM_THREAD_NAME: usize = 2;
 pub const MAX_LENGTH_FORUM_THREAD_NAME: usize = 150; 
 impl ValidForumThreadName {
     pub fn parse(s: String) -> Result<Self, PublicError> {
-        if validate_string_length(s.clone(), MIN_LENGTH_FORUM_THREAD_NAME, MAX_LENGTH_FORUM_THREAD_NAME) {
+        if !valid_string_length(s.clone(), MIN_LENGTH_FORUM_THREAD_NAME, MAX_LENGTH_FORUM_THREAD_NAME) {
             return Err(PublicError::new(format!("Coudln't validate thread name length. Allowed length is between {} to {} but {} given.", MIN_LENGTH_FORUM_THREAD_NAME, MAX_LENGTH_FORUM_THREAD_NAME, count_string_length(s.clone()))));
         }
         Ok(Self {

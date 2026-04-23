@@ -39,7 +39,7 @@ pub fn init_tracing(enable_stdout: bool, file_appender: RollingFileAppender)  ->
         .with_target(true)
         .with_line_number(true).fmt_fields(StdoutFields::default());
 
-    let filter = EnvFilter::from_default_env().add_directive("info".parse().unwrap());
+    let filter = EnvFilter::from_default_env();
 
     let subscriber = tracing_subscriber::registry().with(filter).with(file_layer);
 

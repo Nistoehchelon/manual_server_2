@@ -13,9 +13,9 @@ use server::{
         GlobalBuckets, IpBuckets, TimeBucket, TokenAndTimeBuckets, TokenAndTimeBucketsAndLastSeen,
         TokenBucket,
     },
-    check_and_consume_buckets::check_and_consume_buckets, log_tracing,
+    check_and_consume_buckets::check_and_consume_buckets,
+    log_tracing,
 };
-
 
 use std::{
     collections::HashMap,
@@ -31,21 +31,23 @@ use tokio::{
     time::timeout,
 };
 
-
 use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
 
-
-
-#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
-    dotenvy::dotenv().ok(); 
+    dotenvy::dotenv().ok();
+    let tokio_metrics = tokio::runtime::Handle::current().metrics();
+    println!(
+        "[TOKIO] Num of worker threads: {}",
+        tokio_metrics.num_workers()
+    );
     let server_config = config_reader::read_config(PathBuf::from(".env"));
 
-
     // File appender (rotates daily)
-    let file_appender = rolling::daily(std::env::var("RUST_LOG_DIRECTORY_PATH").unwrap(), "app.log");
+    let file_appender =
+        rolling::daily(std::env::var("RUST_LOG_DIRECTORY_PATH").unwrap(), "app.log");
     let _guard = self::log_tracing::init_tracing(true, file_appender);
 
     let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone())
@@ -92,20 +94,20 @@ async fn main() -> std::io::Result<()> {
                 }
             };
 
-                tokio::spawn(async move {
-                    let stream = tcp;
-                    let mut reader = BufReader::new(stream);
+        tokio::spawn(async move {
+            let stream = tcp;
+            let mut reader = BufReader::new(stream);
 
-                    handle_stream(
-                        &mut reader,
-                        db_pool,
-                        peer_ip.ip(),
-                        global_bucket,
-                        ip_buckets,
-                        server_config.clone(),
-                    )
-                    .await;
-                });
+            handle_stream(
+                &mut reader,
+                db_pool,
+                peer_ip.ip(),
+                global_bucket,
+                ip_buckets,
+                server_config.clone(),
+            )
+            .await;
+        });
     }
 }
 
@@ -127,14 +129,14 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             .into_u64()
             .to_string(),
     );
-    info!( "New Connection...");
+    info!("New Connection...");
     let keep_alive_max_requests_per_connection =
         server_config.keep_alive_max_requests_per_connection;
     let mut requests_count = 0;
     let mut ip: Option<IpAddr> = None;
     loop {
         //dbg!("Peer with IP ", peer_ip, "just issued a request");
-        tracing::info!( "Processing a request");
+        tracing::info!("Processing a request");
         if let Err(error_response) = check_and_consume_buckets(
             Instant::now(),
             &peer_ip,
@@ -182,7 +184,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         match ip {
             None => {
                 ip = Some(request_data.x_real_ip);
-                info!( "Retrieved the user IP {}", request_data.x_real_ip);
+                info!("Retrieved the user IP {}", request_data.x_real_ip);
                 Span::current().record("remote_ip", request_data.x_real_ip.to_string());
             }
             Some(ip_unwrapped) => {
@@ -197,7 +199,11 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
         }
-        info!( "User is accessing method {} and path {}", request_data.method.clone(), request_data.path_and_query.clone());
+        info!(
+            "User is accessing method {} and path {}",
+            request_data.method.clone(),
+            request_data.path_and_query.clone()
+        );
         Span::current().record("path", request_data.path_and_query.clone());
         Span::current().record("method", request_data.method.clone().to_string());
 
@@ -235,7 +241,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             true
         };
         if server_wants_to_close {
-            tracing::info!( "Server instructed me to close, so closing the connection");
+            tracing::info!("Server instructed me to close, so closing the connection");
             break;
         }
     }

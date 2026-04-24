@@ -23,3 +23,5 @@ Generally, the permissions system can be improved...
 9. Change session flow: make sessions only contain session id, and make a table session_data with session id and key and value.
 
 10. Use git-version crate. Could be cool
+
+11. Implement simple (and more complex, too) password bruteforcing protections.

@@ -50,14 +50,10 @@ pub async fn call_action(
                 .map(|s| s.as_str())
                 .unwrap_or("0")
                 .to_string();
-            let amount_in_usd = body_params
-                .get("amount_usd")
-                .map(|s| s.as_str())
-                .unwrap_or("0")
-                .to_string();
+          
             let amount = amount.parse::<u64>().map_err(InternalAppError::new)?;
             let amount = webhooks::XMRAtomicUnit::from_atomic(amount);
-            webhooks::set_website_fund_xmr(db_pool.clone(), amount, amount_in_usd)
+            webhooks::set_website_fund_xmr(db_pool.clone(), amount)
                 .await
                 .map_err(InternalAppError::new)?;
             println!("website_fund_xmr webhook success");

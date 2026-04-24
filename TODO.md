@@ -16,7 +16,7 @@ Generally, the permissions system can be improved...
 
 6.[Kinda done, TODO: remove unused tls crates?] Remove all tls/ssl stuff from the Rust server since I am generally going to go for using nginx as reverse proxy for this, so the tls stuff only adds clutter to the Rust code.
 
-7. Use Nginx for serving static files and stop serving static files in the Rust App
+7. [DONE] Use Nginx for serving static files and stop serving static files in the Rust App
 
 8. [DONE, I think] Change request_data.method from String into an enum, because it being a string is ridiculously brittle
 

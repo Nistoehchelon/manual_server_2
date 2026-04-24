@@ -21,3 +21,5 @@ Generally, the permissions system can be improved...
 8. [DONE, I think] Change request_data.method from String into an enum, because it being a string is ridiculously brittle
 
 9. Change session flow: make sessions only contain session id, and make a table session_data with session id and key and value.
+
+10. Use git-version crate. Could be cool

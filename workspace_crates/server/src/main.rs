@@ -35,7 +35,7 @@ use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
 
-const VERSION: &str = "0.0.0.0.1"; // increase when I want to compare which one I am running on prod
+const VERSION: &str = "0.0.0.0.2"; // increase when I want to compare which one I am running on prod
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {

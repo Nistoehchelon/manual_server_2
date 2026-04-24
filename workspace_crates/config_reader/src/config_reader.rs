@@ -3,7 +3,6 @@ use std::{fs::read_to_string, path::PathBuf, time::Duration};
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    
     pub using_https: bool,
 
     pub rust_log: String,

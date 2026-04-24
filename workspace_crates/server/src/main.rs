@@ -34,8 +34,12 @@ use tokio::{
 use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
+
+const VERSION: &str = "0.0.0.0.1"; // increase when I want to compare which one I am running on prod
+
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
+
     dotenvy::dotenv().ok();
 
     let server_config = config_reader::read_config(PathBuf::from(".env"));
@@ -55,6 +59,7 @@ async fn main() -> std::io::Result<()> {
                 server_config.ip_and_port.clone()
             )
         });
+    tracing::info!("Server version: {}", VERSION);
     tracing::info!("Server listening on {}", server_config.ip_and_port.clone());
 
     // for rate limiting

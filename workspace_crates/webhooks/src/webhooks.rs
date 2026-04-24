@@ -50,7 +50,9 @@ pub async fn validate_token(db_pool: sqlx::PgPool, token: String) -> Result<bool
 pub async fn set_website_fund_xmr(
     db_pool: sqlx::PgPool,
     amount: XMRAtomicUnit,
+    usd_amount: String,
 ) -> Result<(), SomeSortOfError> {
+    let usd_amount_var_name = "website_fund_usd_balance_visual";
     let atomic_var_name = "website_fund_xmr_balance_atomic_units";
     let visual_var_name = "website_fund_xmr_balance_visual";
     let amount_visual = amount.to_xmr_string_trimmed();
@@ -78,6 +80,20 @@ pub async fn set_website_fund_xmr(
         "#,
         visual_var_name,
         amount_visual,
+        
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(SomeSortOfError::new)?;
+    sqlx::query!(
+        r#"
+        INSERT INTO custom_site_variables (name, value)
+        VALUES ($1, $2)
+        ON CONFLICT (name)
+        DO UPDATE SET value = EXCLUDED.value
+        "#,
+        usd_amount_var_name,
+        usd_amount,
         
     )
     .execute(&mut *tx)

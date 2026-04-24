@@ -29,6 +29,7 @@ error_structs = { path = "workspace_crates/error_structs" }
 forum = { path = "workspace_crates/forum" }
 html_templating = { path = "workspace_crates/html_templating" }
 id_generator = { path = "workspace_crates/id_generator" }
+id_generator_unique_in_db = { path = "workspace_crates/id_generator_unique_in_db" }
 password_hashing = { path = "workspace_crates/password_hashing" }
 server = { path = "workspace_crates/server" }
 session = { path = "workspace_crates/session" }
@@ -55,7 +56,6 @@ tracing-subscriber = { version = "0.3.23", features = ["fmt", "env-filter", "jso
 tracing-appender = "0.2.5"
 
 regex = "1.12.3"
-once_cell = "1.21.4"
 reqwest = { version = "0.13.2", features = ["json"] }
 serde = { version = "1.0.228", features = ["derive"] }
 

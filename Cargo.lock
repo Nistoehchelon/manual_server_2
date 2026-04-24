@@ -419,7 +419,6 @@ dependencies = [
  "db_manager",
  "error_structs",
  "forum",
- "once_cell",
  "regex",
  "sqlx",
  "webhooks",
@@ -600,6 +599,7 @@ dependencies = [
  "db_manager",
  "error_structs",
  "id_generator",
+ "id_generator_unique_in_db",
  "sqlx",
 ]
 
@@ -1036,6 +1036,15 @@ dependencies = [
  "rand 0.10.1",
  "sqlx",
  "uuid",
+]
+
+[[package]]
+name = "id_generator_unique_in_db"
+version = "0.1.0"
+dependencies = [
+ "db_manager",
+ "id_generator",
+ "sqlx",
 ]
 
 [[package]]
@@ -1775,6 +1784,7 @@ dependencies = [
  "html_templating",
  "http_stuff",
  "id_generator",
+ "id_generator_unique_in_db",
  "into_vec",
  "pagination",
  "reqwest",
@@ -2828,6 +2838,7 @@ dependencies = [
  "db_manager",
  "error_structs",
  "id_generator",
+ "id_generator_unique_in_db",
  "password_hashing",
  "sqlx",
 ]

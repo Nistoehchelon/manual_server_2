@@ -1,0 +1,9 @@
+[package]
+name = "id_generator_unique_in_db"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+id_generator = { workspace = true }
+sqlx = { workspace = true }
+db_manager = { workspace = true }

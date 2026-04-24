@@ -38,7 +38,7 @@ pub async fn create_forum(
     name: String,
 ) -> Result<String, SomeSortOfError> {
     let id = match id_source {
-        ForumIdSource::Auto => generate_unique_forum_id(db_pool.clone())
+        ForumIdSource::Auto => id_generator_unique_in_db::generate_unique_forum_id(db_pool.clone())
             .await
             .map_err(SomeSortOfError::new)?,
         ForumIdSource::Custom(unique_id) => unique_id.get(),
@@ -56,52 +56,6 @@ pub async fn create_forum(
 
     Ok(id)
 }
-pub async fn generate_unique_thread_id(db_pool: sqlx::PgPool) -> Result<String, DbError> {
-    let max_iterations = 20;
-    for _ in 0..max_iterations {
-        let id = id_generator::generate_unique_id();
-
-        let exists = sqlx::query_scalar!(
-            r#"SELECT EXISTS(SELECT 1 FROM forum_threads WHERE id = $1) as "exists!""#,
-            id
-        )
-        .fetch_one(&db_pool)
-        .await
-        .map_err(DbError::new)?;
-
-        if !exists {
-            return Ok(id);
-        }
-    }
-
-    Err(DbError::new(
-        "Failed to generate a unique thread ID after 20 attempts",
-    ))
-}
-
-pub async fn generate_unique_forum_id(db_pool: sqlx::PgPool) -> Result<String, DbError> {
-    let max_iterations = 20;
-    for _ in 0..max_iterations {
-        let id = id_generator::generate_unique_id();
-
-        let exists = sqlx::query_scalar!(
-            r#"SELECT EXISTS(SELECT 1 FROM forums WHERE id = $1) as "exists!""#,
-            id
-        )
-        .fetch_one(&db_pool)
-        .await
-        .map_err(DbError::new)?;
-
-        if !exists {
-            return Ok(id);
-        }
-    }
-
-    Err(DbError::new(
-        "Failed to generate a unique thread ID after 20 attempts",
-    ))
-}
-
 pub async fn find_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Option<Forum>, DbError> {
     if id == "0" {
         return Ok(Some(Forum {
@@ -432,7 +386,7 @@ async fn storage_specific_create_thread(
     .await
     .map_err(DbError::new)?;
 
-    let message_id = id_generator::generate_unique_id();
+    let message_id = id_generator_unique_in_db::generate_unique_forum_thread_message_id(&mut tx).await.map_err(DbError::new)?;
     let message_id_result = sqlx::query!("INSERT INTO forum_thread_messages (id, thread_id, user_id) VALUES ($1, $2, $3) RETURNING ID", message_id, thread_id_result.id.clone(), user_id.clone()).fetch_one(&mut *tx).await.map_err(DbError::new)?;
 
     let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), content.to_string(), message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;

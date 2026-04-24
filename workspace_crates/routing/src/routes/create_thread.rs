@@ -207,7 +207,7 @@ pub async fn post(
     }
 
 
-    let mut thread_id = forum::generate_unique_thread_id(db_pool.clone())
+    let mut thread_id = id_generator_unique_in_db::generate_unique_thread_id(db_pool.clone())
         .await
         .map_err(InternalAppError::new)?;
     

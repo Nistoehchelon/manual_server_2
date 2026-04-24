@@ -21,7 +21,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         .await
         .map_err(InternalAppError::new)?;
     if !validity_of_the_token {
-        println!("Invalid token provided.");
+        tracing::warn!("Invalid token provided.");
         let mut resp = ok(
             "Invalid token provided".to_string().into_bytes(),
             http_stuff::http_response::ContentType::TextPlain,

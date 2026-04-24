@@ -1,15 +1,8 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use rand::{RngExt, distr::Alphanumeric, rng};
 use uuid::Uuid;
 
 pub fn generate_id() -> String {
-    // Simple ID generator using timestamp
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_micros();
-    format!("{:x}", timestamp)
+    generate_random_alphanumeric_id(32)
 }
 
 pub fn generate_unique_id() -> String {

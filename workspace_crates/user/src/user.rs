@@ -58,7 +58,7 @@ pub async fn try_to_create_new_user(
     };
     let new_user = User {
         primary_key: 0,
-        id: generate_user_id(),
+        id: id_generator_unique_in_db::generate_unique_user_id(tx).await.map_err(SomeSortOfError::new)?,
         username: username.to_string(),
         password_hash: hash,
         bio: "Default bio".to_string(),
@@ -141,9 +141,7 @@ pub async fn find_by_username_and_password(
     Ok(Some(user))
 }
 
-fn generate_user_id() -> String {
-    id_generator::generate_id()
-}
+
 
 async fn storage_specific_is_username_available(
     tx: &mut Transaction<'_, Postgres>,

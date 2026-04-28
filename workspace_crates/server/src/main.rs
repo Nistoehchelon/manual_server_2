@@ -106,13 +106,10 @@ async fn main() -> std::io::Result<()> {
         let db_pool = db_pool.clone();
         let server_config = server_config.clone();
         let (tcp, peer_ip) =
-            match timeout(server_config.common_stream_timeout, listener.accept()).await {
-                Ok(Ok((s, a))) => (s, a),
-                Ok(Err(e)) => {
+            match listener.accept().await {
+                Ok((s, a)) => (s, a),
+                Err(e) => {
                     dbg!("Could not unwrap stream? :( ", e);
-                    continue;
-                }
-                Err(_e) => {
                     continue;
                 }
             };

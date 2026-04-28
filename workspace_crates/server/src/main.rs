@@ -72,6 +72,7 @@ async fn main() -> std::io::Result<()> {
         rolling::daily(std::env::var("RUST_LOG_DIRECTORY_PATH").unwrap(), "app.log");
     let _guard = self::log_tracing::init_tracing(true, file_appender);
 
+    tracing::info!("Version: {}", server::version::VERSION);
     let tokio_metrics = tokio::runtime::Handle::current().metrics();
     tracing::info!(
         "Num of Tokio worker threads: {}",

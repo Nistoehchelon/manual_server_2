@@ -3,8 +3,6 @@ use std::{path::PathBuf, time::Duration};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Config {
-
-
     pub min_length_user_password: usize,
     pub max_length_user_password: usize,
 
@@ -63,13 +61,13 @@ pub struct Config {
 
 pub fn read_config(config_file_path: PathBuf) -> Config {
     dotenvy::from_path(config_file_path).ok();
-    let c = config::Config::builder()
-        .add_source(config::Environment::default()
-    //.separator("__")  // default is ".". I guess that's fine?
-    )
+
+    config::Config::builder()
+        .add_source(
+            config::Environment::default(), //.separator("__")  // default is ".". I guess that's fine?
+        )
         .build()
         .expect("Failed to build config")
         .try_deserialize::<Config>()
-        .expect("Invalid or missing config values");
-    c
+        .expect("Invalid or missing config values")
 }

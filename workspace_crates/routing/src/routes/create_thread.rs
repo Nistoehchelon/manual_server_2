@@ -157,6 +157,8 @@ pub async fn post(
     if !is_csrf_token_valid {
         return Ok(bad_request_400());
     }
+
+    
     let content = match ValidForumThreadMessageContent::parse(content) {
         Ok(c) => c,
         Err(e) => {
@@ -170,27 +172,13 @@ pub async fn post(
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
             return Ok(redirect_to(session.previous_get_page.clone()));
         }
+        
     };
     let forum = find_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
         .map_err(InternalAppError::new)?;
 
-    session::set_custom_data(
-        db_pool.clone(),
-        session.id.clone(),
-        "draft_forum_thread_name".to_string(),
-        name.clone().to_string(),
-    )
-    .await
-    .map_err(InternalAppError::new)?;
-    session::set_custom_data(
-        db_pool.clone(),
-        session.id.clone(),
-        "draft_forum_thread_content".to_string(),
-        content.clone().to_string(),
-    )
-    .await
-    .map_err(InternalAppError::new)?;
+
     if forum.is_none() {
         session::add_session_notification_error(
             db_pool.clone(),

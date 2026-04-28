@@ -259,7 +259,7 @@ pub async fn get_thread(
     {
         Some(t) => t,
         None => {
-            return Err(ExpectedToGetButFailed::new("..."));
+            return Err(ExpectedToGetButFailed::new("I called get_thread because I expected to get it, but it was not actually found."));
         }
     };
     Ok(thread)

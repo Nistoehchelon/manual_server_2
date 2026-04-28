@@ -1,7 +1,7 @@
 use password_hashing::{PasswordHasherConfig, PasswordHasherConfigParams};
 use std::{fs::read_to_string, path::PathBuf, time::Duration};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct Config {
 
     pub min_length_forum_message: usize,

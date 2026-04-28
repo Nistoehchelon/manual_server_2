@@ -47,7 +47,7 @@ pub struct PasswordHasherConfigParams {
     pub time_cost: u32,
     pub parallelism_cost: u32,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct PasswordHasherConfig {
     memory_cost: u32,
     time_cost: u32,

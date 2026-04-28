@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 password_hashing = { workspace = true }
+serde = { workspace = true }
+config = { workspace = true }

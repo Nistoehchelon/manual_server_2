@@ -58,7 +58,7 @@ pub struct Config {
 
     pub password_hasher_config: PasswordHasherConfig,
 }
-
+  
 pub fn read_config(config_file_path: PathBuf) -> Config {
     dotenvy::from_path(config_file_path).ok();
 

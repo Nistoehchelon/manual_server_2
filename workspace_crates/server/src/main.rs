@@ -100,35 +100,45 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("I expected pool construction to succeed :)");
 
+    let mut tasks = tokio::task::JoinSet::new();
     loop {
-        let global_bucket = global_bucket.clone();
-        let ip_buckets = ip_buckets.clone();
-        let db_pool = db_pool.clone();
-        let server_config = server_config.clone();
-        let (tcp, peer_ip) =
-            match listener.accept().await {
-                Ok((s, a)) => (s, a),
-                Err(e) => {
-                    dbg!("Could not unwrap stream? :( ", e);
-                    continue;
-                }
-            };
+        tokio::select! {
+            res = listener.accept() => {
+                let global_bucket = global_bucket.clone();
+                let ip_buckets = ip_buckets.clone();
+                let db_pool = db_pool.clone();
+                let server_config = server_config.clone();
+                let (tcp, peer_ip) =
+                    match res {
+                        Ok((s, a)) => (s, a),
+                        Err(e) => {
+                            tracing::debug!("Could not unwrap stream? :( Error: {} ", e);
+                            continue;
+                        }
+                    };
 
-        tokio::spawn(async move {
-            let stream = tcp;
-            let mut reader = BufReader::new(stream);
+                tasks.spawn(async move {
+                    let stream = tcp;
+                    let mut reader = BufReader::new(stream);
 
-            handle_stream(
-                &mut reader,
-                db_pool,
-                peer_ip.ip(),
-                global_bucket,
-                ip_buckets,
-                server_config.clone(),
-            )
-            .await;
-        });
+                    handle_stream(
+                        &mut reader,
+                        db_pool,
+                        peer_ip.ip(),
+                        global_bucket,
+                        ip_buckets,
+                        server_config.clone(),
+                    )
+                    .await;
+                });
+            },
+            _ = shutdown_signal() => {
+                tracing::debug!("Shutdown signal received");
+                break;
+            }
+        }
     }
+    Ok(())
 }
 
 #[tracing::instrument(skip_all, target = "shared_context", fields(path = field::Empty, remote_ip = field::Empty, user_id = field::Empty, span_id = field::Empty, method = field::Empty))]

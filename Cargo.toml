@@ -52,7 +52,7 @@ encoding = { path = "workspace_crates/encoding" }
 
 
 unicode-segmentation = "1.13.2"
-
+git-version = "0.3.9"
 
 dotenvy = "0.15.7"
 config = "0.15.22"

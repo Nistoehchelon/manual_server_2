@@ -138,18 +138,15 @@ async fn main() -> std::io::Result<()> {
             }
         }
     }
-    tracing::info!("Finalizing {} Tokio tasks before shutdown", tasks.len());
-    let mut count = 0;
+    let tasks_len = tasks.len();
+    tracing::info!("Finalizing {} Tokio tasks before shutdown", tasks_len);
     while let Some(res) = tasks.join_next().await {
         if let Err(e) = res {
             tracing::debug!("A task failed, {}", e);
         }
-        count += 1;
     }
-    if count > 0 {
-        tracing::info!("Finalized {count} tasks.");
-    } else {
-        tracing::info!("No tasks in queue.");
+    if tasks_len > 0 {
+        tracing::info!("Finalized {tasks_len} tasks.");
     }
     tracing::info!("Shutdown is complete.");
 

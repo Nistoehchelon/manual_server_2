@@ -58,7 +58,7 @@ pub async fn get(
         message_content: current_message_version.content.to_string(),
         message_id: msg_id.clone(),
         csrf_token,
-        thread_message_length_max: forum::MAX_LENGTH_FORUM_MESSAGE,
+        thread_message_length_max: router_data.server_config.max_length_forum_message,
     };
     Ok(http_response::ok_html(html_templating::render(template)))
         
@@ -90,7 +90,7 @@ pub async fn post(
             return Ok(bad_request_400());
         }
     };
-    let message = match ValidForumThreadMessageContent::parse(message) {
+    let message = match ValidForumThreadMessageContent::parse(message, router_data.server_config.min_length_forum_message, router_data.server_config.max_length_forum_message) {
         Ok(m)=>m,
         Err(e) => {
             session::add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
@@ -103,7 +103,7 @@ pub async fn post(
      let return_url = {
         format!("/forum_thread?id={}&page={}", msg.thread_id, forum::forum_thread_message::get_message_page(db_pool.clone(),msg.id, forum_structs::MESSAGES_PER_PAGE).await.map_err(InternalAppError::new)?)
     };
-    if message == curr_msg_content.content {
+    if message.to_string() == curr_msg_content.content {
         session::add_session_notification_info(db_pool.clone(), session.id.clone(), "The text you submitted is identical to the current one. Thus no changes were made.".to_string()).await;
         return Ok(redirect_to(return_url));
     }

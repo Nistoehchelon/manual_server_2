@@ -3,7 +3,12 @@ use std::{fs::read_to_string, path::PathBuf, time::Duration};
 
 #[derive(Debug, Clone)]
 pub struct Config {
+
+    pub min_length_forum_message: usize,
+    pub max_length_forum_message: usize,
+
     pub using_https: bool,
+
 
     pub rust_log: String,
     pub rust_log_directory_path: String, 
@@ -50,6 +55,9 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         .unwrap_or_else(|_| panic!("Could not find path config {config_file_path:#?}"));
 
    
+    let mut min_length_forum_message: Option<usize> = None;
+    let mut max_length_forum_message: Option<usize> = None;
+
     let mut using_https: Option<bool> = None;
 
     let mut rust_log: Option<String> = None;
@@ -109,6 +117,12 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
 
         match key {
 
+            "MIN_LENGTH_FORUM_MESSAGE" => {
+                min_length_forum_message = Some(value.parse().unwrap())
+            }
+            "MAX_LENGTH_FORUM_MESSAGE" => {
+                max_length_forum_message = Some(value.parse().unwrap())
+            }
             "USING_HTTPS" => {
                 using_https = Some(value.parse().unwrap())
             }
@@ -252,6 +266,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         );
     }
 
+    let min_length_forum_message = min_length_forum_message.expect("Missing MIN_LENGTH_FORUM_MESSAGE");
+    let max_length_forum_message = max_length_forum_message.expect("Missing MAX_LENGTH_FORUM_MESSAGE");
     let using_https = using_https.expect("Missing USING_HTTPS");
     let rust_log =
         rust_log.expect("Missing RUST_LOG");
@@ -335,6 +351,8 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
     });
 
     Config {
+        min_length_forum_message,
+        max_length_forum_message,
         using_https,
         rust_log,
         rust_log_directory_path,
@@ -366,5 +384,6 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         per_ip_time_credits_refill_rate_per_millis,
 
         password_hasher_config,
+
     }
 }

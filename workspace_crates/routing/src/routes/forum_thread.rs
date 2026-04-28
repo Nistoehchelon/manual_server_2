@@ -283,7 +283,7 @@ pub async fn post(
         return Ok(bad_request_400());
     }
 
-    let message = match ValidForumThreadMessageContent::parse(message) {
+    let message = match ValidForumThreadMessageContent::parse(message, router_data.server_config.min_length_forum_message, router_data.server_config.max_length_forum_message) {
         Ok(m) => m,
         Err(e) => {
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;

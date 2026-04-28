@@ -116,7 +116,7 @@ pub async fn get(
         .await
         .map_err(InternalAppError::new)?,
         thread_name_length_max: forum::MAX_LENGTH_FORUM_THREAD_NAME,
-        thread_message_length_max: forum::MAX_LENGTH_FORUM_MESSAGE,
+        thread_message_length_max: router_data.server_config.max_length_forum_message,
         
     });
     Ok(ok_html(html))
@@ -159,7 +159,7 @@ pub async fn post(
     }
 
     
-    let content = match ValidForumThreadMessageContent::parse(content) {
+    let content = match ValidForumThreadMessageContent::parse(content, router_data.server_config.min_length_forum_message, router_data.server_config.max_length_forum_message) {
         Ok(c) => c,
         Err(e) => {
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;

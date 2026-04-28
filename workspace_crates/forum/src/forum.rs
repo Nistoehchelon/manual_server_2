@@ -104,8 +104,7 @@ pub async fn get_thread_message_versions(
                 id: r.id,
                 message_id: r.message_id,
                 user_id: r.user_id,
-                content: ValidForumThreadMessageContent::parse(r.content)
-                    .map_err(SomeSortOfError::new)?,
+                content: r.content,
                 created_at: r.created_at,
             });
         }
@@ -275,8 +274,7 @@ pub async fn get_latest_message_version(
         id: result.id,
         message_id: result.message_id,
         user_id: result.user_id,
-        content: ValidForumThreadMessageContent::parse(result.content)
-            .map_err(SomeSortOfError::new)?,
+        content: result.content,
         created_at: result.created_at,
     };
     Ok(result)
@@ -291,8 +289,7 @@ pub async fn get_initial_message_version(
         id: result.id,
         message_id: result.message_id,
         user_id: result.user_id,
-        content: ValidForumThreadMessageContent::parse(result.content)
-            .map_err(SomeSortOfError::new)?,
+        content: result.content,
         created_at: result.created_at,
     };
     Ok(result)

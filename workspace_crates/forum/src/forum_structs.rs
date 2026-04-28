@@ -18,7 +18,7 @@ pub struct ForumThreadMessageVersion {
     pub id: String,
     pub message_id: String,
     pub user_id: String,
-    pub content: ValidForumThreadMessageContent,
+    pub content: String,
     pub created_at: OffsetDateTime,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -26,21 +26,20 @@ pub struct ForumThreadMessageVersion {
 pub struct ValidForumThreadMessageContent {
     inner: String,
 }
-pub const MIN_LENGTH_FORUM_MESSAGE: usize = 3; 
-pub const MAX_LENGTH_FORUM_MESSAGE: usize = 10000;
+
 impl ValidForumThreadMessageContent {
-    pub fn parse(s: String) -> Result<Self, PublicError> {
+    pub fn parse(s: String, min_length_forum_message: usize, max_length_forum_message: usize) -> Result<Self, PublicError> {
         let trimmed = s.trim().to_string();
 
         if !valid_string_length(
             trimmed.clone(),
-            MIN_LENGTH_FORUM_MESSAGE,
-            MAX_LENGTH_FORUM_MESSAGE,
+            min_length_forum_message,
+            max_length_forum_message,
         ) {
             return Err(PublicError::new(format!(
                 "Couldn't validate message length. Allowed forum message length is between {} to {} characters but {} given.",
-                MIN_LENGTH_FORUM_MESSAGE,
-                MAX_LENGTH_FORUM_MESSAGE,
+                min_length_forum_message,
+                max_length_forum_message,
                 count_string_length(trimmed)
             )));
         }

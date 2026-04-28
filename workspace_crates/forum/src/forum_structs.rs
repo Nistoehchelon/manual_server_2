@@ -1,4 +1,3 @@
-
 use count_string_length::count_string_length::{count_string_length, valid_string_length};
 use error_structs::PublicError;
 use sqlx::types::time::OffsetDateTime;
@@ -28,17 +27,27 @@ pub struct ValidForumThreadMessageContent {
     inner: String,
 }
 pub const MIN_LENGTH_FORUM_MESSAGE: usize = 0; // Might change later, depends 
-pub const MAX_LENGTH_FORUM_MESSAGE: usize = 10000; 
+pub const MAX_LENGTH_FORUM_MESSAGE: usize = 10000;
 impl ValidForumThreadMessageContent {
     pub fn parse(s: String) -> Result<Self, PublicError> {
-        if !valid_string_length(s.clone(), MIN_LENGTH_FORUM_MESSAGE, MAX_LENGTH_FORUM_MESSAGE){
-            return Err(PublicError::new(format!("Couldn't validate message length. Allowed forum message length is between {} to {} characters but {} given.", MIN_LENGTH_FORUM_MESSAGE, MAX_LENGTH_FORUM_MESSAGE, count_string_length(s.clone()))));
+        let trimmed = s.trim().to_string();
+
+        if !valid_string_length(
+            trimmed.clone(),
+            MIN_LENGTH_FORUM_MESSAGE,
+            MAX_LENGTH_FORUM_MESSAGE,
+        ) {
+            return Err(PublicError::new(format!(
+                "Couldn't validate message length. Allowed forum message length is between {} to {} characters but {} given.",
+                MIN_LENGTH_FORUM_MESSAGE,
+                MAX_LENGTH_FORUM_MESSAGE,
+                count_string_length(trimmed)
+            )));
         }
         Ok(Self {
-            inner: s,
+            inner: s, // I do not actually wanna trim, just make sure that I do not count beginning and ending whitespace, but I think I am fine with visually showing it. TODO: strip it and don't consider it as valid?
         })
     }
-   
 }
 impl std::fmt::Display for ValidForumThreadMessageContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -46,34 +55,40 @@ impl std::fmt::Display for ValidForumThreadMessageContent {
     }
 }
 
-
-
 #[derive(Clone, Debug)]
 pub struct ValidForumThreadName {
     inner: String,
 }
-pub const MIN_LENGTH_FORUM_THREAD_NAME: usize = 2; 
-pub const MAX_LENGTH_FORUM_THREAD_NAME: usize = 150; 
+pub const MIN_LENGTH_FORUM_THREAD_NAME: usize = 2;
+pub const MAX_LENGTH_FORUM_THREAD_NAME: usize = 150;
 impl ValidForumThreadName {
     pub fn parse(s: String) -> Result<Self, PublicError> {
-        if !valid_string_length(s.clone(), MIN_LENGTH_FORUM_THREAD_NAME, MAX_LENGTH_FORUM_THREAD_NAME) {
-            return Err(PublicError::new(format!("Couldn't validate thread name length. Allowed length is between {} to {} but {} given.", MIN_LENGTH_FORUM_THREAD_NAME, MAX_LENGTH_FORUM_THREAD_NAME, count_string_length(s.clone()))));
+        let s = s.trim().to_string();
+        if !valid_string_length(
+            s.clone(),
+            MIN_LENGTH_FORUM_THREAD_NAME,
+            MAX_LENGTH_FORUM_THREAD_NAME,
+        ) {
+            return Err(PublicError::new(format!(
+                "Couldn't validate thread name length. Allowed length is between {} to {} but {} given.",
+                MIN_LENGTH_FORUM_THREAD_NAME,
+                MAX_LENGTH_FORUM_THREAD_NAME,
+                count_string_length(s.clone())
+            )));
         }
-        Ok(Self {
-            inner: s,
-        })
+        if s.chars().any(|c| c.is_control() || c == '\n') {
+            return Err(PublicError::new(
+                "Thread name must not contain newlines/control characters.",
+            ));
+        }
+        Ok(Self { inner: s })
     }
-   
 }
 impl std::fmt::Display for ValidForumThreadName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.inner)
     }
 }
-
-
-
-
 
 #[derive(Clone, Debug, Default)]
 pub struct ForumThread {

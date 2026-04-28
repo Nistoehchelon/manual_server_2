@@ -7,6 +7,10 @@ body {
   color:white;
 }
 
+.forum_thread_message_content { 
+  white-space: pre-line;
+}
+
 a {
   color: #007bff;
   text-decoration: none;
@@ -37,3 +41,4 @@ a:hover {
 .responsive_img {
 width: 10vw;
 height: auto;
+}

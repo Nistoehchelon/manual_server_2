@@ -57,7 +57,7 @@ pub const MAX_LENGTH_FORUM_THREAD_NAME: usize = 150;
 impl ValidForumThreadName {
     pub fn parse(s: String) -> Result<Self, PublicError> {
         if !valid_string_length(s.clone(), MIN_LENGTH_FORUM_THREAD_NAME, MAX_LENGTH_FORUM_THREAD_NAME) {
-            return Err(PublicError::new(format!("Coudln't validate thread name length. Allowed length is between {} to {} but {} given.", MIN_LENGTH_FORUM_THREAD_NAME, MAX_LENGTH_FORUM_THREAD_NAME, count_string_length(s.clone()))));
+            return Err(PublicError::new(format!("Couldn't validate thread name length. Allowed length is between {} to {} but {} given.", MIN_LENGTH_FORUM_THREAD_NAME, MAX_LENGTH_FORUM_THREAD_NAME, count_string_length(s.clone()))));
         }
         Ok(Self {
             inner: s,

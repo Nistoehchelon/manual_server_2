@@ -25,6 +25,7 @@ pub struct Config {
     pub per_ip_token_bucket_refill_rate_per_millis: f64,
 
     pub keep_alive_enabled: bool,
+    //    #[serde(with = "humantime_serde")] automatically converts values like 5000ms or 60s or 1h into Duration
     #[serde(with = "humantime_serde")]
     pub keep_alive_idle_timeout: Duration,
     pub keep_alive_max_requests_per_connection: u64,

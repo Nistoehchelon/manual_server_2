@@ -133,11 +133,26 @@ async fn main() -> std::io::Result<()> {
                 });
             },
             _ = shutdown_signal() => {
-                tracing::debug!("Shutdown signal received");
+                tracing::info!("Shutdown signal received");
                 break;
             }
         }
     }
+    tracing::info!("Finalizing connections (if any are in queue) before shutdown");
+    let mut count = 0;
+    while let Some(res) = tasks.join_next().await {
+        if let Err(e) = res {
+            tracing::debug!("A connection task failed, {}", e);
+            count += 1;
+        }
+    }
+    if count > 0 {
+        tracing::info!("Finalized {count} connections.");
+    } else {
+        tracing::info!("No connections in queue.");
+    }
+    tracing::info!("Shutdown is complete.");
+
     Ok(())
 }
 

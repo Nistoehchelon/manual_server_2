@@ -34,6 +34,27 @@ use tokio::{
 use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
+async fn shutdown_signal() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{SignalKind, signal};
+
+        let mut sigterm =
+            signal(SignalKind::terminate()).expect("Failed to install SIGTERM handler :(");
+
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {},
+            _ = sigterm.recv() => {}
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    }
+}
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
@@ -51,19 +72,15 @@ async fn main() -> std::io::Result<()> {
         rolling::daily(std::env::var("RUST_LOG_DIRECTORY_PATH").unwrap(), "app.log");
     let _guard = self::log_tracing::init_tracing(true, file_appender);
 
-
-
     let tokio_metrics = tokio::runtime::Handle::current().metrics();
-    tracing::info!("Num of Tokio worker threads: {}", tokio_metrics.num_workers());
+    tracing::info!(
+        "Num of Tokio worker threads: {}",
+        tokio_metrics.num_workers()
+    );
     let ip_and_port = format!("{}:{}", server_config.ip, server_config.port);
     let listener = tokio::net::TcpListener::bind(ip_and_port.clone())
         .await
-        .unwrap_or_else(|_| {
-            panic!(
-                "I expected to bind to address {}",
-                ip_and_port.clone()
-            )
-        });
+        .unwrap_or_else(|_| panic!("I expected to bind to address {}", ip_and_port.clone()));
     tracing::info!("Server listening on {}", ip_and_port.clone());
 
     // for rate limiting
@@ -116,7 +133,6 @@ async fn main() -> std::io::Result<()> {
         });
     }
 }
-
 
 #[tracing::instrument(skip_all, target = "shared_context", fields(path = field::Empty, remote_ip = field::Empty, user_id = field::Empty, span_id = field::Empty, method = field::Empty))]
 pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(

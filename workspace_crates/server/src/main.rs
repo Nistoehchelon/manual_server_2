@@ -35,31 +35,14 @@ use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
 
-fn handle_args() -> bool /* <-- whether I wanna continue doing whatever I was doing after calling handle_args(). To be more specific, in my current use case I will basically use this to determine if I called -v or just started executable normally.  */ {
-    let mut args = std::env::args().skip(1);
-    match args.next() {
-        None => {
-            true
-        },
-        Some(arg) if arg == "-v" || arg == "--version" => {
-            println!("App version: {}", server::version::VERSION);
-            false
-        },
-        Some(other) => {
-            eprintln!("Unknown argument: {}", other);
-            eprintln!("Usage: app [-v | --version]");
-            false
-        }
-    }
-} 
-
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
-    let continue_startup = handle_args();
+    let continue_startup = server::version::version_cli();
     if !continue_startup {
         return Ok(());
     }
     dotenvy::dotenv().ok();
+    tracing::info!("Server version: {}", server::version::VERSION);
 
     let server_config = config_reader::read_config(PathBuf::from(".env"));
 
@@ -67,6 +50,8 @@ async fn main() -> std::io::Result<()> {
     let file_appender =
         rolling::daily(std::env::var("RUST_LOG_DIRECTORY_PATH").unwrap(), "app.log");
     let _guard = self::log_tracing::init_tracing(true, file_appender);
+
+
 
     let tokio_metrics = tokio::runtime::Handle::current().metrics();
     tracing::info!("Num of Tokio worker threads: {}", tokio_metrics.num_workers());
@@ -79,7 +64,6 @@ async fn main() -> std::io::Result<()> {
                 ip_and_port.clone()
             )
         });
-    tracing::info!("Server version: {}", server::version::VERSION);
     tracing::info!("Server listening on {}", ip_and_port.clone());
 
     // for rate limiting

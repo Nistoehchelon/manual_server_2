@@ -25,3 +25,5 @@ Generally, the permissions system can be improved...
 10. Use git-version crate. Could be cool
 
 11. Implement simple (and more complex, too) password bruteforcing protections.
+
+12. Show the VERSION const on some hidden page on the live site

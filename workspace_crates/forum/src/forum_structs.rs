@@ -26,7 +26,7 @@ pub struct ForumThreadMessageVersion {
 pub struct ValidForumThreadMessageContent {
     inner: String,
 }
-pub const MIN_LENGTH_FORUM_MESSAGE: usize = 0; // Might change later, depends 
+pub const MIN_LENGTH_FORUM_MESSAGE: usize = 3; 
 pub const MAX_LENGTH_FORUM_MESSAGE: usize = 10000;
 impl ValidForumThreadMessageContent {
     pub fn parse(s: String) -> Result<Self, PublicError> {

@@ -243,9 +243,9 @@ pub async fn generate_response_data(
 
     let response_data = add_elapsed(response_data, session.clone(), request_start, db_pool.clone()).await;
 
-    let r = add_some_headers(request_data.clone(), response_data, server_config, nonce);
+    let r = add_some_headers(request_data.clone(), response_data.clone(), server_config, nonce);
 
-   if request_data.method == HttpMethod::Get {
+   if request_data.method == HttpMethod::Get && response_data.status_code.clone() == StatusCode::Code200Ok {
         let _ = session::set_previous_get_page(db_pool.clone(), session.id.clone(), request_data.path_and_query.clone()).await;
     }
     r

@@ -86,7 +86,7 @@ pub async fn post(
             )
             .await
             .map_err(InternalAppError::new)?;
-            return Ok(redirect_to("/signup".to_string()));
+            return Ok(redirect_to(session.previous_get_page.clone()));
         }
     };
     if router_data.server_config.cloudflare_turnstile_enabled {
@@ -120,7 +120,7 @@ pub async fn post(
             )
             .await
             .map_err(InternalAppError::new)?;
-            return Ok(redirect_to("/signup".to_string()));
+            return Ok(redirect_to(session.previous_get_page.clone()));
         }
     }
 

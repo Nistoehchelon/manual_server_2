@@ -2,11 +2,7 @@
 
 {% block head %}
 {% if main_info.cloudflare_turnstile_enabled %}
-<script
-  src="https://challenges.cloudflare.com/turnstile/v0/api.js"  nonce="{{ main_info.nonce }}"
-  async
-  defer
-></script>
+    {% include "includes/script_cloudflare_turnstile.html" %}
 {% endif %}
 
 {% endblock %}
@@ -20,8 +16,8 @@
     <input type="password" name="password" placeholder="Enter your password" required minlength="{{ password_length_min }}" maxlength="{{ password_length_max }}"><br>
     <input type="hidden" name="csrf_token" value = "{{ csrf_token }}"><br>
     {% if main_info.cloudflare_turnstile_enabled %}
-    <div class="cf-turnstile" data-sitekey="{{ main_info.cloudflare_turnstile_site_key }}"></div>
+    {% include "includes/div_cloudflare_turnstile.html" %}
     {% endif %}
-    <input type="submit" value="Login">
+    <input id="submit_button" type="submit" value="Login">
 </form>
 {%endblock%}

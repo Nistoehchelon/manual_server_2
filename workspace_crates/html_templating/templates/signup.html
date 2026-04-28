@@ -2,11 +2,7 @@
 
 {% block head %}
 {% if main_info.cloudflare_turnstile_enabled %}
-<script
-  src="https://challenges.cloudflare.com/turnstile/v0/api.js"  nonce="{{ main_info.nonce }}"
-  async
-  defer
-></script>
+    {% include "includes/script_cloudflare_turnstile.html" %}
 {% endif %}
 
 {% endblock %}
@@ -15,12 +11,14 @@
 <h1>Sign up</h1>
 {% include "includes/notifications.html" %}
 <form method='POST' action='/signup'>
-    <input type='text' name='username' placeholder='Enter your username' required  minlength="{{ username_length_min }}" maxlength="{{ username_length_max }}"><br>
-    <input type='password' name='password' placeholder='Enter your password' required minlength="{{ password_length_min }}" maxlength="{{ password_length_max }}"><br>
-    <input type = "hidden" name = "csrf_token" value = "{{ csrf_token }}">
-    {% if main_info.cloudflare_turnstile_enabled %}
-    <div class="cf-turnstile" data-sitekey="{{ main_info.cloudflare_turnstile_site_key }}"></div>
-    {% endif %}
-    <input type='submit' value='Create a new account!'>
+  <input type='text' name='username' placeholder='Enter your username' required minlength="{{ username_length_min }}"
+    maxlength="{{ username_length_max }}"><br>
+  <input type='password' name='password' placeholder='Enter your password' required
+    minlength="{{ password_length_min }}" maxlength="{{ password_length_max }}"><br>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {% if main_info.cloudflare_turnstile_enabled %}
+  {% include "includes/div_cloudflare_turnstile.html" %}
+  {% endif %}
+  <input id="submit_button" type='submit' value='Create a new account!'>
 </form>
 {%endblock%}

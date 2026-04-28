@@ -12,7 +12,7 @@ pub fn count_graphemes(s: String) -> usize {
 #[tracing::instrument(fields(bytes_count = tracing::field::Empty, grapheme_count = tracing::field::Empty, max_byte_allowance = tracing::field::Empty, result = tracing::field::Empty))]
 pub fn valid_string_length(s: String, min_graphemes: usize, max_graphemes: usize) -> bool {
    // I don't actually assume that most graphemes contain 8 bytes. But feels like a fine number. For example, if user is signing up for an acoount and enters 50 characters in username fields, it seems fine to allow up to 400 bytes but no more
-   let mut result = false;
+   let mut result = true;
     let an_almost_arbitrary_number = 8;
     {
         let bytes_count = s.len();
@@ -32,7 +32,6 @@ pub fn valid_string_length(s: String, min_graphemes: usize, max_graphemes: usize
             result = false;
         }
     }
-    result = true;
     Span::current().record("result", result);
     tracing::debug!("Debug dump");
     result

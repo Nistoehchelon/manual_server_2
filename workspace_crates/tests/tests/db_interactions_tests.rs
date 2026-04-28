@@ -10,7 +10,7 @@ async fn test_read_write() {
         .expect("WORKSPACE_ROOT_CONFIG_FILE must be set");
 
     let env = read_config(config_path);
-    let pool = sqlx::PgPool::connect(&env.database_str)
+    let pool = sqlx::PgPool::connect(&env.database_url)
         .await
         .expect("No pool :(");
     let session = session::Session {

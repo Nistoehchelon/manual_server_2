@@ -64,6 +64,7 @@ tracing-appender = "0.2.5"
 regex = "1.12.3"
 reqwest = { version = "0.13.2", features = ["json"] }
 serde = { version = "1.0.228", features = ["derive"] }
+humantime-serde = "1.1.1"
 
 indexmap = "2.14.0"
 sqlx = { version = "0.8.6", features = ["postgres", "macros", "runtime-tokio", "time", "tls-rustls-aws-lc-rs"] }

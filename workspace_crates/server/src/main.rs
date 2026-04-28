@@ -51,22 +51,23 @@ async fn main() -> std::io::Result<()> {
 
     let tokio_metrics = tokio::runtime::Handle::current().metrics();
     tracing::info!("Num of Tokio worker threads: {}", tokio_metrics.num_workers());
-    let listener = tokio::net::TcpListener::bind(server_config.ip_and_port.clone())
+    let ip_and_port = format!("{}:{}", server_config.ip, server_config.port);
+    let listener = tokio::net::TcpListener::bind(ip_and_port.clone())
         .await
         .unwrap_or_else(|_| {
             panic!(
                 "I expected to bind to address {}",
-                server_config.ip_and_port.clone()
+                ip_and_port.clone()
             )
         });
     tracing::info!("Server version: {}", VERSION);
-    tracing::info!("Server listening on {}", server_config.ip_and_port.clone());
+    tracing::info!("Server listening on {}", ip_and_port.clone());
 
     // for rate limiting
     let global_bucket: GlobalBuckets = Arc::new(Mutex::new(TokenAndTimeBuckets {
         token_bucket: TokenBucket::new(
-            server_config.server_global_requests_token_bucket_capacity,
-            server_config.server_global_requests_token_bucket_refill_rate_per_millis,
+            server_config.server_global_request_token_bucket_capacity,
+            server_config.server_global_request_token_bucket_refill_rate_per_millis,
         ),
         time_bucket: TimeBucket::new(
             server_config.server_time_credits_capacity,
@@ -75,7 +76,7 @@ async fn main() -> std::io::Result<()> {
     }));
     let ip_buckets: IpBuckets = Arc::new(Mutex::new(HashMap::new()));
 
-    let db_pool = sqlx::PgPool::connect(&server_config.database_str)
+    let db_pool = sqlx::PgPool::connect(&server_config.database_url)
         .await
         .expect("I expected pool construction to succeed :)");
 

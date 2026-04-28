@@ -11,7 +11,7 @@ fn generate_argon2_context_for_hashing(
     password_hasher_config: PasswordHasherConfig,
 ) -> Result<Argon2<'static>, String> {
     let PasswordHasherConfig {
-        memory_cost: m_cost,
+        memory_cost_kib: m_cost,
         time_cost: t_cost,
         parallelism_cost: p_cost,
     } = password_hasher_config.clone();
@@ -35,7 +35,7 @@ fn generate_argon2_context_for_verifying() -> Result<Argon2<'static>, String> {
     const DUMMY_M: u32 = 32000;
     const DUMMY_T_P: u32 = 1;
     generate_argon2_context_for_hashing(PasswordHasherConfig {
-        memory_cost: DUMMY_M,
+        memory_cost_kib: DUMMY_M,
         time_cost: DUMMY_T_P,
         parallelism_cost: DUMMY_T_P,
     })
@@ -49,14 +49,14 @@ pub struct PasswordHasherConfigParams {
 }
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct PasswordHasherConfig {
-    memory_cost: u32,
+    memory_cost_kib: u32,
     time_cost: u32,
     parallelism_cost: u32,
 }
 impl PasswordHasherConfig {
     pub fn new(params: PasswordHasherConfigParams) -> Self {
         Self {
-            memory_cost: params.memory_cost,
+            memory_cost_kib: params.memory_cost,
             time_cost: params.time_cost,
             parallelism_cost: params.parallelism_cost,
         }

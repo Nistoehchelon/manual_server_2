@@ -71,6 +71,5 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         .expect("Failed to build config")
         .try_deserialize::<Config>()
         .expect("Invalid or missing config values");
-    println!("{:#?}", c);
     c
 }

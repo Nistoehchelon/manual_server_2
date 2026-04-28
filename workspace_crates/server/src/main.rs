@@ -35,11 +35,30 @@ use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
 
-const VERSION: &str = "0.0.0.0.3"; // increase when I want to compare which one I am running on prod
+fn handle_args() -> bool /* <-- whether I wanna continue doing whatever I was doing after calling handle_args(). To be more specific, in my current use case I will basically use this to determine if I called -v or just started executable normally.  */ {
+    let mut args = std::env::args().skip(1);
+    match args.next() {
+        None => {
+            true
+        },
+        Some(arg) if arg == "-v" || arg == "--version" => {
+            println!("App version: {}", server::version::VERSION);
+            false
+        },
+        Some(other) => {
+            eprintln!("Unknown argument: {}", other);
+            eprintln!("Usage: app [-v | --version]");
+            false
+        }
+    }
+} 
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
-
+    let continue_startup = handle_args();
+    if !continue_startup {
+        return Ok(());
+    }
     dotenvy::dotenv().ok();
 
     let server_config = config_reader::read_config(PathBuf::from(".env"));
@@ -60,7 +79,7 @@ async fn main() -> std::io::Result<()> {
                 ip_and_port.clone()
             )
         });
-    tracing::info!("Server version: {}", VERSION);
+    tracing::info!("Server version: {}", server::version::VERSION);
     tracing::info!("Server listening on {}", ip_and_port.clone());
 
     // for rate limiting

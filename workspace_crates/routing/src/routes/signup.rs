@@ -42,18 +42,20 @@ pub async fn get(
     Ok(ok_html(get_signup_html(
         router_data.base_template_data,
         csrf_token,
+        router_data.server_config.min_length_user_password,
+        router_data.server_config.max_length_user_password,
     )))
 }
 
-fn get_signup_html(mut base_template_data: BaseTemplateData, csrf_token: String) -> String {
+fn get_signup_html(mut base_template_data: BaseTemplateData, csrf_token: String, min_length_user_password: usize, max_length_user_password: usize) -> String {
     base_template_data.title = "Signup".to_string();
     html_templating::render(html_template_structs::SignupTemplate {
         main_info: base_template_data,
         csrf_token,
         username_length_min: user::MIN_LENGTH_USERNAME,
         username_length_max: user::MAX_LENGTH_USERNAME,
-        password_length_min: user::MIN_LENGTH_PASSWORD,
-        password_length_max: user::MAX_LENGTH_PASSWORD,
+        password_length_min: min_length_user_password,
+        password_length_max: max_length_user_password,
     })
 }
 
@@ -169,7 +171,7 @@ pub async fn post(
             return Ok(redirect_to(session.previous_get_page.clone()));
         }
     };
-    let password = match ValidPassword::parse(password) {
+    let password = match ValidPassword::parse(password, router_data.server_config.min_length_user_password, router_data.server_config.max_length_user_password) {
         Ok(u) => u,
         Err(e) => {
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;

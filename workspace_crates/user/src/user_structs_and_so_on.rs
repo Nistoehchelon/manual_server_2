@@ -43,20 +43,20 @@ impl std::fmt::Display for ValidUsername {
         write!(f, "{}", self.inner)
     }
 }
-pub const MIN_LENGTH_PASSWORD: usize = 11;
-pub const MAX_LENGTH_PASSWORD: usize = 333;
+
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 
 pub struct ValidPassword {
     inner: String,
 }
 impl ValidPassword {
-    pub fn parse(s: String) -> Result<Self, PublicError> {
+    pub fn parse(s: String, min_length_user_password: usize, max_length_user_password: usize) -> Result<Self, PublicError> {
         let len = count_string_length(s.clone());
-        if !valid_string_length(s.clone(), MIN_LENGTH_PASSWORD, MAX_LENGTH_PASSWORD) {
+        if !valid_string_length(s.clone(), min_length_user_password, max_length_user_password) {
             return Err(PublicError::new(format!(
                 "Password must be {} to {} characters but {} given.",
-                MIN_LENGTH_PASSWORD, MAX_LENGTH_PASSWORD, len
+                min_length_user_password, max_length_user_password, len
             )));
         }
         Ok(Self { inner: s })

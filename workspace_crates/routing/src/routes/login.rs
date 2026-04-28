@@ -29,6 +29,8 @@ pub async fn get(
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         csrf_token,
+        router_data.server_config.min_length_user_password,
+        router_data.server_config.max_length_user_password,
     )))
 }
 
@@ -180,15 +182,15 @@ pub async fn post(
     Ok(redirect_to("/".to_string()))
 }
 
-fn get_html(mut base_template: BaseTemplateData, csrf_token: String) -> String {
+fn get_html(mut base_template: BaseTemplateData, csrf_token: String, min_length_user_password: usize, max_length_user_password: usize) -> String {
     base_template.title = "Login".to_string();
     html_templating::render(html_template_structs::LoginTemplate {
         csrf_token,
         main_info: base_template,
         username_length_min: user::MIN_LENGTH_USERNAME,
         username_length_max: user::MAX_LENGTH_USERNAME,
-        password_length_min: user::MIN_LENGTH_PASSWORD,
-        password_length_max: user::MAX_LENGTH_PASSWORD,
+        password_length_min: min_length_user_password,
+        password_length_max: max_length_user_password,
         
     })
 }

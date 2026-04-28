@@ -10,7 +10,7 @@ use http_stuff::{
 use session::{SessionNotification, add_session_notification, add_session_notification_error};
 
 
-use crate::RouterData;
+use crate::{RouterData};
 
 pub async fn get(
     mut router_data: RouterData,
@@ -115,7 +115,7 @@ pub async fn get(
         )
         .await
         .map_err(InternalAppError::new)?,
-        thread_name_length_max: forum::MAX_LENGTH_FORUM_THREAD_NAME,
+        thread_name_length_max: router_data.server_config.max_length_forum_thread_name,
         thread_message_length_max: router_data.server_config.max_length_forum_message,
         
     });
@@ -166,7 +166,7 @@ pub async fn post(
             return Ok(redirect_to(session.previous_get_page.clone()));
         }
     };
-    let name = match ValidForumThreadName::parse(name) {
+    let name = match ValidForumThreadName::parse(name, router_data.server_config.min_length_forum_thread_name, router_data.server_config.max_length_forum_thread_name) {
         Ok(c) => c,
         Err(e) => {
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;

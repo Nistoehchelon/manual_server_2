@@ -3,6 +3,14 @@ use std::{path::PathBuf, time::Duration};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Config {
+
+
+    pub min_length_user_password: usize,
+    pub max_length_user_password: usize,
+
+    pub min_length_forum_thread_name: usize,
+    pub max_length_forum_thread_name: usize,
+
     pub min_length_forum_message: usize,
     pub max_length_forum_message: usize,
 

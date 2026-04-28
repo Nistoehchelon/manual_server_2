@@ -58,20 +58,19 @@ impl std::fmt::Display for ValidForumThreadMessageContent {
 pub struct ValidForumThreadName {
     inner: String,
 }
-pub const MIN_LENGTH_FORUM_THREAD_NAME: usize = 2;
-pub const MAX_LENGTH_FORUM_THREAD_NAME: usize = 150;
+
 impl ValidForumThreadName {
-    pub fn parse(s: String) -> Result<Self, PublicError> {
+    pub fn parse(s: String, min_length_forum_thread_name: usize, max_length_forum_thread_name: usize) -> Result<Self, PublicError> {
         let s = s.trim().to_string();
         if !valid_string_length(
             s.clone(),
-            MIN_LENGTH_FORUM_THREAD_NAME,
-            MAX_LENGTH_FORUM_THREAD_NAME,
+            min_length_forum_thread_name,
+            max_length_forum_thread_name,
         ) {
             return Err(PublicError::new(format!(
                 "Couldn't validate thread name length. Allowed length is between {} to {} but {} given.",
-                MIN_LENGTH_FORUM_THREAD_NAME,
-                MAX_LENGTH_FORUM_THREAD_NAME,
+                min_length_forum_thread_name,
+                max_length_forum_thread_name,
                 count_string_length(s.clone())
             )));
         }

@@ -34,36 +34,16 @@ use tokio::{
 use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
-async fn shutdown_signal() {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{SignalKind, signal};
 
-        let mut sigterm =
-            signal(SignalKind::terminate()).expect("Failed to install SIGTERM handler :(");
-
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {},
-            _ = sigterm.recv() => {}
-        }
-    }
-
-    #[cfg(not(unix))]
-    {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    }
-}
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
-    let continue_startup = server::version::version_cli();
+    let continue_startup = app_executable_version::version_cli();
     if !continue_startup {
         return Ok(());
     }
     dotenvy::dotenv().ok();
-    tracing::info!("Server version: {}", server::version::VERSION);
+    tracing::info!("Server version: {}", app_executable_version::VERSION);
 
     let server_config = config_reader::read_config(PathBuf::from(".env"));
 
@@ -72,9 +52,8 @@ async fn main() -> std::io::Result<()> {
         rolling::daily(std::env::var("RUST_LOG_DIRECTORY_PATH").unwrap(), "app.log");
     let _guard = self::log_tracing::init_tracing(true, file_appender);
 
-
     tracing::info!("Starting the server...");
-    tracing::info!("Version: {}", server::version::VERSION);
+    tracing::info!("Version: {}", app_executable_version::VERSION);
     let tokio_metrics = tokio::runtime::Handle::current().metrics();
     tracing::info!(
         "Num of Tokio worker threads: {}",
@@ -135,7 +114,7 @@ async fn main() -> std::io::Result<()> {
                     .await;
                 });
             },
-            _ = shutdown_signal() => {
+            _ = server::shutdown_signal::shutdown_signal() => {
                 tracing::info!("Shutdown signal received");
                 break;
             }

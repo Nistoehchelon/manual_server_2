@@ -3,11 +3,51 @@ use session::get_session_by_session_id;
 use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;
 
+#[derive(Debug, Clone)]
+pub struct UserCanViewAppExecutableVersionInput {
+    pub db_pool: sqlx::PgPool,
+    pub user_id: String,
+}
+
+pub async fn get_bool_subject_subject_id_permission_name(
+    db_pool: sqlx::PgPool,
+    subject: &str,
+    subject_id: &str,
+    permission_name: &str,
+) -> Result<bool, SomeSortOfError> {
+    let check = sqlx::query!(
+        "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
+        subject,
+        subject_id,
+        permission_name
+    )
+    .fetch_optional(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?
+    .is_some();
+    Ok(check)
+}
+
+pub async fn user_can_view_app_executable_version(
+    input: UserCanViewAppExecutableVersionInput,
+) -> Result<bool, SomeSortOfError> {
+    let b = get_bool_subject_subject_id_permission_name(
+        input.db_pool.clone(),
+        "user",
+        input.user_id.as_str(),
+        "view_app_executable_version",
+    )
+    .await
+    .map_err(SomeSortOfError::new)?;
+    Ok(b)
+}
+
 pub async fn add_admin_permissions_to_user(db_pool: sqlx::PgPool, user_id: String) -> () {
     let perms = vec![
         "set_custom_thread_id_when_creating_it",
         "manage_custom_site_pages",
         "create_forum",
+        "view_app_executable_version",
     ];
     for perm in perms {
         let perm = perm.to_string();
@@ -107,16 +147,13 @@ pub async fn can_set_custom_thread_id_when_creating_it(
         }
     };
     let user_id = user.id.clone();
-    let b = sqlx::query!(
-        "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
+    let b = get_bool_subject_subject_id_permission_name(
+        db_pool.clone(),
         "user",
-        user_id,
-        "set_custom_thread_id_when_creating_it"
+        user_id.as_str(),
+        "set_custom_thread_id_when_creating_it",
     )
-    .fetch_optional(&db_pool)
-    .await
-    .map_err(SomeSortOfError::new)?
-    .is_some();
+    .await?;
     Ok(b)
 }
 
@@ -154,32 +191,24 @@ pub async fn can_create_forum(
     };
     let user_id = user.id.clone();
 
-    let is_superuser: bool = match sqlx::query!(
-        "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
+    let is_superuser: bool = get_bool_subject_subject_id_permission_name(
+        db_pool.clone(),
         "user",
-        user_id,
-        "superuser"
+        user_id.as_str(),
+        "superuser",
     )
-    .fetch_optional(&db_pool)
-    .await
-    {
-        Ok(opt) => opt.is_some(),
-        Err(e) => return Err(SomeSortOfError::new(e)),
-    };
+    .await?;
     if is_superuser {
         return Ok(true);
     }
 
-    let b = sqlx::query!(
-        "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
+    let b = get_bool_subject_subject_id_permission_name(
+        db_pool.clone(),
         "user",
-        user_id,
-        "create_forum"
+        user_id.as_str(),
+        "create_forum",
     )
-    .fetch_optional(&db_pool)
-    .await
-    .map_err(SomeSortOfError::new)?
-    .is_some();
+    .await?;
     Ok(b)
 }
 
@@ -215,32 +244,24 @@ pub async fn can_create_forum_thread(
     };
     let user_id = user.id.clone();
 
-    let is_superuser: bool = match sqlx::query!(
-        "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
+    let is_superuser: bool = get_bool_subject_subject_id_permission_name(
+        db_pool.clone(),
         "user",
-        user_id,
-        "superuser"
+        user_id.as_str(),
+        "superuser",
     )
-    .fetch_optional(&db_pool)
-    .await
-    {
-        Ok(opt) => opt.is_some(),
-        Err(e) => return Err(SomeSortOfError::new(e)),
-    };
+    .await?;
     if is_superuser {
         return Ok(true);
     }
 
-    let b = sqlx::query!(
-        "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
+    let b = get_bool_subject_subject_id_permission_name(
+        db_pool.clone(),
         "user",
-        user_id,
-        "create_thread"
+        user_id.as_str(),
+        "create_thread",
     )
-    .fetch_optional(&db_pool)
-    .await
-    .map_err(SomeSortOfError::new)?
-    .is_some();
+    .await?;
     Ok(b)
 }
 
@@ -257,15 +278,12 @@ pub async fn can_manage_site_pages(
         }
     };
     let user_id = user.id.clone();
-    let b = sqlx::query!(
-        "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
+    let b = get_bool_subject_subject_id_permission_name(
+        db_pool.clone(),
         "user",
-        user_id,
-        "manage_custom_site_pages"
+        user_id.as_str(),
+        "manage_custom_site_pages",
     )
-    .fetch_optional(&db_pool)
-    .await
-    .map_err(SomeSortOfError::new)?
-    .is_some();
+    .await?;
     Ok(b)
 }

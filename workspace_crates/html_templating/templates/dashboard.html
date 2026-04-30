@@ -8,5 +8,9 @@
 {% if user_can_manage_site_pages %}
 <a href="/manage_site_pages">Manage site pages</a>
 {% endif %}
+
+{% if user_can_view_app_executable_version %}
+ <p>App's server executable compiled with code version: {{ app_executable_version }}</p>
+{% endif %}
 <p><a href='/logout'>Logout</a></p>
 {%endblock%}

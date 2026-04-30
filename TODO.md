@@ -27,3 +27,5 @@ Generally, the permissions system can be improved...
 11. Implement simple (and more complex, too) password bruteforcing protections.
 
 12. Show the VERSION const on some hidden page on the live site
+
+13. Log "Starting server..." on server startup. I saw restart logs and the shutdown and starting kinda blend together, so adding the starting indicator will be visually helpful.

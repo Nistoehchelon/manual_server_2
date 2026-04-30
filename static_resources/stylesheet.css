@@ -5,8 +5,9 @@
 
 body {
   font-family: Arial, sans-serif;
-  max-width: 500px;
-  margin: 50px auto;
+  max-width: 1024px;
+  width: 100%;
+  margin: 25px auto;
   padding: 20px;
   background-color: var(--body-background-color);
   color: white;
@@ -16,15 +17,17 @@ body {
 
 textarea,
 input {
+  width: 100%;
+  box-sizing: border-box;
   background-color: var(--user-input-field-background);
   color: inherit;
   border: 1px solid #ccc;
 }
 
 textarea {
-  width: 40vw;
+
   height: 20vh;
-  
+
   /* prevents the box from getting too tiny on mobile */
   min-width: 150px;
   min-height: 80px;

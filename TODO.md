@@ -1,31 +1,31 @@
-1.
-In general, to make the experience/functionality more comfortable, reduce friction.
 
-2. Rework abac for forums a bit:
+- [] In general, to make the experience/functionality more comfortable, reduce friction.
+
+- [] Rework abac for forums a bit:
 I can say: subject user subject_id any object forum object_id 33b23
 so any user will be able to access forum with id 33b23
 That forum might have a parent forum. Users will not have access to it, they won't even see it exists
 Generally, the permissions system can be improved...
 
 
-3. Maybe proxy the custom site pages management like edit and view history so they appear to have their own pages for convenience.
+- [] Maybe proxy the custom site pages management like edit and view history so they appear to have their own pages for convenience.
 
-4. Improve logging/tracing
+- [] Improve logging/tracing
 
-5. Refactor code
+- [] Refactor code
 
-6.[Kinda done, TODO: remove unused tls crates?] Remove all tls/ssl stuff from the Rust server since I am generally going to go for using nginx as reverse proxy for this, so the tls stuff only adds clutter to the Rust code.
+- [x] Remove all tls/ssl stuff from the Rust server since I am generally going to go for using nginx as reverse proxy for this, so the tls stuff only adds clutter to the Rust code.
+  - [x] (I think done, not 100% sure) Remove unused tls crates?
 
-7. [DONE] Use Nginx for serving static files and stop serving static files in the Rust App
+- [x] Use Nginx for serving static files and stop serving static files in the Rust App
 
-8. [DONE, I think] Change request_data.method from String into an enum, because it being a string is ridiculously brittle
+- [x] Change request_data.method from String into an enum, because it being a string is ridiculously brittle
 
-9. Change session flow: make sessions only contain session id, and make a table session_data with session id and key and value.
+- [] Change session flow: make sessions only contain session id, and make a table session_data with session id and key and value.
 
-10. Use git-version crate. Could be cool
+- [] Use git-version crate. Could be cool
+- [] Implement simple (and more complex, too) password bruteforcing protections.
 
-11. Implement simple (and more complex, too) password bruteforcing protections.
+- [] Show the VERSION const on some hidden page on the live site
 
-12. Show the VERSION const on some hidden page on the live site
-
-13. Log "Starting server..." on server startup. I saw restart logs and the shutdown and starting kinda blend together, so adding the starting indicator will be visually helpful.
+- [] Log "Starting server..." on server startup. I saw restart logs and the shutdown and starting kinda blend together, so adding the starting indicator will be visually helpful.

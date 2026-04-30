@@ -164,9 +164,10 @@ pub struct LoginTemplate {
 pub struct DashboardTemplate {
     pub main_info: BaseTemplateData,
     pub username: String,
+    pub user_id: String,
     pub user_can_manage_site_pages: bool,
     pub user_can_view_app_executable_version: bool,
-    pub app_executable_version: String,
+    pub app_executable_version: Option<String>,
 }
 
 #[derive(Template)]

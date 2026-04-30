@@ -16,7 +16,7 @@ Message versions
   No versions
 {% else %}
   {% for version in message_versions %}
-    {{ version.content }}<br>
+    <div class="forum_thread_message_content">{{ version.content }}</div><br>
     By: <a href = "/user?id={{ version.user_id }}">{{ version.user_username }}</a><br>
     
   {% endfor %}

@@ -27,11 +27,16 @@ pub async fn get(
     .map_err(InternalAppError::new)?;
 
     let user_can_view_app_executable_version = abac::user_can_view_app_executable_version(UserCanViewAppExecutableVersionInput {db_pool: db_pool.clone(), user_id: user.id.clone()}).await.map_err(InternalAppError::new)?;
-    let app_executable_version = app_executable_version::VERSION.to_string();
+    let app_executable_version = if user_can_view_app_executable_version {
+        Some(app_executable_version::VERSION.to_string())
+    } else {
+        None
+    };
 
     let html = html_templating::render(html_template_structs::DashboardTemplate {
         main_info: router_data.base_template_data,
         username: user.username.clone(),
+        user_id: user.id.clone(),
         user_can_manage_site_pages,
         user_can_view_app_executable_version,
         app_executable_version,

@@ -3,6 +3,7 @@
   --user-input-field-background: color-mix(in srgb, var(--body-background-color), white 20%);
 }
 body {
+   margin: 2vw auto;
   font-size: 2.0em;
   font-family: Arial, sans-serif;
   max-width: 95vw;

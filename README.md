@@ -23,22 +23,16 @@ sudo apt install -y postgresql-common
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
 
 sudo apt install postgresql-18 -y
-sudo -u postgres psql
+sudo -u postgres psql -c "CREATE USER user123 WITH PASSWORD 'password123'; CREATE DATABASE database123 OWNER user123;"
 cd ~/manual_server_2/pgsql_backups
 chmod 600 .pgpass
 # import schema into the newly installed pgsql db
-bash push.sh --schema
+echo "yes" | bash push.sh --schema
 cd ..
 # set up env as you wish
 cp .env.example .env
 ```
 Remember to press Enter when prompted (todo: automate the pointless interactions somehow)
-
-
-1.3. 
-```sql
-CREATE USER user123 WITH PASSWORD 'password123'; CREATE DATABASE database123 OWNER user123;
-```
 
 1.4. test it works by: 
 ```bash

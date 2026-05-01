@@ -2,28 +2,29 @@
   --body-background-color: rgb(0, 0, 0);
   --user-input-field-background: color-mix(in srgb, var(--body-background-color), white 20%);
 }
-
 body {
+  font-size: 2.0em;
   font-family: Arial, sans-serif;
-  max-width: 1024px;
-  width: 100%;
-  margin: 25px auto;
-  padding: 20px;
+  max-width: 95vw;
+  width: 95vw;
   background-color: var(--body-background-color);
   color: white;
   word-break: break-word;
+  overflow-wrap: break-word;
   /* prevents annoying long text by splitting it downwards */
 }
-
 textarea,
 input {
-  width: 100%;
+    font-size: inherit;
+  width: 95vw;
   box-sizing: border-box;
   background-color: var(--user-input-field-background);
   color: inherit;
   border: 1px solid #ccc;
 }
-
+button {
+font-size: inherit;
+}
 textarea {
 
   height: 20vh;

@@ -23,7 +23,7 @@ sudo apt install -y postgresql-common
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
 
 sudo apt install postgresql-18 -y
-sudo -u postgres psql -c "CREATE USER user123 WITH PASSWORD 'password123';
+sudo -u postgres psql -c "CREATE USER user123 WITH PASSWORD 'password123';"
 sudo -u postgres psql -c "CREATE DATABASE database123 OWNER user123;"
 cd ~/manual_server_2/pgsql_backups
 chmod 600 .pgpass

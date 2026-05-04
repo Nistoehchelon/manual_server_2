@@ -28,6 +28,10 @@ pub async fn get_bool_subject_subject_id_permission_name(
     Ok(check)
 }
 
+pub async fn user_can_manage_custom_stylesheets(user_id: String, db_pool: sqlx::PgPool) -> Result<bool, SomeSortOfError> {
+    get_bool_subject_subject_id_permission_name(db_pool, "user", &user_id, "manage_custom_page_stylesheets").await
+}
+
 pub async fn user_can_view_app_executable_version(
     input: UserCanViewAppExecutableVersionInput,
 ) -> Result<bool, SomeSortOfError> {
@@ -48,6 +52,7 @@ pub async fn add_admin_permissions_to_user(db_pool: sqlx::PgPool, user_id: Strin
         "manage_custom_site_pages",
         "create_forum",
         "view_app_executable_version",
+        "manage_custom_page_stylesheets",
     ];
     for perm in perms {
         let perm = perm.to_string();

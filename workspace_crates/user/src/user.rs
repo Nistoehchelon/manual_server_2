@@ -142,6 +142,7 @@ pub async fn find_by_username_and_password(
 }
 
 
+ 
 
 async fn storage_specific_is_username_available(
     tx: &mut Transaction<'_, Postgres>,

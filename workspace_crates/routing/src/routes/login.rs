@@ -173,7 +173,7 @@ pub async fn post(
         db_pool.clone(),
         SessionNotification {
             session_id: session.clone().id,
-            message: "Successfully logged in! Welcome!".to_string(),
+            message: "Successfully logged in! Welcome back!".to_string(),
             notification_type: session::SessionNotificationType::Success,
         },
     )

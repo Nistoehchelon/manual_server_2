@@ -322,7 +322,7 @@ pub async fn inject_custom_css(
         .collect();
     let injection_html: String = urls
         .iter()
-        .map(|href| format!(r#"<link rel="stylesheet" href="{}">"#, href))
+        .map(|href| format!("    <link rel=\"stylesheet\" href=\"{}\">\n", href))
         .collect();
     let element_content_handlers = vec![lol_html::element!("head", |el| {
         // Append the links to the end of the <head> section

@@ -73,3 +73,8 @@ a:hover {
   width: 10vw;
   height: auto;
 }
+
+
+.more_grayish_text {
+  color: rgb(46, 45, 45)
+}

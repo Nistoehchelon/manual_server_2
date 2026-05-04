@@ -37,8 +37,9 @@ pub async fn create_forum(
     id_source: ForumIdSource,
     name: String,
 ) -> Result<String, SomeSortOfError> {
+    let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
     let id = match id_source {
-        ForumIdSource::Auto => id_generator_unique_in_db::generate_unique_forum_id(db_pool.clone())
+        ForumIdSource::Auto => id_generator_unique_in_db::generate_unique_forum_id(&mut tx)
             .await
             .map_err(SomeSortOfError::new)?,
         ForumIdSource::Custom(unique_id) => unique_id.get(),
@@ -50,9 +51,10 @@ pub async fn create_forum(
         parent_forum_id,
         name
     )
-    .execute(&db_pool)
+    .execute(&mut *tx)
     .await
     .map_err(SomeSortOfError::new)?;
+    tx.commit().await.map_err(SomeSortOfError::new)?;
 
     Ok(id)
 }

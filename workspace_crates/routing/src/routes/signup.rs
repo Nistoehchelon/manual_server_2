@@ -92,10 +92,11 @@ pub async fn post(
         };
     let username = body_params.get("username").cloned();
     let password = body_params.get("password").cloned();
+    let password_repeated = body_params.get("password_repeated").cloned();
     let csrf_token = body_params.get("csrf_token").cloned();
 
-    let (username, password, csrf_token) = match (username, password, csrf_token) {
-        (Some(u), Some(p), Some(c)) => (u, p, c),
+    let (username, password, password_repeated,  csrf_token) = match (username, password, password_repeated, csrf_token) {
+        (Some(u), Some(p),  Some(pr), Some(c)) => (u, p, pr, c),
         _ => {
             add_session_notification(
                 db_pool.clone(),
@@ -178,6 +179,10 @@ pub async fn post(
             return Ok(redirect_to(session.previous_get_page.clone()));
         }
     };
+    if password.to_string() != password_repeated {
+          add_session_notification_error(db_pool.clone(), session.id.clone(), "Passwords do not match.".to_string()).await;
+            return Ok(redirect_to(session.previous_get_page.clone()));
+    }
     let user_creation_result = try_to_create_new_user(
         db_pool.clone(),
         username,

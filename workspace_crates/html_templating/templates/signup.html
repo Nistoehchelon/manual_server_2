@@ -10,15 +10,25 @@
 {% block content%}
 <h1>Sign up</h1>
 {% include "includes/notifications.html" %}
-<form method='POST' action='/signup'>
-  <input type='text' name='username' placeholder='Enter your username' required minlength="{{ username_length_min }}"
+<form method="POST" action="/signup">
+  <label for="username">Username: </label>
+  <input type="text" id="username" name="username" placeholder="Enter your username" required minlength="{{ username_length_min }}"
     maxlength="{{ username_length_max }}"><br>
-  <input type='password' name='password' placeholder='Enter your password' required
+
+  <label for="password">Password: </label>
+  <input type="password" id="password" name="password" placeholder="Enter your password" required
     minlength="{{ password_length_min }}" maxlength="{{ password_length_max }}"><br>
+
+  <label for="password_repeated">Repeat the password: </label>
+  <input type="password" id="password_repeated" name="password_repeated" placeholder="Repeat your password" required
+    minlength="{{ password_length_min }}" maxlength="{{ password_length_max }}"><br>
+
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
   {% if main_info.cloudflare_turnstile_enabled %}
   {% include "includes/div_cloudflare_turnstile.html" %}
   {% endif %}
-  <input id="submit_button" type='submit' value='Create a new account!'>
+
+  <button>Create a new account!</button>
 </form>
 {%endblock%}

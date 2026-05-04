@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+
+dynamic_stylesheets = { workspace = true }
 app_executable_version = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
@@ -29,3 +31,4 @@ url = { workspace = true }
 pagination = { workspace = true }
 serde = { workspace = true }
 reqwest = { workspace = true }
+lol_html = { workspace = true }

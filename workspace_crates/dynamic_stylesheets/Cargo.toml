@@ -1,0 +1,9 @@
+[package]
+name = "dynamic_stylesheets"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sqlx = { workspace = true }
+error_structs = { workspace = true }
+forum = { workspace = true }

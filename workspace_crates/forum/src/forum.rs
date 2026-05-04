@@ -271,6 +271,14 @@ pub async fn get_thread(
     };
     Ok(thread)
 }
+pub async fn get_thread_by_forum_id_and_title(
+    db_pool: sqlx::PgPool,
+    forum_id: String,
+    title: String,
+) -> Result<ForumThread, ExpectedToGetButFailed> {
+   let thread_id = sqlx::query!("SELECT id FROM forum_threads WHERE forum_id = $1 AND name = $2", forum_id, title).fetch_one(&db_pool).await.map_err(ExpectedToGetButFailed::new)?.id;
+    get_thread(db_pool, thread_id).await
+}
 
 pub async fn get_latest_message_version(
     db_pool: sqlx::PgPool,

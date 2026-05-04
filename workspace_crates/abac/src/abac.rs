@@ -102,7 +102,7 @@ pub async fn can_access_this_forum(
         .await
         .map_err(SomeSortOfError::new)?;
     match forum.id.as_str() {
-        id if id == custom_site_pages::FORUM_ID || id == forum::NONE_ID => can_manage_site_pages(CanManageSitePagesInput {
+        id if id == custom_site_pages::FORUM_ID || id == forum::NONE_ID || id == dynamic_stylesheets::FORUM_ID => can_manage_site_pages(CanManageSitePagesInput {
             db_pool: db_pool.clone(),
             user_id: user_id.clone(),
         })

@@ -1,4 +1,5 @@
 use config_reader::Config;
+use dynamic_stylesheets::dynamic_stylesheets;
 use html_templating::html_template_structs::BaseTemplateData;
 use into_vec::into_vec;
 use std::time::Instant;
@@ -103,9 +104,11 @@ pub async fn route(
             (HttpMethod::Get, "/create_thread") => routes::create_thread::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Post, "/create_thread") => routes::create_thread::post(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Post, "/create_thread") => {
+                routes::create_thread::post(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
             (HttpMethod::Get, "/forum_thread") => routes::forum_thread::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
@@ -116,41 +119,61 @@ pub async fn route(
                 routes::forum_thread_message_versions::get(router_data.clone())
                     .await
                     .unwrap_or(internal_server_error_500())
-            },
+            }
             (HttpMethod::Get, "/edit_forum_thread_message") => {
-                routes::edit_forum_thread_message::get(router_data.clone()).await.unwrap_or(internal_server_error_500())
-            },
+                routes::edit_forum_thread_message::get(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
             (HttpMethod::Post, "/edit_forum_thread_message") => {
-                routes::edit_forum_thread_message::post(router_data.clone()).await.unwrap_or(internal_server_error_500())
-            },
-            (HttpMethod::Get, "/create_forum") => {
-                routes::create_forum::get(router_data.clone()).await.unwrap_or(internal_server_error_500())
-            },
-            (HttpMethod::Post, "/create_forum") => {
-                routes::create_forum::post(router_data.clone()).await.unwrap_or(internal_server_error_500())
-            },
-            (HttpMethod::Post, "/dump_request") => routes::dump_request::dump_request(router_data.clone())
-                .unwrap_or(internal_server_error_500()),
-
-            (HttpMethod::Get, "/manage_site_pages") => routes::manage_custom_site_pages::get(router_data.clone())
+                routes::edit_forum_thread_message::post(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
+            (HttpMethod::Get, "/create_forum") => routes::create_forum::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Post, "/create_forum") => routes::create_forum::post(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Post, "/dump_request") => {
+                routes::dump_request::dump_request(router_data.clone())
+                    .unwrap_or(internal_server_error_500())
+            }
+
+            (HttpMethod::Get, "/manage_site_pages") => {
+                routes::manage_custom_site_pages::get(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
             (HttpMethod::Post, "/webhook_and_api") => {
-                routes::webhook_and_api::post(router_data.clone()).await.unwrap_or(internal_server_error_500())
-            },
-            (method, path) => {
+                routes::webhook_and_api::post(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
+            (HttpMethod::Get, p) if p.starts_with("/dynamic_stylesheet/") => {
+                routes::dynamic_stylesheet::get(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
+            (_method, path) => {
                 let mut path = path.to_string();
                 path.remove(0); // remove slash
-                if !path.is_empty() && let Ok(_thread) = forum::get_thread(db_pool.clone(), path.clone()).await {
-                    routes::view_custom_site_page::get(router_data.clone(), path).await.unwrap_or(internal_server_error_500())
+                if !path.is_empty()
+                    && let Ok(_thread) = forum::get_thread(db_pool.clone(), path.clone()).await
+                {
+                    routes::view_custom_site_page::get(router_data.clone(), path)
+                        .await
+                        .unwrap_or(internal_server_error_500())
                 } else if !path.is_empty() {
-                    routes::not_found::not_found(router_data.clone(), method.to_string(), path.clone())
+                    routes::not_found::not_found(router_data.clone())
+                        .unwrap_or(internal_server_error_500())
                 } else {
-                routes::index::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500())
+                    routes::index::get(router_data.clone())
+                        .await
+                        .unwrap_or(internal_server_error_500())
                 }
-            },
+            }
         }
     };
 
@@ -241,12 +264,90 @@ pub async fn generate_response_data(
     .await
     .unwrap_or(internal_server_error_500());
 
-    let response_data = add_elapsed(response_data, session.clone(), request_start, db_pool.clone()).await;
+    let response_data = add_elapsed(
+        response_data,
+        session.clone(),
+        request_start,
+        db_pool.clone(),
+    )
+    .await;
 
-    let response_data = add_some_headers(request_data.clone(), response_data.clone(), server_config, nonce);
+    let response_data = add_some_headers(
+        request_data.clone(),
+        response_data.clone(),
+        server_config,
+        nonce,
+    );
 
-   if request_data.method == HttpMethod::Get && response_data.status_code.clone() == StatusCode::Code200Ok {
-        let _ = session::set_previous_get_page(db_pool.clone(), session.id.clone(), request_data.path_and_query.clone()).await;
+    // for convenience when submitting a post form to /submit_page style processing.
+    // but maybe I should just do POST submit for example on /create_thread?forum_id=xx rather than /create_thread with hidden fields?
+
+    if request_data.method == HttpMethod::Get
+        && response_data.status_code.clone() == StatusCode::Code200Ok
+    {
+        let _ = session::set_previous_get_page(
+            db_pool.clone(),
+            session.id.clone(),
+            request_data.path_and_query.clone(),
+        )
+        .await;
+    }
+    let response_data =
+        inject_custom_css(db_pool.clone(), request_data.clone(), response_data.clone()).await;
+    // hm
+    response_data
+}
+
+pub async fn inject_custom_css(
+    db_pool: sqlx::PgPool,
+    request_data: HttpRequestData,
+    response_data: HttpResponseData,
+) -> HttpResponseData {
+    let Ok(stylesheet_numbers) =
+        dynamic_stylesheets::get_numbers_for_page(db_pool.clone(), request_data.path.clone()).await
+    else {
+        return response_data;
+    };
+    if stylesheet_numbers.is_empty() {
+        return response_data;
+    }
+    let url = {
+        let prefix = "/dynamic_stylesheet";
+        let page = request_data.path;
+        format!("{prefix}{page}?stylesheet_number=")
+    };
+    let urls: Vec<String> = stylesheet_numbers
+        .into_iter()
+        .map(|num| format!("{url}{num}"))
+        .collect();
+    let injection_html: String = urls
+        .iter()
+        .map(|href| format!(r#"<link rel="stylesheet" href="{}">"#, href))
+        .collect();
+    let element_content_handlers = vec![lol_html::element!("head", |el| {
+        // Append the links to the end of the <head> section
+        el.append(&injection_html, lol_html::html_content::ContentType::Html);
+        Ok(())
+    })];
+    let Some(body) = response_data.body.clone() else {
+        return response_data;
+    };
+    let Ok(html_str) = String::from_utf8(body).to_owned() else {
+        return response_data;
+    };
+    let Ok(new) = lol_html::rewrite_str(
+        &html_str,
+        lol_html::RewriteStrSettings {
+            element_content_handlers,
+            ..lol_html::RewriteStrSettings::default()
+        },
+    ) else {
+        return response_data;
+    };
+
+    let mut response_data = response_data.clone();
+    if let Some(_body) = response_data.body {
+        response_data.body = Some(new.into_bytes());
     }
     response_data
 }

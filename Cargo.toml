@@ -20,6 +20,7 @@ members = ["workspace_crates/*"]
 
 # internal workspace crates
 app_executable_version = { path = "workspace_crates/app_executable_version" }
+dynamic_stylesheets = { path = "workspace_crates/dynamic_stylesheets" }
 count_string_length = { path = "workspace_crates/count_string_length" }
 webhooks = { path = "workspace_crates/webhooks" }
 cloudflare_turnstile = { path = "workspace_crates/cloudflare_turnstile" }
@@ -49,7 +50,8 @@ encoding = { path = "workspace_crates/encoding" }
 
 
 # third-party external crates
-
+# for injecting stylesheet links
+lol_html = "2.8.1"
 
 
 unicode-segmentation = "1.13.2"

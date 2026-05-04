@@ -53,3 +53,17 @@ pub async fn get_message(
 
     Ok(msg)
 }
+
+pub async fn get_message_by_position_in_thread(db_pool: sqlx::PgPool, thread_id: String, position: u64) -> Result<ForumThreadMessage, SomeSortOfError> {
+    let position = i64::try_from(position).map_err(SomeSortOfError::new)?;
+    let msg = sqlx::query_as!(
+        ForumThreadMessage,
+        "SELECT primary_key, id, thread_id FROM forum_thread_messages WHERE thread_id = $1 ORDER BY primary_key ASC LIMIT 1 OFFSET $2",
+        thread_id, position
+    )
+    .fetch_one(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?;
+
+    Ok(msg)
+}

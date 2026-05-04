@@ -1,7 +1,6 @@
 pub mod create_thread;
 pub mod dashboard;
 pub mod dump_request;
-pub mod favicon;
 pub mod forum;
 pub mod create_forum;
 pub mod forum_thread;
@@ -13,6 +12,6 @@ pub mod logout;
 pub mod manage_custom_site_pages;
 pub mod view_custom_site_page;
 pub mod signup;
-pub mod stylesheet;
 pub mod webhook_and_api;
 pub mod not_found;
+pub mod dynamic_stylesheet;

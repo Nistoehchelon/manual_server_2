@@ -46,7 +46,7 @@ impl SomeSortOfError {
     pub fn new<E: Debug>(s: E) -> Self {
         let message = format!("{s:?}");
         println!(
-            "Expected the thingie to exist but apparently it does not: {}",
+            "SomeSortOfError: {}",
             message.clone()
         );
         Self { message }

@@ -83,13 +83,13 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         }
     };
     // none forum is for example site pages, not shown in 0 default forum
-    if parent_forum_id != "none" {
+    if parent_forum_id != forum::NONE_ID {
         let _parent_forum = forum::get_forum_by_id(rt.db_pool.clone(), parent_forum_id.clone())
             .await
             .map_err(InternalAppError::new)?;
     }
     if !can_access_this_forum(CanAccessThisForumInput{ db_pool:rt.db_pool.clone(), user_id: rt.session.user_id.clone(), forum_id: parent_forum_id.clone() }).await.map_err(InternalAppError::new)? {
-        println!("User doesn't have permissions to access this forum");
+        tracing::info!("User doesn't have permissions to access this forum");
         return Ok(redirect_to("/".to_string()));
     }
     let newly_created_forum_id =

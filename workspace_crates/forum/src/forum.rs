@@ -1,6 +1,5 @@
 use crate::{
-    ForumThreadMessage, ValidForumThreadMessageContent, ValidForumThreadName,
-    forum_structs::{Forum, ForumThread, ForumThreadMessageVersion},
+    ForumThreadMessage, NONE_ID, DEFAULT_FORUM_ID, ValidForumThreadMessageContent, ValidForumThreadName, forum_structs::{Forum, ForumThread, ForumThreadMessageVersion}
 };
 use db_manager::DbError;
 use error_structs::{ExpectedToGetButFailed, SomeSortOfError};
@@ -20,9 +19,9 @@ impl UniqueForumId {
         let forum = find_forum_by_id(db_pool.clone(), id.clone())
             .await
             .map_err(SomeSortOfError::new)?;
-        if forum.is_some() {
+        if let Some(forum) = forum {
             return Err(SomeSortOfError::new(
-                "Could not parse String into UniqueForumId: the provided id is not unique, a forum with this id already exists",
+                format!("Could not parse String into UniqueForumId: the provided id is not unique, a forum with id  \"{}\" already exists", forum.id),
             ));
         }
         Ok(UniqueForumId { inner: id })
@@ -59,14 +58,21 @@ pub async fn create_forum(
     Ok(id)
 }
 pub async fn find_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Option<Forum>, DbError> {
-    if id == "0" {
+    if id == DEFAULT_FORUM_ID {
         return Ok(Some(Forum {
             id: "0".to_string(),
             name: "Default forum".to_string(),
             parent_id: "0".to_string(),
         }));
     }
-    storage_specific_get_forum_by_id(db_pool, id.clone()).await
+    if id == NONE_ID {
+        return Ok(Some(Forum {
+            id: "none".to_string(),
+            name: "None".to_string(),
+            parent_id: "none".to_string(),
+        }));
+    }
+    storage_specific_find_forum_by_id(db_pool, id.clone()).await
 }
 pub async fn get_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Forum, DbError> {
     let f = find_forum_by_id(db_pool, id.clone()).await?;
@@ -394,7 +400,7 @@ async fn storage_specific_create_thread(
     Ok(thread_id_result.id.clone())
 }
 
-async fn storage_specific_get_forum_by_id(
+async fn storage_specific_find_forum_by_id(
     db_pool: sqlx::PgPool,
     id: String,
 ) -> Result<Option<Forum>, DbError> {

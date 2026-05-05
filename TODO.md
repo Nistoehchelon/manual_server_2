@@ -27,7 +27,7 @@ Generally, the permissions system can be improved...
 - [ ] Implement simple (and more complex, too) password bruteforcing protections.
 
 - [x] Use git-version crate. Could be cool
-- [ ] Show the VERSION const on some hidden page on the live site
+- [x] Show the VERSION const on some hidden page on the live site
 
 
 - [x] Log "Starting server..." on server startup. I saw restart logs and the shutdown and starting kinda blend together, so adding the starting indicator will be visually helpful.

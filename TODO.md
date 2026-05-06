@@ -1,4 +1,8 @@
 
+
+- [ ] Email verification
+
+
 - [ ] In general, to make the experience/functionality more comfortable, reduce friction.
 
 - [ ] Rework abac for forums a bit:
@@ -31,3 +35,4 @@ Generally, the permissions system can be improved...
 
 
 - [x] Log "Starting server..." on server startup. I saw restart logs and the shutdown and starting kinda blend together, so adding the starting indicator will be visually helpful.
+

@@ -11,7 +11,7 @@
 <h1>Sign up</h1>
 {% include "includes/notifications.html" %}
 <form method="POST" action="/signup">
-  <label for="emain">Email: </label>
+  <label for="email">Email: </label>
   <input type="text" id="email" name="email" placeholder="Enter your email" required><br>
 
   <label for="username">Username: </label>
@@ -32,6 +32,6 @@
   {% include "includes/div_cloudflare_turnstile.html" %}
   {% endif %}
 
-  <button id = "submit_button">Create a new account!</button>
+  <button {% if main_info.cloudflare_turnstile_enabled %} class = "enable_only_if_cloudflare_turnstile_verifies" {% endif %} >Create a new account!</button>
 </form>
 {%endblock%}

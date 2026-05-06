@@ -18,6 +18,6 @@
     {% if main_info.cloudflare_turnstile_enabled %}
     {% include "includes/div_cloudflare_turnstile.html" %}
     {% endif %}
-    <input id="submit_button" type="submit" value="Login">
+    <button {% if main_info.cloudflare_turnstile_enabled %} class = "enable_only_if_cloudflare_turnstile_verifies" {% endif %} >Login! </button>
 </form>
 {%endblock%}

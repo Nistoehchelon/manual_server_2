@@ -1,6 +1,6 @@
-const submit_button_id = "submit_button";
+const button_class = "enable_only_if_cloudflare_turnstile_verifies";
 
-const submit_button = document.getElementById(submit_button_id);
+const submit_button = document.querySelector(`.${button_class}`);
 // disable on initial load
 submit_button.disabled = true;
 

@@ -70,7 +70,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 humantime-serde = "1.1.1"
 
 indexmap = "2.14.0"
-sqlx = { version = "0.8.6", features = ["postgres", "macros", "runtime-tokio", "time", "tls-rustls-aws-lc-rs"] }
+sqlx = { version = "0.8.6", features = ["migrate", "postgres", "macros", "runtime-tokio", "time", "tls-rustls-aws-lc-rs"] }
 
 tokio = { version = "1.51.1", features = ["full", "tracing"] }
 

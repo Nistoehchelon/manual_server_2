@@ -90,13 +90,14 @@ pub async fn post(
                 return Ok(redirect_to("/".to_string()));
             }
         };
+    let _email = body_params.get("email").cloned();
     let username = body_params.get("username").cloned();
     let password = body_params.get("password").cloned();
     let password_repeated = body_params.get("password_repeated").cloned();
     let csrf_token = body_params.get("csrf_token").cloned();
 
-    let (username, password, password_repeated,  csrf_token) = match (username, password, password_repeated, csrf_token) {
-        (Some(u), Some(p),  Some(pr), Some(c)) => (u, p, pr, c),
+    let (email,username, password, password_repeated,  csrf_token) = match (email,username, password, password_repeated, csrf_token) {
+        (Some(e), Some(u), Some(p),  Some(pr), Some(c)) => (e, u, p, pr, c),
         _ => {
             add_session_notification(
                 db_pool.clone(),

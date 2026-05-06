@@ -1,0 +1,11 @@
+{% extends "template_base.html" %}
+
+<div>
+    <p>A verification code was sent to the specified email address.</p>
+    <p>Enter it below to verify the email address.</p>
+    <form method="post" action="/verify_email">
+        <input type="text" name="code" placeholder="The code goes here...">
+        <button>Verify ⛱️</button>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    </form>
+</div>

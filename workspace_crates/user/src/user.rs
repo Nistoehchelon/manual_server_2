@@ -61,7 +61,6 @@ pub async fn try_to_create_new_user(
         id: id_generator_unique_in_db::generate_unique_user_id(tx).await.map_err(SomeSortOfError::new)?,
         username: username.to_string(),
         password_hash: hash,
-        bio: "Default bio".to_string(),
     };
     let user = storage_specific_create_new_user(tx, new_user)
         .await
@@ -101,7 +100,7 @@ pub async fn get_by_username(
     match result {
         Some(row) => {
             let id: String = row.id;
-            let user_row = match sqlx::query_as!(User,r#"SELECT primary_key, id, username, password_hash, bio FROM public.users WHERE id = $1"#, id).fetch_one(&mut *transaction).await {
+            let user_row = match sqlx::query_as!(User,r#"SELECT primary_key, id, username, password_hash FROM public.users WHERE id = $1"#, id).fetch_one(&mut *transaction).await {
                 Ok(ur) => ur,
                 Err(e) => {
                     return Err(DbError::new(e));
@@ -179,11 +178,10 @@ async fn storage_specific_add_user(
     user: User,
 ) -> Result<db_manager::DbSuccess, db_manager::DbError> {
     match sqlx::query!(
-        r#"INSERT INTO users (id, username, password_hash, bio) VALUES ($1,$2,$3,$4)"#,
+        r#"INSERT INTO users (id, username, password_hash) VALUES ($1,$2,$3)"#,
         user.id,
         user.username,
         user.password_hash,
-        user.bio
     )
     .execute(&mut **tx)
     .await
@@ -199,7 +197,7 @@ async fn storage_specific_get_user_by_user_id(
 ) -> Result<Option<User>, db_manager::DbError> {
     match sqlx::query_as!(
         User,
-        r#"SELECT primary_key, id, username, password_hash, bio FROM users WHERE id = $1"#,
+        r#"SELECT primary_key, id, username, password_hash FROM users WHERE id = $1"#,
         user_id
     )
     .fetch_optional(&db_pool)

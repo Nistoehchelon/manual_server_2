@@ -7,7 +7,6 @@ pub struct User {
     pub id: String,
     pub username: String,
     pub password_hash: String,
-    pub bio: String,
 }
 
 pub const MIN_LENGTH_USERNAME: usize = 1;

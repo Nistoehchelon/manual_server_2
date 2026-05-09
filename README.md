@@ -32,6 +32,7 @@ echo "yes" | bash push.sh --schema
 cd ..
 # set up env as you wish
 cp .env.example .env
+cd ~
 ```
 Remember to press Enter when prompted (todo: automate the pointless interactions somehow)
 

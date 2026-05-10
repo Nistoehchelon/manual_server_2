@@ -3,7 +3,7 @@ use error_structs::{ExpectedToGetButFailed, PublicError, SomeSortOfError};
 use password_hashing::password_hashing::PasswordHasherConfig;
 use sqlx::{Postgres, Transaction};
 
-use crate::{ValidPassword, ValidUsername, user_structs_and_so_on::User};
+use crate::{ValidatedUsername, user_structs_and_so_on::User};
 
 pub async fn get_user_by_user_id(
     db_pool: sqlx::PgPool,
@@ -30,37 +30,16 @@ pub struct CheckingError {
 }
 pub async fn try_to_create_new_user(
     tx: &mut Transaction<'_, Postgres>,
-    username: ValidUsername,
-    password: ValidPassword,
-    hasher_config: PasswordHasherConfig,
+    username: ValidatedUsername,
+    password_hash: String,
 ) -> Result<Result<User, PublicError>, SomeSortOfError> {
-    if username.clone().to_string().trim().is_empty() || password.clone().to_string().trim().is_empty() {
-        return Ok(Err(PublicError::new(
-            "Please enter username and password or the world will be destroyed!".to_string(),
-        )));
-    }
 
-    let username_available = is_username_available(username.clone().to_string(), tx)
-        .await
-        .map_err(SomeSortOfError::new)?;
-
-    if !username_available {
-        return Ok(Err(PublicError::new(
-            "The username is... taken already!!! 😈".to_string(),
-        )));
-    }
-
-    let hash = match password_hashing::hash_password(password.to_string(), hasher_config) {
-        Ok(h) => h,
-        Err(e) => {
-            return Err(SomeSortOfError::new(e));
-        }
-    };
+   
     let new_user = User {
         primary_key: 0,
         id: id_generator_unique_in_db::generate_unique_user_id(tx).await.map_err(SomeSortOfError::new)?,
         username: username.to_string(),
-        password_hash: hash,
+        password_hash,
     };
     let user = storage_specific_create_new_user(tx, new_user)
         .await
@@ -68,6 +47,96 @@ pub async fn try_to_create_new_user(
 
     Ok(Ok(user))
 }
+
+
+pub async fn set_user_data(
+    tx: &mut Transaction<'_, Postgres>,
+    user_id: &str,
+    data_name: &str,
+    data_value: &str,
+) -> Result<(), SomeSortOfError> {
+    sqlx::query!(
+        r#"
+        INSERT INTO user_data (
+            user_id,
+            data_name,
+            data_value
+        )
+        VALUES (
+            $1,
+            $2,
+            $3
+        )
+        ON CONFLICT (user_id, data_name)
+        DO UPDATE SET
+            data_value = EXCLUDED.data_value
+        "#,
+        user_id,
+        data_name,
+        data_value
+    )
+    .execute(&mut **tx)
+    .await.map_err(SomeSortOfError::new)?;
+
+    Ok(())
+}
+
+
+#[derive(Debug)]
+pub struct UserData {
+    pub primary_key: i64,
+    pub user_id: String,
+    pub data_name: String,
+    pub data_value: String,
+}
+
+pub async fn find_user_data_by_name_and_value(
+    tx: &mut Transaction<'_, Postgres>,
+    name: &str,
+    value: &str,
+) -> Result<Vec<UserData>, sqlx::Error> {
+    let rows = sqlx::query_as!(
+        UserData,
+        r#"
+        SELECT
+            primary_key,
+            user_id,
+            data_name,
+            data_value
+        FROM user_data
+        WHERE data_name = $1
+          AND data_value = $2
+        "#,
+        name,
+        value
+    )
+    .fetch_all(&mut **tx)
+    .await?;
+
+    Ok(rows)
+}
+
+pub async fn get_user_data(
+    tx: &mut Transaction<'_, Postgres>,
+    user_id: &str,
+    data_name: &str,
+) -> Result<Option<String>, SomeSortOfError> {
+    let row = sqlx::query!(
+        r#"
+        SELECT data_value
+        FROM user_data
+        WHERE user_id = $1
+          AND data_name = $2
+        "#,
+        user_id,
+        data_name
+    )
+    .fetch_optional(&mut **tx)
+    .await.map_err(SomeSortOfError::new)?;
+
+    Ok(row.map(|r| r.data_value))
+}
+
 
 pub async fn is_username_available(
     username: String,

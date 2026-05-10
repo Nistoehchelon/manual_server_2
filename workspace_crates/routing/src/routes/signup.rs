@@ -1,12 +1,15 @@
+use email_otp::CreateEmailOtpInput;
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, BaseTemplateData};
 use http_stuff::{
     http_request_parsing::{self},
     http_response::{HttpResponseData, ok_html, redirect_to},
 };
-use session::{SessionNotification, add_session_notification, add_session_notification_error, add_session_notification_success, edit_session};
-use user::{ValidPassword, ValidUsername};
-use user_creation::try_to_create_new_user;
+use session::{
+    SessionNotification, add_session_notification, add_session_notification_error,
+    add_session_notification_success,
+};
+use user::{ValidatedPassword, ValidatedUsername};
 
 use crate::RouterData;
 
@@ -47,7 +50,12 @@ pub async fn get(
     )))
 }
 
-fn get_signup_html(mut base_template_data: BaseTemplateData, csrf_token: String, min_length_user_password: usize, max_length_user_password: usize) -> String {
+fn get_signup_html(
+    mut base_template_data: BaseTemplateData,
+    csrf_token: String,
+    min_length_user_password: usize,
+    max_length_user_password: usize,
+) -> String {
     base_template_data.title = "Signup".to_string();
     html_templating::render(html_template_structs::SignupTemplate {
         main_info: base_template_data,
@@ -90,29 +98,30 @@ pub async fn post(
                 return Ok(redirect_to("/".to_string()));
             }
         };
-        // TODO: email verification
-    let _email = body_params.get("email").cloned();
+    // TODO: email verification
+    let email = body_params.get("email").cloned();
     let username = body_params.get("username").cloned();
     let password = body_params.get("password").cloned();
     let password_repeated = body_params.get("password_repeated").cloned();
     let csrf_token = body_params.get("csrf_token").cloned();
 
-    let (_email,username, password, password_repeated,  csrf_token) = match (_email,username, password, password_repeated, csrf_token) {
-        (Some(e), Some(u), Some(p),  Some(pr), Some(c)) => (e, u, p, pr, c),
-        _ => {
-            add_session_notification(
-                db_pool.clone(),
-                SessionNotification {
-                    message: "Invalid body".to_string(),
-                    session_id: session.id.clone(),
-                    notification_type: session::SessionNotificationType::Error,
-                },
-            )
-            .await
-            .map_err(InternalAppError::new)?;
-            return Ok(redirect_to("/signup".to_string()));
-        }
-    };
+    let (email, username, password, password_repeated, csrf_token) =
+        match (email, username, password, password_repeated, csrf_token) {
+            (Some(e), Some(u), Some(p), Some(pr), Some(c)) => (e, u, p, pr, c),
+            _ => {
+                add_session_notification(
+                    db_pool.clone(),
+                    SessionNotification {
+                        message: "Invalid body".to_string(),
+                        session_id: session.id.clone(),
+                        notification_type: session::SessionNotificationType::Error,
+                    },
+                )
+                .await
+                .map_err(InternalAppError::new)?;
+                return Ok(redirect_to("/signup".to_string()));
+            }
+        };
 
     if server_config.cloudflare_turnstile_enabled {
         let cf_turnstile_token = match body_params.get("cf-turnstile-response").cloned() {
@@ -167,14 +176,19 @@ pub async fn post(
         return Ok(redirect_to("/signup".to_string()));
     }
 
-    let username = match ValidUsername::parse(username) {
+    let mut tx = db_pool.begin().await.map_err(InternalAppError::new)?;
+    let username = match ValidatedUsername::validate(&mut tx, username).await {
         Ok(u) => u,
         Err(e) => {
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
             return Ok(redirect_to(session.previous_get_page.clone()));
         }
     };
-    let password = match ValidPassword::parse(password, router_data.server_config.min_length_user_password, router_data.server_config.max_length_user_password) {
+    let password = match ValidatedPassword::validate(
+        password,
+        router_data.server_config.min_length_user_password,
+        router_data.server_config.max_length_user_password,
+    ) {
         Ok(u) => u,
         Err(e) => {
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
@@ -182,42 +196,51 @@ pub async fn post(
         }
     };
     if password.to_string() != password_repeated {
-          add_session_notification_error(db_pool.clone(), session.id.clone(), "Passwords do not match.".to_string()).await;
-            return Ok(redirect_to(session.previous_get_page.clone()));
+        add_session_notification_error(
+            db_pool.clone(),
+            session.id.clone(),
+            "Passwords do not match.".to_string(),
+        )
+        .await;
+        return Ok(redirect_to(session.previous_get_page.clone()));
     }
-    let user_creation_result = try_to_create_new_user(
+
+    let email_available = user::find_user_data_by_name_and_value(&mut tx, "email", email.as_str())
+        .await
+        .map_err(InternalAppError::new)?
+        .is_empty();
+    if !email_available {
+        // I do not reveal this to the user who is trying to enter the email. Show same msg as on succcess.
+        add_session_notification_success(
+            db_pool.clone(),
+            session.id.clone(),
+            "Check your email".to_string(),
+        )
+        .await;
+        return Ok(redirect_to("/email_otp".to_string()));
+    }
+
+    let password_hash = password_hashing::hash_password(
+        password.to_string(),
+        server_config.password_hasher_config.clone(),
+    )
+    .map_err(InternalAppError::new)?;
+
+    email_otp::create_email_otp(
         db_pool.clone(),
-        username,
-        password,
-        server_config.password_hasher_config,
+        CreateEmailOtpInput {
+            email,
+            username: username.to_string(),
+            password_hash,
+        },
     )
     .await
     .map_err(InternalAppError::new)?;
-    match user_creation_result {
-        Ok(user) => {
-            let mut modified_session = session.clone();
-            modified_session.logged_in = true;
-            modified_session.user_id = user.id.clone();
-            edit_session(db_pool.clone(), session.id.clone(), modified_session)
-                .await
-                .map_err(InternalAppError::new)?;
-            add_session_notification_success(db_pool.clone(), session.id.clone(), "Congratulations! You have been successfully registered.".to_string()).await;
-            tracing::info!("User with id {} was registered.", user.id.clone());
-        }
-        Err(e) => {
-            add_session_notification(
-                db_pool.clone(),
-                SessionNotification {
-                    session_id: session.id.clone(),
-                    message: e.message,
-                    notification_type: session::SessionNotificationType::Error,
-                },
-            )
-            .await
-            .map_err(InternalAppError::new)?;
-            return Ok(redirect_to("/signup".to_string()));
-        }
-    }
-
-    Ok(redirect_to("/".to_string()))
+    add_session_notification_success(
+        db_pool.clone(),
+        session.id.clone(),
+        "Check your email".to_string(),
+    )
+    .await;
+    Ok(redirect_to("/email_otp".to_string()))
 }

@@ -86,6 +86,12 @@ pub async fn route(
             (HttpMethod::Post, "/signup") => routes::signup::post(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Get, "/email_otp") => routes::email_otp::get(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Post, "/email_otp") => routes::email_otp::post(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
             (HttpMethod::Get, "/dashboard") => routes::dashboard::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
@@ -419,7 +425,7 @@ bluetooth=()"
 
     if server_config.cloudflare_turnstile_enabled {
         match request_data.path.as_str() {
-            "/signup" | "/login" => {
+            "/signup" | "/login" | "/email_otp" => {
                 script_src = String::from("https://challenges.cloudflare.com");
                 frame_src = String::from("https://challenges.cloudflare.com");
             }

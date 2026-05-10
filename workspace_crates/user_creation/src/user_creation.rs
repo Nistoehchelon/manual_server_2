@@ -1,19 +1,13 @@
 use error_structs::{PublicError, SomeSortOfError};
-use password_hashing::PasswordHasherConfig;
-use sqlx::PgPool;
-use user::{User, ValidPassword, ValidUsername};
-
-
+use sqlx::{Postgres, Transaction};
+use user::{User, ValidatedUsername};
 
 pub async fn try_to_create_new_user(
-    db_pool: PgPool,
-    username: ValidUsername,
-    password: ValidPassword,
-    hasher_config: PasswordHasherConfig,
+    tx: &mut Transaction<'_, Postgres>,
+    username: ValidatedUsername,
+    password_hash: String,
 ) -> Result<Result<User, PublicError>, SomeSortOfError> {
-    let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
-
-    let user = match user::try_to_create_new_user(&mut tx, username, password, hasher_config)
+    let user = match user::try_to_create_new_user(tx, username, password_hash)
         .await
         .map_err(SomeSortOfError::new)?
     {
@@ -29,7 +23,7 @@ pub async fn try_to_create_new_user(
         user.id.clone(),
         "create_thread"
     )
-    .execute(&mut *tx)
+    .execute(&mut **tx)
     .await
     .map_err(SomeSortOfError::new)?;
 
@@ -40,8 +34,6 @@ pub async fn try_to_create_new_user(
             user.username
         ))));
     }
-
-    tx.commit().await.map_err(SomeSortOfError::new)?;
 
     Ok(Ok(user))
 }

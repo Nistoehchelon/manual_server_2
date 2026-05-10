@@ -11,9 +11,9 @@
 <h1>Sign up</h1>
 {% include "includes/notifications.html" %}
 <form method="POST" action="/signup">
-  <!-- TODO -->
-  <!-- <label for="email">Email: </label>
-  <input type="text" id="email" name="email" placeholder="Enter your email" required><br> -->
+ 
+  <label for="email">Email: </label>
+  <input type="text" id="email" name="email" placeholder="Enter your email" required><br>
 
   <label for="username">Username: </label>
   <input type="text" id="username" name="username" placeholder="Enter your username" required minlength="{{ username_length_min }}"

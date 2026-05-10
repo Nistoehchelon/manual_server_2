@@ -1,0 +1,11 @@
+[package]
+name = "email_otp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+error_structs = { workspace = true }
+sqlx = { workspace = true }
+chrono = { workspace = true }
+rand = { workspace = true }
+id_generator = { workspace = true }

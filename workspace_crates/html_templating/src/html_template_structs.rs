@@ -149,6 +149,14 @@ pub struct SignupTemplate {
     pub csrf_token: String,
 }
 
+
+#[derive(Template)]
+#[template(path = "email_otp.html")]
+pub struct EmailOTPTemplate {
+    pub main_info: BaseTemplateData,
+    pub csrf_token: String,
+}
+
 #[derive(Template)]
 #[template(path = "login.html")]
 pub struct LoginTemplate {

@@ -1,0 +1,25 @@
+{% extends "template_base.html" %}
+
+{% block head %}
+{% if main_info.cloudflare_turnstile_enabled %}
+    {% include "includes/script_cloudflare_turnstile.html" %}
+{% endif %}
+
+{% endblock %}
+
+{% block content%}
+<h1>OTP</h1>
+{% include "includes/notifications.html" %}
+<form method="POST" action="/email_otp">
+  <label for="otp">You are hereby commanded to enter the OTP code you have received in that very important email letter: </label>
+  <input type="text" id="otp" name="otp" placeholder="Enter the code you have received" required><br>
+
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  {% if main_info.cloudflare_turnstile_enabled %}
+  {% include "includes/div_cloudflare_turnstile.html" %}
+  {% endif %}
+
+  <button {% if main_info.cloudflare_turnstile_enabled %} class = "enable_only_if_cloudflare_turnstile_verifies" {% endif %} >Confirm 😁</button>
+</form>
+{%endblock%}

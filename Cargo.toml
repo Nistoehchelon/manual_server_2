@@ -19,6 +19,7 @@ members = ["workspace_crates/*"]
 [workspace.dependencies]
 
 # internal workspace crates
+email_otp = { path = "workspace_crates/email_otp" }
 app_executable_version = { path = "workspace_crates/app_executable_version" }
 dynamic_stylesheets = { path = "workspace_crates/dynamic_stylesheets" }
 count_string_length = { path = "workspace_crates/count_string_length" }
@@ -53,6 +54,7 @@ encoding = { path = "workspace_crates/encoding" }
 # for injecting stylesheet links
 lol_html = "2.8.1"
 
+chrono = "0.4.44"
 
 unicode-segmentation = "1.13.2"
 git-version = "0.3.9"

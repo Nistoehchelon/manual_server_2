@@ -138,6 +138,7 @@ pub struct IndexLoggedInTemplate {
 #[template(path = "subscription.html")]
 pub struct SubscriptionTemplate {
     pub main_info: BaseTemplateData,
+    pub csrf_token: String,
     pub usd_cost: String,
     pub xmr_cost: String,
     pub ltc_cost: String,

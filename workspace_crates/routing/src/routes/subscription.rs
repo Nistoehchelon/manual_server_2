@@ -29,17 +29,25 @@ pub async fn get(
         return Ok(redirect_to("/".to_string()));
     }
 
+    let csrf_token = csrf_stuff::get_or_create_token(
+        db_pool.clone(),
+        session.id.clone(),
+        csrf_stuff::DesignatedPurpose::Normal,
+    )
+    .await
+    .map_err(InternalAppError::new)?;
     Ok(http_stuff::http_response::ok_html(get_html(
-        router_data.base_template_data,
+        router_data.base_template_data, csrf_token
     )))
 }
 
 fn get_html(
     base_template: BaseTemplateData,
+    csrf_token: String,
 ) -> String {
 
     let sub_template = SubscriptionTemplate {
-       
+       csrf_token,
         main_info: base_template,
         usd_cost: "1".to_string(),
         xmr_cost: "0.0025".to_string(),

@@ -11,7 +11,8 @@
 Subscription
 {% endblock %}
 {% block content%}
-<div>Cost per month: <span id="usd_cost_per_month">{{ usd_cost }}</span> USD/<span id="xmr_cost_per_month">{{ xmr_cost }}</span> XMR/<span id ="ltc_cost_per_month">{{ ltc_cost }} LTC</span></div>
+<div>Cost per month: <span id="usd_cost_per_month">{{ usd_cost }}</span> USD/<span id="xmr_cost_per_month">{{ xmr_cost
+        }}</span> XMR/<span id="ltc_cost_per_month">{{ ltc_cost }} LTC</span></div>
 <div>You may subscribe up to 12 months at a time.</div>
 <p>Choose your desired subscription duration and payment method.</p>
 <form method="post" action="/subscription">
@@ -36,7 +37,7 @@ Subscription
 
     </fieldset>
 
-     <div id="total_display"></div>
+    <div id="total_display"></div>
 
 
     {% if main_info.cloudflare_turnstile_enabled %}
@@ -45,56 +46,56 @@ Subscription
 
     <button {% if main_info.cloudflare_turnstile_enabled %} class="enable_only_if_cloudflare_turnstile_verifies" {%
         endif %}>Continue to payment</button>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><br>
 
 </form>
 
 
 
-<script nonce = "{{main_info.nonce }}">
-(function () {
-    const monthsInput = document.getElementById("months");
-    const usdPerMonth = parseFloat(document.getElementById("usd_cost_per_month").innerText);
-    const xmrPerMonth = parseFloat(document.getElementById("xmr_cost_per_month").innerText);
-    const ltcPerMonth = parseFloat(document.getElementById("ltc_cost_per_month").innerText);
+<script nonce="{{main_info.nonce }}">
+    (function () {
+        const monthsInput = document.getElementById("months");
+        const usdPerMonth = parseFloat(document.getElementById("usd_cost_per_month").innerText);
+        const xmrPerMonth = parseFloat(document.getElementById("xmr_cost_per_month").innerText);
+        const ltcPerMonth = parseFloat(document.getElementById("ltc_cost_per_month").innerText);
 
-    const totalDisplay = document.getElementById("total_display");
+        const totalDisplay = document.getElementById("total_display");
 
-    function getSelectedPayment() {
-        return document.querySelector('input[name="payment_method"]:checked').value;
-    }
-
-    function updateTotal() {
-        const months = parseInt(monthsInput.value || "0", 10);
-        if (!months || months <= 0) {
-            totalDisplay.innerText = "";
-            return;
+        function getSelectedPayment() {
+            return document.querySelector('input[name="payment_method"]:checked').value;
         }
 
-        const method = getSelectedPayment();
+        function updateTotal() {
+            const months = parseInt(monthsInput.value || "0", 10);
+            if (!months || months <= 0) {
+                totalDisplay.innerText = "";
+                return;
+            }
 
-        const totalUsd = usdPerMonth * months;
-        const totalXmr = xmrPerMonth * months;
-        const totalLtc = ltcPerMonth * months;
+            const method = getSelectedPayment();
 
-        let cryptoLine = "";
+            const totalUsd = usdPerMonth * months;
+            const totalXmr = xmrPerMonth * months;
+            const totalLtc = ltcPerMonth * months;
 
-        if (method === "ltc") {
-            cryptoLine = `${totalLtc.toFixed(8)} LTC`;
-        } else if (method === "xmr") {
-            cryptoLine = `${totalXmr.toFixed(8)} XMR`;
+            let cryptoLine = "";
+
+            if (method === "ltc") {
+                cryptoLine = `${totalLtc.toFixed(8)} LTC`;
+            } else if (method === "xmr") {
+                cryptoLine = `${totalXmr.toFixed(8)} XMR`;
+            }
+
+            totalDisplay.innerText =
+                `Total: ${months} months for ≈${cryptoLine} (≈${totalUsd.toFixed(2)} USD)`;
         }
 
-        totalDisplay.innerText =
-            `Total: ${months} months for ≈${cryptoLine} (≈${totalUsd.toFixed(2)} USD)`;
-    }
+        monthsInput.addEventListener("input", updateTotal);
+        document.querySelectorAll('input[name="payment_method"]').forEach(el => {
+            el.addEventListener("change", updateTotal);
+        });
 
-    monthsInput.addEventListener("input", updateTotal);
-    document.querySelectorAll('input[name="payment_method"]').forEach(el => {
-        el.addEventListener("change", updateTotal);
-    });
-
-    updateTotal();
-})();
+        updateTotal();
+    })();
 </script>
 {% endblock %}
-

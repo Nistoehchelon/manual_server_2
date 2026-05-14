@@ -21,9 +21,11 @@ Subscription
 
 
     <fieldset>
+       
         <legend>
-            <p>Payment method:</p>
+            Payment method:
         </legend>
+        
 
         <div> <input type="radio" id="ltc" name="payment_method" value="ltc" checked>
             <label for="ltc">LTC</label>
@@ -46,7 +48,7 @@ Subscription
 
     <button {% if main_info.cloudflare_turnstile_enabled %} class="enable_only_if_cloudflare_turnstile_verifies" {%
         endif %}>Continue to payment</button>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><br>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
 </form>
 

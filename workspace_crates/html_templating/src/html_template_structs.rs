@@ -131,7 +131,19 @@ pub struct ForumThreadMessageVersionsTemplate {
 pub struct IndexLoggedInTemplate {
     pub main_info: BaseTemplateData,
     pub user: User,
+    pub user_has_a_subscription: bool,
 }
+
+#[derive(Template)]
+#[template(path = "subscription.html")]
+pub struct SubscriptionTemplate {
+    pub main_info: BaseTemplateData,
+    pub usd_cost: String,
+    pub xmr_cost: String,
+    pub ltc_cost: String,
+}
+
+
 #[derive(Template)]
 #[template(path = "index_not_logged_in.html")]
 pub struct IndexNotLoggedInTemplate {

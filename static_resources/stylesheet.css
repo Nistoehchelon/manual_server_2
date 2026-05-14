@@ -15,7 +15,10 @@ body {
   /* prevents annoying long text by splitting it downwards */
 }
 textarea,
-input {
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"] {
     font-size: inherit;
   width: 95vw;
   box-sizing: border-box;

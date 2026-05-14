@@ -16,3 +16,4 @@ pub mod webhook_and_api;
 pub mod not_found;
 pub mod dynamic_stylesheet;
 pub mod email_otp;
+pub mod subscription;

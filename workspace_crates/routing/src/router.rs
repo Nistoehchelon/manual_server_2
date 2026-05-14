@@ -157,6 +157,11 @@ pub async fn route(
                     .await
                     .unwrap_or(internal_server_error_500())
             }
+            (HttpMethod::Get, "/subscription") => {
+                routes::subscription::get(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
             (HttpMethod::Get, p) if p.starts_with("/dynamic_stylesheet/") => {
                 routes::dynamic_stylesheet::get(router_data.clone())
                     .await
@@ -425,7 +430,7 @@ bluetooth=()"
 
     if server_config.cloudflare_turnstile_enabled {
         match request_data.path.as_str() {
-            "/signup" | "/login" | "/email_otp" => {
+            "/signup" | "/login" | "/email_otp" | "/subscription" => {
                 script_src = String::from("https://challenges.cloudflare.com");
                 frame_src = String::from("https://challenges.cloudflare.com");
             }

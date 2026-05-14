@@ -1,0 +1,100 @@
+{% extends "template_base.html" %}
+
+{% block head %}
+{% if main_info.cloudflare_turnstile_enabled %}
+{% include "includes/script_cloudflare_turnstile.html" %}
+{% endif %}
+
+{% endblock %}
+
+{% block title %}
+Subscription
+{% endblock %}
+{% block content%}
+<div>Cost per month: <span id="usd_cost_per_month">{{ usd_cost }}</span> USD/<span id="xmr_cost_per_month">{{ xmr_cost }}</span> XMR/<span id ="ltc_cost_per_month">{{ ltc_cost }} LTC</span></div>
+<div>You may subscribe up to 12 months at a time.</div>
+<p>Choose your desired subscription duration and payment method.</p>
+<form method="post" action="/subscription">
+    <label for="months">Duration: </label>
+    <input type="number" id="months" name="months" placeholder="In months..." min="1" max="12" step="1" required>
+
+
+    <fieldset>
+        <legend>
+            <p>Payment method:</p>
+        </legend>
+
+        <div> <input type="radio" id="ltc" name="payment_method" value="ltc" checked>
+            <label for="ltc">LTC</label>
+        </div>
+
+
+        <div><input type="radio" id="xmr" name="payment_method" value="xmr">
+            <label for="xmr">XMR</label>
+        </div>
+
+
+    </fieldset>
+
+     <div id="total_display"></div>
+
+
+    {% if main_info.cloudflare_turnstile_enabled %}
+    {% include "includes/div_cloudflare_turnstile.html" %}
+    {% endif %}
+
+    <button {% if main_info.cloudflare_turnstile_enabled %} class="enable_only_if_cloudflare_turnstile_verifies" {%
+        endif %}>Continue to payment</button>
+
+</form>
+
+
+
+<script nonce = "{{main_info.nonce }}">
+(function () {
+    const monthsInput = document.getElementById("months");
+    const usdPerMonth = parseFloat(document.getElementById("usd_cost_per_month").innerText);
+    const xmrPerMonth = parseFloat(document.getElementById("xmr_cost_per_month").innerText);
+    const ltcPerMonth = parseFloat(document.getElementById("ltc_cost_per_month").innerText);
+
+    const totalDisplay = document.getElementById("total_display");
+
+    function getSelectedPayment() {
+        return document.querySelector('input[name="payment_method"]:checked').value;
+    }
+
+    function updateTotal() {
+        const months = parseInt(monthsInput.value || "0", 10);
+        if (!months || months <= 0) {
+            totalDisplay.innerText = "";
+            return;
+        }
+
+        const method = getSelectedPayment();
+
+        const totalUsd = usdPerMonth * months;
+        const totalXmr = xmrPerMonth * months;
+        const totalLtc = ltcPerMonth * months;
+
+        let cryptoLine = "";
+
+        if (method === "ltc") {
+            cryptoLine = `${totalLtc.toFixed(8)} LTC`;
+        } else if (method === "xmr") {
+            cryptoLine = `${totalXmr.toFixed(8)} XMR`;
+        }
+
+        totalDisplay.innerText =
+            `Total: ${months} months for ≈${cryptoLine} (≈${totalUsd.toFixed(2)} USD)`;
+    }
+
+    monthsInput.addEventListener("input", updateTotal);
+    document.querySelectorAll('input[name="payment_method"]').forEach(el => {
+        el.addEventListener("change", updateTotal);
+    });
+
+    updateTotal();
+})();
+</script>
+{% endblock %}
+

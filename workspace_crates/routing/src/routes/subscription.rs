@@ -49,7 +49,7 @@ fn get_html(
     let sub_template = SubscriptionTemplate {
        csrf_token,
         main_info: base_template,
-        usd_cost: "1".to_string(),
+        usd_cost: "1.0".to_string(),
         xmr_cost: "0.0025".to_string(),
         ltc_cost: "0.017".to_string(),
     };

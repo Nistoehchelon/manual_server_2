@@ -132,7 +132,6 @@ Subscription
             mutations.forEach((mutation) => {
                 if (mutation.attributeName === 'disabled') {
                     const isEnabled = !submitButton.disabled;
-                    console.log("mutate");
                     if (isEnabled) {
                         if (!monthsValid) {
                             submitButton.disabled = true;

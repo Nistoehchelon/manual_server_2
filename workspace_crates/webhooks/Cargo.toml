@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 sqlx = { workspace = true }
 error_structs = { workspace = true }
+cryptocurrencies_stuff = { workspace = true }

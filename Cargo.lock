@@ -504,6 +504,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cryptocurrencies_stuff"
+version = "0.1.0"
+
+[[package]]
 name = "csrf_stuff"
 version = "0.1.0"
 dependencies = [
@@ -1765,6 +1769,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
+name = "payment"
+version = "0.1.0"
+dependencies = [
+ "cryptocurrencies_stuff",
+ "error_structs",
+ "id_generator_unique_in_db",
+ "sqlx",
+]
+
+[[package]]
 name = "pem-rfc7468"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2239,6 +2253,7 @@ dependencies = [
  "app_executable_version",
  "cloudflare_turnstile",
  "config_reader",
+ "cryptocurrencies_stuff",
  "csrf_stuff",
  "custom_site_pages",
  "db_manager",
@@ -3642,6 +3657,7 @@ dependencies = [
 name = "webhooks"
 version = "0.1.0"
 dependencies = [
+ "cryptocurrencies_stuff",
  "error_structs",
  "sqlx",
 ]

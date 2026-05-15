@@ -1,0 +1,10 @@
+[package]
+name = "payment"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+error_structs = { workspace = true }
+sqlx = { workspace = true }
+id_generator_unique_in_db = { workspace = true }
+cryptocurrencies_stuff = { workspace = true }

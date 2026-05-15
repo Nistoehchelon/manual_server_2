@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use cryptocurrencies_stuff::atomic_unit::XMRAtomicUnit;
 use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::parse_body_into_string_form_input_params,
@@ -52,7 +53,7 @@ pub async fn call_action(
                 .to_string();
           
             let amount = amount.parse::<u64>().map_err(InternalAppError::new)?;
-            let amount = webhooks::XMRAtomicUnit::from_atomic(amount);
+            let amount = XMRAtomicUnit::from_atomic(amount);
             webhooks::set_website_fund_xmr(db_pool.clone(), amount)
                 .await
                 .map_err(InternalAppError::new)?;

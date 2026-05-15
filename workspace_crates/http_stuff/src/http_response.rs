@@ -65,6 +65,7 @@ pub struct SetCookieHeader {
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum ContentType {
+    ApplicationJson,
     TextHtml,
     TextCss,
     TextPlain,
@@ -74,6 +75,7 @@ pub enum ContentType {
 impl Display for ContentType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let t = match self {
+            Self::ApplicationJson => "application/json",
             Self::TextHtml => "text/html",
             Self::TextCss => "text/css",
             Self::TextPlain => "text/plain",

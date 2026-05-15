@@ -15,17 +15,18 @@ Subscription
         }}</span> XMR/<span id="ltc_cost_per_month">{{ ltc_cost }} LTC</span></div>
 <div>You may subscribe up to 12 months at a time.</div>
 <p>Choose your desired subscription duration and payment method.</p>
-<form method="post" action="/subscription">
+<form id="subscription_form" method="post" action="/payment/create_invoice">
+    <input type="hidden" name="service" value="subscription">
     <label for="months">Duration: </label>
     <input type="number" id="months" name="months" placeholder="In months..." min="1" max="12" step="1" required>
 
-
+    <div id="months_error" class="error"></div>
     <fieldset>
-       
+
         <legend>
             Payment method:
         </legend>
-        
+
 
         <div> <input type="radio" id="ltc" name="payment_method" value="ltc" checked>
             <label for="ltc">LTC</label>
@@ -61,7 +62,30 @@ Subscription
         const xmrPerMonth = parseFloat(document.getElementById("xmr_cost_per_month").innerText);
         const ltcPerMonth = parseFloat(document.getElementById("ltc_cost_per_month").innerText);
 
+        const submitButton = document.querySelector("#subscription_form button");
         const totalDisplay = document.getElementById("total_display");
+        const monthsError = document.getElementById("months_error");
+        let monthsValid = false;
+
+        function validateMonths(months) {
+            if (!Number.isInteger(months) || months == 0) {
+                monthsError.innerText = "";
+                submitButton.disabled = true;
+                return false;
+            }
+            if (!Number.isInteger(months) || months < 1 || months > 12) {
+                monthsError.innerText = "Subscription duration must be between 1 and 12 months.";
+                submitButton.disabled = true;
+                return false;
+            }
+
+            monthsError.innerText = "";
+            let cf_turnstile_verified = script_cloudflare_turnstile__is_verified();
+            if (cf_turnstile_verified) {
+                submitButton.disabled = false;
+            }
+            return true;
+        }
 
         function getSelectedPayment() {
             return document.querySelector('input[name="payment_method"]:checked').value;
@@ -69,7 +93,8 @@ Subscription
 
         function updateTotal() {
             const months = parseInt(monthsInput.value || "0", 10);
-            if (!months || months <= 0) {
+            monthsValid = validateMonths(months);
+            if (!monthsValid) {
                 totalDisplay.innerText = "";
                 return;
             }
@@ -80,16 +105,19 @@ Subscription
             const totalXmr = xmrPerMonth * months;
             const totalLtc = ltcPerMonth * months;
 
-            let cryptoLine = "";
-
+            let paymentCurrencyString = "";
+            let paymentAmountString = "";
             if (method === "ltc") {
-                cryptoLine = `${totalLtc.toFixed(8)} LTC`;
+                paymentCurrencyString = "LTC";
+                paymentAmountString = `${totalLtc.toFixed(8)}`;
             } else if (method === "xmr") {
-                cryptoLine = `${totalXmr.toFixed(8)} XMR`;
+                paymentCurrencyString = "XMR";
+                paymentAmountString = `${totalXmr.toFixed(8)}`;
             }
 
+            const monthOrMonths = months === 1 ? "month" : "months";
             totalDisplay.innerText =
-                `Total: ${months} months for ≈${cryptoLine} (≈${totalUsd.toFixed(2)} USD)`;
+                `Total: ${months} ${monthOrMonths} for ≈ ${paymentAmountString} ${paymentCurrencyString} (≈ ${totalUsd.toFixed(2)} USD)`;
         }
 
         monthsInput.addEventListener("input", updateTotal);
@@ -98,6 +126,26 @@ Subscription
         });
 
         updateTotal();
+
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'disabled') {
+                    const isEnabled = !submitButton.disabled;
+                    console.log("mutate");
+                    if (isEnabled) {
+                        if (!monthsValid) {
+                            submitButton.disabled = true;
+                        }
+                    }
+                }
+            });
+        });
+
+        // Start observing for attribute changes
+        observer.observe(submitButton, {
+            attributes: true
+        });
     })();
 </script>
 {% endblock %}

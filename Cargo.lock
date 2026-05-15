@@ -2256,6 +2256,7 @@ dependencies = [
  "password_hashing",
  "reqwest",
  "serde",
+ "serde_json",
  "session",
  "sqlx",
  "tokio",

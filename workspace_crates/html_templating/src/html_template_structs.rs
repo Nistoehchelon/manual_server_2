@@ -135,7 +135,7 @@ pub struct IndexLoggedInTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "subscription.html")]
+#[template(path = "shop/subscription.html")]
 pub struct SubscriptionTemplate {
     pub main_info: BaseTemplateData,
     pub csrf_token: String,

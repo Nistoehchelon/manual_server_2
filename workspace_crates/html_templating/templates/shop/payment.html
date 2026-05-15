@@ -1,0 +1,45 @@
+{% extends "template_base.html" %}
+
+{% endblock %}
+
+{% block title %}
+Payment
+{% endblock %}
+{% block content%}
+Transfer the exact amount of {{ amount }} {{ currency }} to this address: {{ address }}<br>
+<div id="payment_status" data-payment-id="{{ payment_id }}">Awaiting payment...</div>
+<script nonce="{{ main_info.nonce }}">
+    (function () {
+        const statusEl = document.getElementById("payment_status");
+        const paymentId = statusEl.dataset.paymentId;
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch(`/payment/status?id=${paymentId}`);
+                const data = await res.json();
+
+                if (data.status === "pending") {
+                    statusEl.innerText = "Awaiting payment...";
+                }
+
+                if (data.status === "confirmations") {
+                    statusEl.innerText =
+                        `Confirmations ${data.current}/${data.required}`;
+                }
+
+                if (data.status === "complete") {
+                    statusEl.innerText = "Payment complete";
+                    clearInterval(timer);
+                }
+
+            } catch (err) {
+                console.error("Payment status error:", err);
+            }
+        }
+
+        fetchStatus(); // immediate call
+        const timer = setInterval(fetchStatus, 60_000); // every 1 min
+    })();
+
+</script>
+{% endblock %}

@@ -25,46 +25,59 @@ impl std::fmt::Display for PaymentMethod {
 #[derive(Clone)]
 pub struct InvoiceId(pub String);
 
-
 pub enum ValidService {
     Subscription,
 }
 impl ValidService {
-    pub fn try_from(s: &str,) -> Result<Self, SomeSortOfError> {
+    pub fn try_from(s: &str) -> Result<Self, SomeSortOfError> {
         match s {
-            "subscription" => {
-                Ok(Self::Subscription)
-            },
-            _ => {
-                Err(SomeSortOfError::new("Parse error"))
-            },
+            "subscription" => Ok(Self::Subscription),
+            _ => Err(SomeSortOfError::new("Parse error")),
         }
     }
 }
 
-
-
 pub async fn success(db_pool: sqlx::PgPool, invoice_id: InvoiceId) -> Result<(), SomeSortOfError> {
     let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
-    let _invoice = sqlx::query!("SELECT id FROM invoices WHERE id = $1", invoice_id.0).fetch_one(&mut *tx).await.map_err(SomeSortOfError::new)?;
-    let service = get_invoice_data(&mut tx, invoice_id.clone(), "service").await.map_err(SomeSortOfError::new)?;
+    let invoice = sqlx::query!("SELECT id FROM invoices WHERE id = $1", invoice_id.0)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(SomeSortOfError::new)?;
+    match invoice {
+        Some(_) => {}
+        None => {
+            return Err(SomeSortOfError::new("Invoice not found"));
+        }
+    }
+    let service = get_invoice_data(&mut tx, invoice_id.clone(), "service")
+        .await
+        .map_err(SomeSortOfError::new)?;
     let service = ValidService::try_from(&service).map_err(SomeSortOfError::new)?;
     match service {
         ValidService::Subscription => {
-            let subscription_expires_at = get_invoice_data(&mut tx, invoice_id.clone(), "subscription_expires_at").await.map_err(SomeSortOfError::new)?.parse::<u64>().map_err(SomeSortOfError::new)?;
-            let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id").await.map_err(SomeSortOfError::new)?;
+            let subscription_expires_at =
+                get_invoice_data(&mut tx, invoice_id.clone(), "subscription_expires_at")
+                    .await
+                    .map_err(SomeSortOfError::new)?
+                    .parse::<u64>()
+                    .map_err(SomeSortOfError::new)?;
+            let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id")
+                .await
+                .map_err(SomeSortOfError::new)?;
             user::subscription::set_expiry_time(&mut tx, &user_id, subscription_expires_at).await?;
-
-        },
+        }
     }
-    set_invoice_data(&mut tx, invoice_id, "status", "complete").await.map_err(SomeSortOfError::new)?;
+    set_invoice_data(&mut tx, invoice_id, "status", "complete")
+        .await
+        .map_err(SomeSortOfError::new)?;
     tx.commit().await.map_err(SomeSortOfError::new)?;
     Ok(())
-
 }
 
-
-pub async fn invoice_status(_tx: &mut Transaction<'_, Postgres>, _invoice_id: InvoiceId) -> Result<String, SomeSortOfError> {
+pub async fn invoice_status(
+    _tx: &mut Transaction<'_, Postgres>,
+    _invoice_id: InvoiceId,
+) -> Result<String, SomeSortOfError> {
     todo!();
 }
 

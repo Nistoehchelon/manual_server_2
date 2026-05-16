@@ -29,7 +29,7 @@ pub async fn create_invoice(
     tx: &mut Transaction<'_, Postgres>,
     user_id: String,
     service: PaymentService,
-    method: PaymentMethod,
+    payment_method: PaymentMethod,
 ) -> Result<InvoiceId, SomeSortOfError> {
     let invoice_id_string = id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices)
         .await
@@ -46,15 +46,39 @@ pub async fn create_invoice(
     set_invoice_data(tx, invoice_id.clone(), "user_id", &user_id)
         .await
         .map_err(SomeSortOfError::new)?;
-    set_invoice_data(tx, invoice_id.clone(), "payment_method", &method.to_string())
-        .await
-        .map_err(SomeSortOfError::new)?;
+    set_invoice_data(
+        tx,
+        invoice_id.clone(),
+        "payment_method",
+        &payment_method.to_string(),
+    )
+    .await
+    .map_err(SomeSortOfError::new)?;
+
+    let payment_amount_atomic_units = match payment_method {
+        PaymentMethod::XMR { amount } => amount.as_atomic(),
+        PaymentMethod::LTC { amount } => amount.as_atomic(),
+    };
+    set_invoice_data(
+        tx,
+        invoice_id.clone(),
+        "payment_amount_atomic_units",
+        &payment_amount_atomic_units.to_string(),
+    )
+    .await
+    .map_err(SomeSortOfError::new)?;
+
     const FIVE_MIN: u64 = 5 * 60;
     let invoice_expires_at = utc_now().map_err(SomeSortOfError::new)? + FIVE_MIN;
     let invoice_expires_at_string: &String = &invoice_expires_at.to_string();
-    set_invoice_data(tx, invoice_id.clone(), "invoice_expires_at", invoice_expires_at_string)
-        .await
-        .map_err(SomeSortOfError::new)?;
+    set_invoice_data(
+        tx,
+        invoice_id.clone(),
+        "invoice_expires_at",
+        invoice_expires_at_string,
+    )
+    .await
+    .map_err(SomeSortOfError::new)?;
     let curr_ts = &utc_now().map_err(SomeSortOfError::new)?.to_string();
     set_invoice_data(tx, invoice_id.clone(), "invoice_created_at", curr_ts)
         .await
@@ -66,9 +90,14 @@ pub async fn create_invoice(
             set_invoice_data(tx, invoice_id.clone(), "service", "subscription")
                 .await
                 .map_err(SomeSortOfError::new)?;
-            set_invoice_data(tx, invoice_id.clone(), "subscription_expires_at", &sub_expires_at)
-                .await
-                .map_err(SomeSortOfError::new)?;
+            set_invoice_data(
+                tx,
+                invoice_id.clone(),
+                "subscription_expires_at",
+                &sub_expires_at,
+            )
+            .await
+            .map_err(SomeSortOfError::new)?;
         }
     }
     Ok(invoice_id)

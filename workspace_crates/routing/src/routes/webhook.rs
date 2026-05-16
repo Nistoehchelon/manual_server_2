@@ -31,27 +31,52 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         resp.status_code = http_stuff::http_response::StatusCode::Code404NotFound;
         return Ok(resp);
     }
-    call_action(rt.db_pool, body_params).await
+
+    let parts: Vec<&str> = rt
+        .http_request_data
+        .path
+        .split('/')
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    match parts.as_slice() {
+        [_secret, _call_type, action_part] => {
+            let action = action_part.to_string();
+            call_action(rt.db_pool, action, body_params).await
+        }
+        _ => Err(InternalAppError::new("Invalid webhook/api parts")),
+    }
 }
 
 pub async fn call_action(
     db_pool: sqlx::PgPool,
+    action: String,
     body_params: HashMap<String, String>,
 ) -> Result<HttpResponseData, InternalAppError> {
-    let action = body_params
-        .get("action")
-        .map(|s| s.as_str())
-        .unwrap_or("")
-        .to_string();
-
     match action.as_str() {
+        "payment_success" => {
+            let Some(invoice_id) = body_params.get("invoice_id") else {
+                return Err(InternalAppError::new("Invalid format"))?;
+            };
+            let invoice_id = invoice::InvoiceId(invoice_id.to_string());
+            invoice::success(db_pool.clone(), invoice_id)
+                .await
+                .map_err(InternalAppError::new)?;
+            println!("payment_success webhook success");
+            let resp = ok(
+                "Payment successful\n".to_string().into_bytes(),
+                http_stuff::http_response::ContentType::TextPlain,
+                Some(Charset::Utf8),
+            );
+            Ok(resp)
+        }
         "set_website_fund_xmr" => {
             let amount = body_params
                 .get("amount")
                 .map(|s| s.as_str())
                 .unwrap_or("0")
                 .to_string();
-          
+
             let amount = amount.parse::<u64>().map_err(InternalAppError::new)?;
             let amount = XMRAtomicUnit::from_atomic(amount);
             webhooks::set_website_fund_xmr(db_pool.clone(), amount)

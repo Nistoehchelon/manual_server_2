@@ -46,6 +46,45 @@ pub async fn route(
         ..
     } = request_data.clone();
 
+    let router_data = RouterData {
+        session_notifications: Vec::new(),
+        server_config: server_config.clone(),
+        db_pool: db_pool.clone(),
+        session: session.clone(),
+        http_request_data: request_data.clone(),
+        base_template_data: base_template_data.clone(),
+    };
+    match (method.clone(), path.clone()) {
+        (HttpMethod::Post, path)
+            if path.starts_with(&format!(
+                "/{}/",
+                server_config.webhook_and_api_secret_path_prefix.clone()
+            )) =>
+        {
+            tracing::debug!(path);
+            let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+
+            match parts.as_slice() {
+                [_secret, call_type, _action] => match *call_type {
+                    "api" => {}
+                    "webhook" => {
+                        return Ok(routes::webhook::post(router_data.clone())
+                            .await
+                            .unwrap_or(internal_server_error_500()));
+                    }
+                    _ => {
+                        return Ok(internal_server_error_500());
+                    }
+                },
+
+                _ => {
+                    return Ok(internal_server_error_500());
+                }
+            }
+        }
+        _ => {}
+    }
+
     let mut response_data: HttpResponseData = 'response_block: {
         if session.logged_in {
             let user_associated_with_session_actually_exists =
@@ -152,16 +191,9 @@ pub async fn route(
                     .await
                     .unwrap_or(internal_server_error_500())
             }
-            (HttpMethod::Post, "/webhook_and_api") => {
-                routes::webhook_and_api::post(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
-            }
-            (HttpMethod::Get, "/subscription") => {
-                routes::subscription::get(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
-            }
+            (HttpMethod::Get, "/subscription") => routes::subscription::get(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
             (HttpMethod::Get, p) if p.starts_with("/dynamic_stylesheet/") => {
                 routes::dynamic_stylesheet::get(router_data.clone())
                     .await

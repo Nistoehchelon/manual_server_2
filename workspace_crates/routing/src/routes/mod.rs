@@ -12,7 +12,7 @@ pub mod logout;
 pub mod manage_custom_site_pages;
 pub mod view_custom_site_page;
 pub mod signup;
-pub mod webhook_and_api;
+pub mod webhook;
 pub mod not_found;
 pub mod dynamic_stylesheet;
 pub mod email_otp;

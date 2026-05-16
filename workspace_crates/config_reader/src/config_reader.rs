@@ -58,6 +58,7 @@ pub struct Config {
     pub per_ip_time_credits_capacity: Duration,
 
     pub password_hasher_config: PasswordHasherConfig,
+    pub webhook_and_api_secret_path_prefix: String,
 }
   
 pub fn read_config(config_file_path: PathBuf) -> Config {

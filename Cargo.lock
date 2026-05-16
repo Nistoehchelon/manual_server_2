@@ -1394,6 +1394,7 @@ dependencies = [
  "error_structs",
  "id_generator_unique_in_db",
  "sqlx",
+ "user",
 ]
 
 [[package]]

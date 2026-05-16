@@ -3,7 +3,7 @@ use error_structs::SomeSortOfError;
 use id_generator_unique_in_db::Table;
 use sqlx::{Postgres, Transaction};
 
-pub enum PaymentService {
+pub enum ServiceData {
     Subscription { expires_at: u64 },
 }
 
@@ -25,10 +25,46 @@ impl std::fmt::Display for PaymentMethod {
 #[derive(Clone)]
 pub struct InvoiceId(pub String);
 
+
+pub enum ValidService {
+    Subscription,
+}
+impl ValidService {
+    pub fn try_from(s: &str,) -> Result<Self, SomeSortOfError> {
+        match s {
+            "subscription" => {
+                Ok(Self::Subscription)
+            },
+            _ => {
+                Err(SomeSortOfError::new("Parse error"))
+            },
+        }
+    }
+}
+
+
+
+pub async fn success(db_pool: sqlx::PgPool, invoice_id: InvoiceId) -> Result<(), SomeSortOfError> {
+    let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
+    let _invoice = sqlx::query!("SELECT id FROM invoices WHERE id = $1", invoice_id.0).fetch_one(&mut *tx).await.map_err(SomeSortOfError::new)?;
+    let service = get_invoice_data(&mut tx, invoice_id.clone(), "service").await.map_err(SomeSortOfError::new)?;
+    let service = ValidService::try_from(&service).map_err(SomeSortOfError::new)?;
+    match service {
+        ValidService::Subscription => {
+            let subscription_expires_at = get_invoice_data(&mut tx, invoice_id.clone(), "subscription_expires_at").await.map_err(SomeSortOfError::new)?.parse::<u64>().map_err(SomeSortOfError::new)?;
+            let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id").await.map_err(SomeSortOfError::new)?;
+            user::subscription::set_expiry_time(&mut tx, &user_id, subscription_expires_at).await?;
+
+        },
+    }
+    tx.commit().await.map_err(SomeSortOfError::new)?;
+    Ok(())
+
+}
 pub async fn create_invoice(
     tx: &mut Transaction<'_, Postgres>,
     user_id: String,
-    service: PaymentService,
+    service: ServiceData,
     payment_method: PaymentMethod,
 ) -> Result<InvoiceId, SomeSortOfError> {
     let invoice_id_string = id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices)
@@ -85,7 +121,7 @@ pub async fn create_invoice(
         .map_err(SomeSortOfError::new)?;
 
     match service {
-        PaymentService::Subscription { expires_at } => {
+        ServiceData::Subscription { expires_at } => {
             let sub_expires_at = expires_at.to_string();
             set_invoice_data(tx, invoice_id.clone(), "service", "subscription")
                 .await
@@ -107,7 +143,7 @@ pub async fn get_invoice_data(
     tx: &mut Transaction<'_, Postgres>,
     invoice_id: InvoiceId,
     data_name: &str,
-) -> Result<Option<String>, SomeSortOfError> {
+) -> Result<String, SomeSortOfError> {
     let row = sqlx::query!(
         r#"
         SELECT value
@@ -118,11 +154,11 @@ pub async fn get_invoice_data(
         invoice_id.0,
         data_name
     )
-    .fetch_optional(&mut **tx)
+    .fetch_one(&mut **tx)
     .await
     .map_err(SomeSortOfError::new)?;
 
-    Ok(row.map(|r| r.value))
+    Ok(row.value)
 }
 
 pub async fn set_invoice_data(

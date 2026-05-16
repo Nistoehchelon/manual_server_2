@@ -1,4 +1,4 @@
-use ::invoice::{PaymentMethod, PaymentService, create_invoice, utc_now};
+use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
 use cryptocurrencies_stuff::atomic_unit::{AtomicUnit, CryptocurrencyConfig, LTC, XMR};
 use error_structs::{InternalAppError, SomeSortOfError};
 use http_stuff::{
@@ -118,7 +118,7 @@ pub async fn post_create_invoice(
     };
 
     let service = match service.as_str() {
-        "subscription" => PaymentService::Subscription {
+        "subscription" => ServiceData::Subscription {
             expires_at: {
                 let now = utc_now().map_err(InternalAppError::new)?;
                 now + (months * 30 * 24 * 60)
@@ -130,7 +130,7 @@ pub async fn post_create_invoice(
         }
     };
     let method = match service {
-        PaymentService::Subscription { .. } => match payment_method.as_str() {
+        ServiceData::Subscription { .. } => match payment_method.as_str() {
             "ltc" => PaymentMethod::LTC {
                 amount: get_by_usd::<LTC>(1.0 * (months as f64))
                     .await

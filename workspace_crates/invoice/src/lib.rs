@@ -57,10 +57,17 @@ pub async fn success(db_pool: sqlx::PgPool, invoice_id: InvoiceId) -> Result<(),
 
         },
     }
+    set_invoice_data(&mut tx, invoice_id, "status", "complete").await.map_err(SomeSortOfError::new)?;
     tx.commit().await.map_err(SomeSortOfError::new)?;
     Ok(())
 
 }
+
+
+pub async fn invoice_status(_tx: &mut Transaction<'_, Postgres>, _invoice_id: InvoiceId) -> Result<String, SomeSortOfError> {
+    todo!();
+}
+
 pub async fn create_invoice(
     tx: &mut Transaction<'_, Postgres>,
     user_id: String,

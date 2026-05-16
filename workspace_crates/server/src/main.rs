@@ -14,7 +14,7 @@ use server::{
         TokenBucket,
     },
     check_and_consume_buckets::check_and_consume_buckets,
-    log_tracing,
+    log_tracing, parse_args,
 };
 
 use std::{
@@ -35,11 +35,18 @@ use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
 
-
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
-    let continue_startup = app_executable_version::version_cli();
-    if !continue_startup {
+    let args = match parse_args::parse_args() {
+        Ok(args) => args,
+        Err(e) => {
+            eprintln!("{e}");
+            return Ok(());
+        }
+    };
+
+    if args.version {
+        println!("App version: {}", app_executable_version::VERSION);
         return Ok(());
     }
     dotenvy::dotenv().ok();

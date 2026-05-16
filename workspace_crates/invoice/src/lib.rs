@@ -50,8 +50,9 @@ pub async fn create_invoice(
         .await
         .map_err(SomeSortOfError::new)?;
     const FIVE_MIN: u64 = 5 * 60;
-    let invoice_expires_at = &(utc_now().map_err(SomeSortOfError::new)? + FIVE_MIN).to_string();
-    set_invoice_data(tx, invoice_id.clone(), "invoice_expires_at", invoice_expires_at)
+    let invoice_expires_at = utc_now().map_err(SomeSortOfError::new)? + FIVE_MIN;
+    let invoice_expires_at_string: &String = &invoice_expires_at.to_string();
+    set_invoice_data(tx, invoice_id.clone(), "invoice_expires_at", invoice_expires_at_string)
         .await
         .map_err(SomeSortOfError::new)?;
     let curr_ts = &utc_now().map_err(SomeSortOfError::new)?.to_string();
@@ -62,6 +63,9 @@ pub async fn create_invoice(
     match service {
         PaymentService::Subscription { expires_at } => {
             let sub_expires_at = expires_at.to_string();
+            set_invoice_data(tx, invoice_id.clone(), "service", "subscription")
+                .await
+                .map_err(SomeSortOfError::new)?;
             set_invoice_data(tx, invoice_id.clone(), "subscription_expires_at", &sub_expires_at)
                 .await
                 .map_err(SomeSortOfError::new)?;

@@ -17,4 +17,4 @@ pub mod not_found;
 pub mod dynamic_stylesheet;
 pub mod email_otp;
 pub mod subscription;
-pub mod payment;
+pub mod invoice;

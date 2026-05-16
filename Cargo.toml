@@ -19,8 +19,9 @@ members = ["workspace_crates/*"]
 [workspace.dependencies]
 
 # internal workspace crates
+custom_site_variables  =  { path = "workspace_crates/custom_site_variables" }
 cryptocurrencies_stuff  =  { path = "workspace_crates/cryptocurrencies_stuff" }
-payment = { path = "workspace_crates/payment" }
+invoice = { path = "workspace_crates/invoice" }
 email_otp = { path = "workspace_crates/email_otp" }
 app_executable_version = { path = "workspace_crates/app_executable_version" }
 dynamic_stylesheets = { path = "workspace_crates/dynamic_stylesheets" }

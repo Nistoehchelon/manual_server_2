@@ -22,6 +22,7 @@ impl std::fmt::Display for PaymentMethod {
     }
 }
 
+#[derive(Clone)]
 pub struct InvoiceId(pub String);
 
 pub async fn create_invoice(
@@ -30,52 +31,41 @@ pub async fn create_invoice(
     service: PaymentService,
     method: PaymentMethod,
 ) -> Result<InvoiceId, SomeSortOfError> {
-    let invoice_id = id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices)
+    let invoice_id_string = id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices)
         .await
         .map_err(SomeSortOfError::new)?;
-    sqlx::query!("INSERT INTO invoices (id) VALUES ($1)", invoice_id)
+    let invoice_id = InvoiceId(invoice_id_string.clone());
+    sqlx::query!("INSERT INTO invoices (id) VALUES ($1)", invoice_id_string)
         .execute(&mut **tx)
         .await
         .map_err(SomeSortOfError::new)?;
 
-    sqlx::query!(
-        "INSERT INTO invoice_data (invoice_id, name, value) VALUES ($1, $2, $3)",
-        invoice_id,
-        "user_id",
-        user_id.clone()
-    )
-    .execute(&mut **tx)
-    .await
-    .map_err(SomeSortOfError::new)?;
-
-    sqlx::query!(
-        "INSERT INTO invoice_data (invoice_id, name, value) VALUES ($1,$2,$3)",
-        invoice_id,
-        "payment_method",
-        method.to_string()
-    )
-    .execute(&mut **tx)
-    .await
-    .map_err(SomeSortOfError::new)?;
+    set_invoice_data(tx, invoice_id.clone(), "user_id", &user_id)
+        .await
+        .map_err(SomeSortOfError::new)?;
+    set_invoice_data(tx, invoice_id.clone(), "payment_method", &method.to_string())
+        .await
+        .map_err(SomeSortOfError::new)?;
+    const FIVE_MIN: u64 = 5 * 60;
+    let invoice_expires_at = &(utc_now().map_err(SomeSortOfError::new)? + FIVE_MIN).to_string();
+    set_invoice_data(tx, invoice_id.clone(), "invoice_expires_at", invoice_expires_at)
+        .await
+        .map_err(SomeSortOfError::new)?;
+    let curr_ts = &utc_now().map_err(SomeSortOfError::new)?.to_string();
+    set_invoice_data(tx, invoice_id.clone(), "invoice_created_at", curr_ts)
+        .await
+        .map_err(SomeSortOfError::new)?;
 
     match service {
         PaymentService::Subscription { expires_at } => {
-            let expires_at = expires_at.to_string();
-            sqlx::query!(
-                r#"INSERT INTO invoice_data (invoice_id, name, value) VALUES ($1, $2, $3)"#,
-                invoice_id,
-                "subscription_will_be_valid_until",
-                expires_at
-            )
-            .execute(&mut **tx)
-            .await
-            .map_err(SomeSortOfError::new)?;
+            let sub_expires_at = expires_at.to_string();
+            set_invoice_data(tx, invoice_id.clone(), "subscription_expires_at", &sub_expires_at)
+                .await
+                .map_err(SomeSortOfError::new)?;
         }
     }
-    Ok(InvoiceId(invoice_id))
+    Ok(invoice_id)
 }
-
-
 
 pub async fn get_invoice_data(
     tx: &mut Transaction<'_, Postgres>,
@@ -130,4 +120,10 @@ pub async fn set_invoice_data(
     .map_err(SomeSortOfError::new)?;
 
     Ok(())
+}
+
+pub fn utc_now() -> Result<u64, SomeSortOfError> {
+    let now = chrono::Utc::now().timestamp();
+    let now = u64::try_from(now).map_err(SomeSortOfError::new)?;
+    Ok(now)
 }

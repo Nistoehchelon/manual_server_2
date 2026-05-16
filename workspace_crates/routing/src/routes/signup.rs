@@ -1,3 +1,4 @@
+
 use email_otp::CreateEmailOtpInput;
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, BaseTemplateData};
@@ -11,7 +12,7 @@ use session::{
 };
 use user::{ValidatedPassword, ValidatedUsername};
 
-use crate::RouterData;
+use crate::{RouterData, validate_turnstile};
 
 pub async fn get(
     router_data: RouterData,
@@ -66,6 +67,7 @@ fn get_signup_html(
         password_length_max: max_length_user_password,
     })
 }
+
 
 pub async fn post(
     router_data: RouterData,
@@ -123,39 +125,25 @@ pub async fn post(
             }
         };
 
-    if server_config.cloudflare_turnstile_enabled {
-        let cf_turnstile_token = match body_params.get("cf-turnstile-response").cloned() {
-            Some(t) => t,
-            None => {
-                return Err(InternalAppError::new(
-                    "Could not retrieve cf_turnstile_token from request body",
-                ));
-            }
-        };
-        let client_ip = http_request_data.x_real_ip;
-
-        if !cloudflare_turnstile::validate_turnstile(
-            router_data
-                .server_config
-                .cloudflare_turnstile_secret_key
+    if server_config.cloudflare_turnstile_enabled
+        && !validate_turnstile(
+            body_params.clone(),
+            server_config
+                .cloudflare_turnstile_post_parameter_name
                 .clone(),
-            cf_turnstile_token,
-            client_ip,
+            http_request_data.x_real_ip,
+            server_config.cloudflare_turnstile_secret_key.clone(),
         )
         .await
-        {
-            add_session_notification(
-                db_pool.clone(),
-                SessionNotification {
-                    session_id: session.id.clone(),
-                    message: String::from("Could not validate Turnstile Captcha"),
-                    notification_type: session::SessionNotificationType::Error,
-                },
-            )
-            .await
-            .map_err(InternalAppError::new)?;
-            return Ok(redirect_to("/signup".to_string()));
-        }
+        .map_err(InternalAppError::new)?
+    {
+        add_session_notification_error(
+            db_pool.clone(),
+            session.id.clone(),
+            String::from("Could not validate Turnstile Captcha"),
+        )
+        .await;
+        return Ok(redirect_to("/signup".to_string()));
     }
 
     let csrf_token_valid =
@@ -163,16 +151,8 @@ pub async fn post(
             .await
             .map_err(InternalAppError::new)?;
     if !csrf_token_valid {
-        add_session_notification(
-            db_pool.clone(),
-            SessionNotification {
-                message: "csrf_token validation error".to_string(),
-                session_id: session.id.clone(),
-                notification_type: session::SessionNotificationType::Error,
-            },
-        )
-        .await
-        .map_err(InternalAppError::new)?;
+        add_session_notification_error(db_pool.clone(), session.id.clone(), "csrf_token validation error".to_string())
+        .await;
         return Ok(redirect_to("/signup".to_string()));
     }
 

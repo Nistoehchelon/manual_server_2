@@ -1,3 +1,4 @@
+use custom_site_variables::find_custom_site_variable;
 use db_manager::DbError;
 use error_structs::SomeSortOfError;
 use forum::ForumThread;
@@ -17,14 +18,14 @@ pub async fn list_of_site_pages(
 }
 
 use regex::Regex;
-use std::collections::{HashSet};
+use std::collections::HashSet;
 
 pub async fn replace_variables_with_contents(
     db_pool: sqlx::PgPool,
     input: String,
 ) -> Result<String, DbError> {
     let input = input.as_str();
- // match [[variable_name]]
+    // match [[variable_name]]
     let re = Regex::new(r"\[\[(.*?)\]\]").unwrap();
 
     let mut output = input.to_string();
@@ -40,16 +41,13 @@ pub async fn replace_variables_with_contents(
     let mut cache = std::collections::HashMap::new();
 
     for name in names {
-        let row = sqlx::query!(
-            r#"SELECT value FROM custom_site_variables WHERE name = $1"#,
-            name
-        )
-        .fetch_optional(&db_pool)
-        .await
-        .map_err(DbError::new)?;
-
-        if let Some(r) = row {
-            cache.insert(name, r.value);
+        let mut tx = db_pool.clone().begin().await.map_err(DbError::new)?;
+        let var_val = find_custom_site_variable(&mut tx, name.clone())
+            .await
+            .map_err(DbError::new)?;
+        tx.commit().await.map_err(DbError::new)?;
+        if let Some(var_val) = var_val {
+            cache.insert(name, var_val);
         }
     }
 

@@ -20,6 +20,7 @@ pub struct Config {
     pub cloudflare_turnstile_enabled: bool,
     pub cloudflare_turnstile_site_key: String,
     pub cloudflare_turnstile_secret_key: String,
+    pub cloudflare_turnstile_post_parameter_name: String,
 
     pub port: u64,
     pub ip: String,

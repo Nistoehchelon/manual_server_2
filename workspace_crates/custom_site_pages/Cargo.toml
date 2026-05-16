@@ -10,3 +10,4 @@ error_structs = { workspace = true }
 forum = { workspace = true }
 webhooks = { workspace = true }
 regex = { workspace = true }
+custom_site_variables = { workspace = true }

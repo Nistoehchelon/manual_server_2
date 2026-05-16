@@ -543,12 +543,21 @@ dependencies = [
 name = "custom_site_pages"
 version = "0.1.0"
 dependencies = [
+ "custom_site_variables",
  "db_manager",
  "error_structs",
  "forum",
  "regex",
  "sqlx",
  "webhooks",
+]
+
+[[package]]
+name = "custom_site_variables"
+version = "0.1.0"
+dependencies = [
+ "error_structs",
+ "sqlx",
 ]
 
 [[package]]
@@ -1377,6 +1386,17 @@ name = "into_vec"
 version = "0.1.0"
 
 [[package]]
+name = "invoice"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "cryptocurrencies_stuff",
+ "error_structs",
+ "id_generator_unique_in_db",
+ "sqlx",
+]
+
+[[package]]
 name = "ipnet"
 version = "2.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1767,16 +1787,6 @@ name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
-
-[[package]]
-name = "payment"
-version = "0.1.0"
-dependencies = [
- "cryptocurrencies_stuff",
- "error_structs",
- "id_generator_unique_in_db",
- "sqlx",
-]
 
 [[package]]
 name = "pem-rfc7468"
@@ -2256,6 +2266,7 @@ dependencies = [
  "cryptocurrencies_stuff",
  "csrf_stuff",
  "custom_site_pages",
+ "custom_site_variables",
  "db_manager",
  "dynamic_stylesheets",
  "email_otp",
@@ -2266,6 +2277,7 @@ dependencies = [
  "id_generator",
  "id_generator_unique_in_db",
  "into_vec",
+ "invoice",
  "lol_html",
  "pagination",
  "password_hashing",
@@ -3658,6 +3670,7 @@ name = "webhooks"
 version = "0.1.0"
 dependencies = [
  "cryptocurrencies_stuff",
+ "custom_site_variables",
  "error_structs",
  "sqlx",
 ]

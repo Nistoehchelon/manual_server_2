@@ -3,6 +3,11 @@ use session::get_session_by_session_id;
 use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;
 
+
+pub async fn user_can_create_invoice(_db_pool: sqlx::PgPool, _user_id: String) -> Result<bool, SomeSortOfError> {
+    Ok(true)
+}
+
 #[derive(Debug, Clone)]
 pub struct UserCanViewAppExecutableVersionInput {
     pub db_pool: sqlx::PgPool,

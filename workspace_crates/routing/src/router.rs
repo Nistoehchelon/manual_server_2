@@ -168,7 +168,12 @@ pub async fn route(
                     .unwrap_or(internal_server_error_500())
             }
             (HttpMethod::Get, "/payment/status") => {
-                routes::payment::get_status(router_data.clone())
+                routes::invoice::get_status(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
+            (HttpMethod::Post, "/payment/create_invoice") => {
+                routes::invoice::post_create_invoice(router_data.clone())
                     .await
                     .unwrap_or(internal_server_error_500())
             }

@@ -7,3 +7,4 @@ edition = "2024"
 sqlx = { workspace = true }
 error_structs = { workspace = true }
 cryptocurrencies_stuff = { workspace = true }
+custom_site_variables = { workspace = true }

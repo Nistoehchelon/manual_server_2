@@ -151,8 +151,9 @@ pub async fn post_create_invoice(
     let id = create_invoice(&mut tx, user.id, service, method)
         .await
         .map_err(InternalAppError::new)?;
+    tx.commit().await.map_err(InternalAppError::new)?;
     add_session_notification_success(db_pool.clone(), session.id, "Invoice creation successful".to_string()).await;
-    Ok(redirect_to(format!("invoice/view?id={}", id.0)))
+    Ok(redirect_to(format!("/invoice/view?id={}", id.0)))
 }
 
 pub async fn get_by_usd<C: CryptocurrencyConfig>(

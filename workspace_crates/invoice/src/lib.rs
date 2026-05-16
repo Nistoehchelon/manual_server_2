@@ -40,6 +40,9 @@ pub async fn create_invoice(
         .await
         .map_err(SomeSortOfError::new)?;
 
+    set_invoice_data(tx, invoice_id.clone(), "status", "pending")
+        .await
+        .map_err(SomeSortOfError::new)?;
     set_invoice_data(tx, invoice_id.clone(), "user_id", &user_id)
         .await
         .map_err(SomeSortOfError::new)?;

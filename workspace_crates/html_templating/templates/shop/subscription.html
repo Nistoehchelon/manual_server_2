@@ -15,7 +15,7 @@ Subscription
         }}</span> XMR/<span id="ltc_cost_per_month">{{ ltc_cost }} LTC</span></div>
 <div>You may subscribe up to 12 months at a time.</div>
 <p>Choose your desired subscription duration and payment method.</p>
-<form id="subscription_form" method="post" action="/payment/create_invoice">
+<form id="subscription_form" method="post" action="/invoice/create_invoice">
     <input type="hidden" name="service" value="subscription">
     <label for="months">Duration: </label>
     <input type="number" id="months" name="months" placeholder="In months..." min="1" max="12" step="1" required>

@@ -22,6 +22,8 @@ pub struct Config {
     pub cloudflare_turnstile_secret_key: String,
     pub cloudflare_turnstile_post_parameter_name: String,
 
+    pub webhook_and_api_secret_path_prefix: String,
+
     pub port: u64,
     pub ip: String,
     pub database_url: String,
@@ -58,9 +60,8 @@ pub struct Config {
     pub per_ip_time_credits_capacity: Duration,
 
     pub password_hasher_config: PasswordHasherConfig,
-    pub webhook_and_api_secret_path_prefix: String,
 }
-  
+
 pub fn read_config(config_file_path: PathBuf) -> Config {
     dotenvy::from_path(config_file_path).ok();
 

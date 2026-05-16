@@ -4,7 +4,7 @@ use id_generator_unique_in_db::Table;
 use sqlx::{Postgres, Transaction};
 
 pub enum ServiceData {
-    Subscription { expires_at: u64 },
+    Subscription { months: u64, expires_at: u64 },
 }
 
 pub enum PaymentMethod {
@@ -141,9 +141,12 @@ pub async fn create_invoice(
         .map_err(SomeSortOfError::new)?;
 
     match service {
-        ServiceData::Subscription { expires_at } => {
+        ServiceData::Subscription { months, expires_at } => {
             let sub_expires_at = expires_at.to_string();
             set_invoice_data(tx, invoice_id.clone(), "service", "subscription")
+                .await
+                .map_err(SomeSortOfError::new)?;
+            set_invoice_data(tx, invoice_id.clone(), "subscription_months", &months.to_string())
                 .await
                 .map_err(SomeSortOfError::new)?;
             set_invoice_data(

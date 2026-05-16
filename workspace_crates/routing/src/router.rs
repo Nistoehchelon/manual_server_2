@@ -199,8 +199,13 @@ pub async fn route(
                     .await
                     .unwrap_or(internal_server_error_500())
             }
-            (HttpMethod::Get, "/invoice/status") => {
-                routes::invoice::get_status(router_data.clone())
+            (HttpMethod::Get, "/invoice/json_status") => {
+                routes::invoice::get_json_status(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
+            (HttpMethod::Get, "/invoice/view") => {
+                routes::invoice::get_view(router_data.clone())
                     .await
                     .unwrap_or(internal_server_error_500())
             }

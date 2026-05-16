@@ -71,6 +71,18 @@ pub struct NotFoundTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "shop/view_invoice.html")]
+pub struct ViewInvoiceTemplate {
+    pub main_info: BaseTemplateData,
+    pub amount: String,
+    pub currency: String,
+    pub address: String,
+    pub invoice_id: String,
+
+}
+
+
+#[derive(Template)]
 #[template(path = "forum_thread.html")]
 pub struct ForumThread {
     pub main_info: BaseTemplateData,

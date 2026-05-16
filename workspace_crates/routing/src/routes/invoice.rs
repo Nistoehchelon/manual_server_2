@@ -1,9 +1,10 @@
 use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
 use cryptocurrencies_stuff::atomic_unit::{AtomicUnit, CryptocurrencyConfig, LTC, XMR};
 use error_structs::{InternalAppError, SomeSortOfError};
+use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
 use http_stuff::{
     http_request_parsing::parse_body_into_string_form_input_params,
-    http_response::{Charset, HttpResponseData, redirect_to},
+    http_response::{Charset, HttpResponseData, ok_html, redirect_to},
 };
 use session::{add_session_notification_error, add_session_notification_success};
 
@@ -18,9 +19,28 @@ enum PaymentStatusResponse {
     _Complete,
 }
 
-pub async fn get_status(_router_data: RouterData) -> Result<HttpResponseData, InternalAppError> {
+pub async fn get_json_status(
+    router_data: RouterData,
+) -> Result<HttpResponseData, InternalAppError> {
+    let confs = session::get_custom_data_or_empty_string(
+        router_data.db_pool.clone(),
+        router_data.session.id.clone(),
+        "test_confs".to_string(),
+    )
+    .await
+    .map_err(InternalAppError::new)?;
+    let confs = confs.parse::<u64>().unwrap_or_default();
+    session::set_custom_data(
+        router_data.db_pool.clone(),
+        router_data.session.id.clone(),
+        "test_confs".to_string(),
+        (confs + 1).to_string(),
+    )
+    .await
+    .map_err(InternalAppError::new)?;
+
     let content = serde_json::to_string(&PaymentStatusResponse::Confirmations {
-        current: 5,
+        current: confs as u8,
         required: 10,
     })
     .map_err(InternalAppError::new)?; // test random paymentstatusresponse, let's say confirmations current 5 out of 10
@@ -32,6 +52,40 @@ pub async fn get_status(_router_data: RouterData) -> Result<HttpResponseData, In
     Ok(resp)
 }
 
+pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, InternalAppError> {
+    let RouterData {
+        server_config: _,
+        db_pool,
+        http_request_data,
+        session,
+        ..
+    } = router_data.clone();
+
+    let Some(invoice_id) = http_request_data.query.get("id").cloned() else {
+        return Ok(redirect_to("/".to_string()));
+    };
+    if !abac::user_can_view_invoice(db_pool.clone(), session.user_id.clone(), invoice_id.clone())
+        .await
+        .map_err(InternalAppError::new)?
+    {
+        tracing::error!(
+            "User tried to view an invoice (not necessarily an invoice that actually exists) but were denied"
+        );
+        return Ok(redirect_to("/".to_string()));
+    }
+
+    // test
+    let currency = "LTC".to_string();
+    let amount = "0.017".to_string();
+    let address = "ltcj23jke231rj1kn".to_string();
+    Ok(ok_html(render(ViewInvoiceTemplate {
+        main_info: router_data.base_template_data,
+        amount,
+        currency,
+        address,
+        invoice_id,
+    })))
+}
 pub async fn post_create_invoice(
     router_data: RouterData,
 ) -> Result<HttpResponseData, InternalAppError> {
@@ -108,29 +162,31 @@ pub async fn post_create_invoice(
         return Ok(redirect_to("/signup".to_string()));
     }
 
-    let Some(months) = body_params.get("months").to_owned() else {
-        tracing::error!("Invalid invoice Subscription months field");
-        return Ok(redirect_to("/".to_string()));
-    };
-    let Ok(months) = months.parse::<u64>() else {
-        tracing::error!("Invalid invoice Subscription months field");
-        return Ok(redirect_to("/".to_string()));
-    };
-
     let service = match service.as_str() {
-        "subscription" => ServiceData::Subscription {
-            expires_at: {
-                let now = utc_now().map_err(InternalAppError::new)?;
-                now + (months * 30 * 24 * 60)
-            },
-        },
+        "subscription" => {
+            let Some(months) = body_params.get("months").to_owned() else {
+                tracing::error!("Invalid invoice Subscription months field");
+                return Ok(redirect_to("/".to_string()));
+            };
+            let Ok(months) = months.parse::<u64>() else {
+                tracing::error!("Invalid invoice Subscription months field");
+                return Ok(redirect_to("/".to_string()));
+            };
+            ServiceData::Subscription {
+                months,
+                expires_at: {
+                    let now = utc_now().map_err(InternalAppError::new)?;
+                    now + (months * 30 * 24 * 60)
+                },
+            }
+        }
         _ => {
             tracing::error!("Invalid invoice service");
             return Ok(redirect_to("/".to_string()));
         }
     };
     let method = match service {
-        ServiceData::Subscription { .. } => match payment_method.as_str() {
+        ServiceData::Subscription { months, .. } => match payment_method.as_str() {
             "ltc" => PaymentMethod::LTC {
                 amount: get_by_usd::<LTC>(1.0 * (months as f64))
                     .await
@@ -152,7 +208,12 @@ pub async fn post_create_invoice(
         .await
         .map_err(InternalAppError::new)?;
     tx.commit().await.map_err(InternalAppError::new)?;
-    add_session_notification_success(db_pool.clone(), session.id, "Invoice creation successful".to_string()).await;
+    add_session_notification_success(
+        db_pool.clone(),
+        session.id,
+        "Invoice creation successful".to_string(),
+    )
+    .await;
     Ok(redirect_to(format!("/invoice/view?id={}", id.0)))
 }
 

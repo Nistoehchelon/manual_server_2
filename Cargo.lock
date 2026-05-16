@@ -11,6 +11,7 @@ dependencies = [
  "dynamic_stylesheets",
  "error_structs",
  "forum",
+ "invoice",
  "session",
  "session_structs_and_so_on",
  "sqlx",

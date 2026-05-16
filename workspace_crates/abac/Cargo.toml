@@ -13,3 +13,4 @@ user = { workspace = true }
 forum = { workspace = true }
 custom_site_pages = { workspace = true }
 dynamic_stylesheets = { workspace = true }
+invoice = { workspace = true }

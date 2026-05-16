@@ -1,21 +1,18 @@
 {% extends "template_base.html" %}
-
-{% endblock %}
-
 {% block title %}
-Payment
+Invoice
 {% endblock %}
 {% block content%}
 Transfer the exact amount of {{ amount }} {{ currency }} to this address: {{ address }}<br>
-<div id="payment_status" data-payment-id="{{ payment_id }}">Awaiting payment...</div>
+<div id="payment_status" data-invoice-id="{{ invoice_id }}">Awaiting payment...</div>
 <script nonce="{{ main_info.nonce }}">
     (function () {
         const statusEl = document.getElementById("payment_status");
-        const paymentId = statusEl.dataset.paymentId;
+        const invoiceId = statusEl.dataset.invoiceId;
 
         async function fetchStatus() {
             try {
-                const res = await fetch(`/payment/status?id=${paymentId}`);
+                const res = await fetch(`/invoice/json_status?id=${invoiceId}`);
                 const data = await res.json();
 
                 if (data.status === "pending") {
@@ -38,7 +35,8 @@ Transfer the exact amount of {{ amount }} {{ currency }} to this address: {{ add
         }
 
         fetchStatus(); // immediate call
-        const timer = setInterval(fetchStatus, 60_000); // every 1 min
+        let thirty_secs_in_ms = 30_000;
+        const timer = setInterval(fetchStatus, thirty_secs_in_ms); 
     })();
 
 </script>

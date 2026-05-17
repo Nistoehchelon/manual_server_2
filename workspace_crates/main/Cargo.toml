@@ -7,3 +7,6 @@ edition = "2024"
 tokio = { workspace = true }
 server = { workspace = true }
 routing = { workspace = true }
+sqlx = { workspace = true }
+config_reader = { workspace = true }
+dotenvy = { workspace = true }

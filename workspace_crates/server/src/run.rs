@@ -32,7 +32,7 @@ use tracing_appender::rolling;
 
 
 pub type HandlerFn = Arc<
-    dyn Fn(HttpRequestData, sqlx::PgPool, Config) -> Pin<Box<dyn Future<Output = HttpResponseData> + Send>>
+    dyn Fn(HttpRequestData, Config) -> Pin<Box<dyn Future<Output = HttpResponseData> + Send>>
         + Send
         + Sync,
 >; 
@@ -85,9 +85,6 @@ pub async fn run(handler: HandlerFn) -> std::io::Result<()> {
     }));
     let ip_buckets: IpBuckets = Arc::new(Mutex::new(HashMap::new()));
 
-    let db_pool = sqlx::PgPool::connect(&server_config.database_url)
-        .await
-        .expect("I expected pool construction to succeed :)");
 
     let mut tasks = tokio::task::JoinSet::new();
     loop {
@@ -95,7 +92,6 @@ pub async fn run(handler: HandlerFn) -> std::io::Result<()> {
             res = listener.accept() => {
                 let global_bucket = global_bucket.clone();
                 let ip_buckets = ip_buckets.clone();
-                let db_pool = db_pool.clone();
                 let server_config = server_config.clone();
                 let (tcp, peer_ip) =
                     match res {
@@ -113,7 +109,6 @@ pub async fn run(handler: HandlerFn) -> std::io::Result<()> {
                    
                     handle_stream(
                         &mut reader,
-                        db_pool,
                         peer_ip.ip(),
                         global_bucket,
                         ip_buckets,
@@ -147,7 +142,6 @@ pub async fn run(handler: HandlerFn) -> std::io::Result<()> {
 #[tracing::instrument(skip_all, target = "shared_context", fields(path = field::Empty, remote_ip = field::Empty, user_id = field::Empty, span_id = field::Empty, method = field::Empty))]
 pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     reader: &mut BufReader<S>,
-    db_pool: sqlx::PgPool,
     peer_ip: IpAddr,
     global_bucket: GlobalBuckets,
     ip_buckets: IpBuckets,
@@ -244,7 +238,6 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
         requests_count += 1;
         let response_data = generate_response(
             request_data,
-            db_pool.clone(),
             requests_count > keep_alive_max_requests_per_connection,
             server_config.clone(),
             handler.clone(),
@@ -297,13 +290,12 @@ pub async fn consume_time_spent_from_time_credits_bucket(
 }
 pub async fn generate_response(
     request_data: HttpRequestData,
-    db_pool: sqlx::PgPool,
     keep_alive_max_requests_reached: bool,
     server_config: Config,
     handler: HandlerFn,
 ) -> HttpResponseData {
     let mut response_data =
-        handler(request_data.clone(), db_pool, server_config).await;
+        handler(request_data.clone(), server_config).await;
     let close_or_keep_alive = if keep_alive_max_requests_reached {
         KeepAliveOrClose::Close
     } else {

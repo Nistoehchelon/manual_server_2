@@ -9,7 +9,7 @@ use http_stuff::{
     http_request_parsing::{HttpMethod, HttpRequestData},
     http_response::{
         self, Charset, ContentType, HttpResponseData, KeepAliveOrClose, SetCookieHeader,
-        StatusCode, internal_server_error_500, redirect_to, standalone_response,
+        StatusCode, internal_server_error_500, redirect_to,
     },
 };
 use session::{self, Session, get_session_by_session_id, set_previous_page_load_time_ms};
@@ -240,12 +240,7 @@ pub async fn route(
     Ok(response_data)
 }
 
-pub async fn response_to_bytes(response_data: HttpResponseData) -> Vec<u8> {
-    match response_data.response() {
-        Ok(rb) => rb,
-        Err(_) => standalone_response(StatusCode::Code500InternalServerError, "Error".to_string()),
-    }
-}
+
 pub async fn generate_response_data(
     request_data: HttpRequestData,
     db_pool: sqlx::PgPool,

@@ -266,6 +266,13 @@ impl Default for Headers {
     }
 }
 
+pub async fn response_to_bytes(response_data: HttpResponseData) -> Vec<u8> {
+    match response_data.response() {
+        Ok(rb) => rb,
+        Err(_) => standalone_response(StatusCode::Code500InternalServerError, "Error".to_string()),
+    }
+}
+
 pub fn ok_html(content: String) -> HttpResponseData {
     ok(
         content.into_bytes(),

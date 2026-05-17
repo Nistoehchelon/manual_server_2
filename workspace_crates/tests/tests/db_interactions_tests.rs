@@ -1,4 +1,4 @@
-use config_reader::read_config;
+use config_reader::{ServerConfig, read_config};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn test_read_write() {
@@ -9,7 +9,7 @@ async fn test_read_write() {
         .map(PathBuf::from)
         .expect("WORKSPACE_ROOT_CONFIG_FILE must be set");
 
-    let env = read_config(config_path);
+    let env = read_config::<ServerConfig>(config_path);
     let pool = sqlx::PgPool::connect(&env.database_url)
         .await
         .expect("No pool :(");

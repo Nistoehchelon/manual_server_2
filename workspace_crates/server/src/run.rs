@@ -3,10 +3,8 @@ use http_stuff::{
     http_request_parsing::{
         HttpParserConfig, HttpRequestData, HttpRequestParsingError, parse_http_request,
     },
-    http_response::{HttpResponseData, KeepAliveOrClose, StatusCode, standalone_response},
+    http_response::{HttpResponseData, KeepAliveOrClose, StatusCode, response_to_bytes, standalone_response},
 };
-
-use routing::router::response_to_bytes;
 
 use crate::{
     buckets_for_requests::{

@@ -19,5 +19,5 @@ async fn main() -> std::io::Result<()> {
                     .await
             })
         });
-    server::run(handler).await
+    server::run(handler, app_executable_version::VERSION.to_string()).await
 }

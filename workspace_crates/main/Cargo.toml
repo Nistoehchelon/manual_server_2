@@ -11,3 +11,4 @@ sqlx = { workspace = true }
 config_reader = { workspace = true }
 site_config = { workspace = true }
 dotenvy = { workspace = true }
+app_executable_version = { workspace = true }

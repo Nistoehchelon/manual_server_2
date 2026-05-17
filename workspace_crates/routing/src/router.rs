@@ -12,14 +12,10 @@ use http_stuff::{
         StatusCode, internal_server_error_500, redirect_to, standalone_response,
     },
 };
-use session::{
-    self, Session, get_session_by_session_id, set_previous_page_load_time_ms,
-};
+use session::{self, Session, get_session_by_session_id, set_previous_page_load_time_ms};
 use user::{self, get_user_by_user_id};
 
 use routes;
-
-
 
 pub async fn route(
     db_pool: sqlx::PgPool,
@@ -30,11 +26,8 @@ pub async fn route(
     base_template_data: BaseTemplateData,
 ) -> Result<HttpResponseData, InternalAppError> {
     let HttpRequestData {
-        path_and_query: _path_and_query,
         path,
         method,
-        query: _,
-        body_bytes: _,
         ..
     } = request_data.clone();
 
@@ -196,17 +189,16 @@ pub async fn route(
                     .await
                     .unwrap_or(internal_server_error_500())
             }
-            (HttpMethod::Get, "/invoice/view") => {
-                routes::invoice::get_view(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
-            }
+            (HttpMethod::Get, "/invoice/view") => routes::invoice::get_view(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
             (HttpMethod::Post, "/invoice/create_invoice") => {
                 routes::invoice::post_create_invoice(router_data.clone())
                     .await
                     .unwrap_or(internal_server_error_500())
             }
             (_method, path) => {
+                // in this route, either the page is a dynamic custom page (uses forum as backbone) or not found.
                 let mut path = path.to_string();
                 path.remove(0); // remove slash
                 if !path.is_empty()

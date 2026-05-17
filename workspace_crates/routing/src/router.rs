@@ -1,4 +1,4 @@
-use config_reader::ServerConfig;
+use server::server_config::ServerConfig;
 use dynamic_stylesheets::dynamic_stylesheets;
 use html_templating::html_template_structs::BaseTemplateData;
 use into_vec::into_vec;

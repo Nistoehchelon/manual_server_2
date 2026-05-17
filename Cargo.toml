@@ -51,6 +51,7 @@ pagination = { path = "workspace_crates/pagination" }
 app_executable_version = { path = "workspace_crates/app_executable_version" }
 
 
+payment_system_structs = { git = "ssh://git@github.com/Aeroel/payment_system.git" } 
 config_reader = { git = "ssh://git@github.com/Aeroel/server_2_only.git" } 
 server = { git = "ssh://git@github.com/Aeroel/server_2_only.git"}
 http_stuff = { git = "ssh://git@github.com/Aeroel/server_2_only.git"}
@@ -62,6 +63,7 @@ error_structs = { git = "ssh://git@github.com/Aeroel/server_2_only.git" }
 
 # third-party external crates
 # for injecting stylesheet links
+strum = { version = "0.28", features = ["derive"] }
 lol_html = "2.8.1"
 
 chrono = "0.4.44"

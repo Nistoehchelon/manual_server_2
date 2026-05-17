@@ -1,22 +1,7 @@
 use custom_site_variables::find_custom_site_variable;
 use error_structs::SomeSortOfError;
-use serde::{Deserialize, Serialize};
+use payment_system_structs::{NewInvoiceRequest, NewInvoiceResponse};
 use sqlx::{Postgres, Transaction};
-
-#[derive(Serialize)]
-pub struct NewInvoiceRequest {
-    invoice_id: String,
-    method: String,
-    amount_atomic: u64,
-    token: String,
-}
-
-#[derive(Deserialize)]
-pub struct NewInvoiceResponse {
-    pub address: String,
-    pub amount: String,
-    pub method: String,
-}
 
 pub struct PaymentInfo {
     pub amount: Amount,
@@ -69,12 +54,15 @@ impl std::fmt::Display for Method {
     }
 }
 
+
 pub async fn new_invoice(
     tx: &mut Transaction<'_, Postgres>,
     invoice_id: String,
     amount_atomic: u64,
     method: String,
 ) -> Result<PaymentInfo, SomeSortOfError> {
+    let success_callback = get_success_callback_url().await;
+    let status_update_callback = get_status_update_callback_url().await;
     let payment_server_url = get_payment_server_url(tx).await?;
     let path = "new_invoice".to_string();
     let token = get_payment_server_token(tx).await?;
@@ -84,6 +72,8 @@ pub async fn new_invoice(
         method,
         amount_atomic,
         token,
+        success_callback,
+        status_update_callback,
     };
     let client = reqwest::Client::new();
 
@@ -106,10 +96,18 @@ pub async fn new_invoice(
     })
 }
 
+
+pub async fn get_status_update_callback_url() -> String {
+    "https://website.com/secret123/webhook/payment_status_update".to_string()
+}
+
+pub async fn get_success_callback_url() -> String {
+    "https://website.com/secret123/webhook/payment_success".to_string()
+}
 pub async fn get_payment_server_url(
     tx: &mut Transaction<'_, Postgres>,
 ) -> Result<String, SomeSortOfError> {
-    let opt = find_custom_site_variable(tx, "payment_server_url".to_string()).await?;
+    let opt = find_custom_site_variable(tx, custom_site_variables::CustomSiteVariableName::PaymentServerUrl).await?;
     match opt {
         Some(u) => Ok(u),
         None => Err(SomeSortOfError::new(
@@ -120,7 +118,7 @@ pub async fn get_payment_server_url(
 pub async fn get_payment_server_token(
     tx: &mut Transaction<'_, Postgres>,
 ) -> Result<String, SomeSortOfError> {
-    let opt = find_custom_site_variable(tx, "payment_server_token".to_string()).await?;
+    let opt = find_custom_site_variable(tx, custom_site_variables::CustomSiteVariableName::PaymentServerToken).await?;
     match opt {
         Some(u) => Ok(u),
         None => Err(SomeSortOfError::new(

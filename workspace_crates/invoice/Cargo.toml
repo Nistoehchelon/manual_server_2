@@ -8,6 +8,7 @@ error_structs = { workspace = true }
 sqlx = { workspace = true }
 id_generator_unique_in_db = { workspace = true }
 cryptocurrencies_stuff = { workspace = true }
+custom_site_variables = { workspace = true }
 chrono = { workspace = true }
 user = { workspace = true }
 payment_system_client = { workspace = true }

@@ -8,7 +8,7 @@ pub async fn get_subscription_cost_usd(db_pool: sqlx::PgPool) -> Result<f64, Som
     let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
     let Some(s) = custom_site_variables::find_custom_site_variable(
         &mut tx,
-        "subscription_cost_usd".to_string(),
+        custom_site_variables::CustomSiteVariableName::SubscriptionCostUsd,
     )
     .await?
     else {
@@ -55,7 +55,7 @@ pub async fn get_by_usd<C: CryptocurrencyConfig>(
     let coin_price_usd = match C::SYMBOL {
         "LTC" => {
             let Some(usd_per_ltc) =
-                custom_site_variables::find_custom_site_variable(tx, "usd_per_ltc".to_string())
+                custom_site_variables::find_custom_site_variable(tx, custom_site_variables::CustomSiteVariableName::USDPerLTC)
                     .await
                     .map_err(SomeSortOfError::new)?
             else {
@@ -66,7 +66,7 @@ pub async fn get_by_usd<C: CryptocurrencyConfig>(
         }
         "XMR" => {
             let Some(usd_per_xmr) =
-                custom_site_variables::find_custom_site_variable(tx, "usd_per_xmr".to_string())
+                custom_site_variables::find_custom_site_variable(tx, custom_site_variables::CustomSiteVariableName::USDPerXMR)
                     .await
                     .map_err(SomeSortOfError::new)?
             else {

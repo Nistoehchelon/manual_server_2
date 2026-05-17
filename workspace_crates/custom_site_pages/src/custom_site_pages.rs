@@ -42,7 +42,11 @@ pub async fn replace_variables_with_contents(
 
     for name in names {
         let mut tx = db_pool.clone().begin().await.map_err(DbError::new)?;
-        let var_val = find_custom_site_variable(&mut tx, name.clone())
+        let Ok(var_name_parsed)= name.parse() else {
+            cache.insert(name.clone(), format!("var {name} not found"));
+            continue;
+        };
+        let var_val = find_custom_site_variable(&mut tx,var_name_parsed)
             .await
             .map_err(DbError::new)?;
         tx.commit().await.map_err(DbError::new)?;

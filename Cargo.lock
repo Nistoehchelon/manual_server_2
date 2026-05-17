@@ -354,7 +354,7 @@ dependencies = [
 [[package]]
 name = "config_reader"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#bf306b9243ae780b2617eb6b57f810cb1ff17784"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
 dependencies = [
  "config",
  "dotenvy",
@@ -559,6 +559,7 @@ version = "0.1.0"
 dependencies = [
  "error_structs",
  "sqlx",
+ "strum",
 ]
 
 [[package]]
@@ -700,7 +701,7 @@ dependencies = [
 [[package]]
 name = "encoding"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#bf306b9243ae780b2617eb6b57f810cb1ff17784"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
 dependencies = [
  "urlencoding",
 ]
@@ -744,7 +745,7 @@ dependencies = [
 [[package]]
 name = "error_structs"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#bf306b9243ae780b2617eb6b57f810cb1ff17784"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
 
 [[package]]
 name = "etcetera"
@@ -1149,12 +1150,13 @@ dependencies = [
 [[package]]
 name = "http_stuff"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#bf306b9243ae780b2617eb6b57f810cb1ff17784"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
 dependencies = [
  "config_reader",
  "encoding",
  "error_structs",
  "indexmap",
+ "server_config",
  "tokio",
  "tracing",
  "url 0.1.0",
@@ -1417,6 +1419,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "cryptocurrencies_stuff",
+ "custom_site_variables",
  "error_structs",
  "id_generator_unique_in_db",
  "payment_system_client",
@@ -1827,10 +1830,20 @@ version = "0.1.0"
 dependencies = [
  "custom_site_variables",
  "error_structs",
+ "payment_system_structs",
  "reqwest",
  "serde",
  "serde_json",
  "sqlx",
+]
+
+[[package]]
+name = "payment_system_structs"
+version = "0.1.0"
+source = "git+ssh://git@github.com/Aeroel/payment_system.git#98e7e78e34193cbcc1f009249e9c0e4e59200983"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2372,6 +2385,7 @@ dependencies = [
  "routing_structs",
  "serde",
  "serde_json",
+ "server",
  "session",
  "site_config",
  "sqlx",
@@ -2390,6 +2404,7 @@ dependencies = [
  "config_reader",
  "html_templating",
  "http_stuff",
+ "server",
  "session",
  "site_config",
  "sqlx",
@@ -2678,15 +2693,28 @@ dependencies = [
 [[package]]
 name = "server"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#bf306b9243ae780b2617eb6b57f810cb1ff17784"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
 dependencies = [
  "config_reader",
  "dotenvy",
+ "encoding",
+ "error_structs",
  "http_stuff",
+ "server_config",
  "tokio",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "url 0.1.0",
+]
+
+[[package]]
+name = "server_config"
+version = "0.1.0"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
+dependencies = [
+ "humantime-serde",
+ "serde",
 ]
 
 [[package]]
@@ -3054,6 +3082,27 @@ dependencies = [
  "unicode-bidi",
  "unicode-normalization",
  "unicode-properties",
+]
+
+[[package]]
+name = "strum"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9628de9b8791db39ceda2b119bbe13134770b56c138ec1d3af810d045c04f9bd"
+dependencies = [
+ "strum_macros",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab85eea0270ee17587ed4156089e10b9e6880ee688791d45a905f5b1ca36f664"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3527,7 +3576,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 [[package]]
 name = "url"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#bf306b9243ae780b2617eb6b57f810cb1ff17784"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
 dependencies = [
  "encoding",
  "indexmap",

@@ -1,6 +1,6 @@
 #[derive(Clone)]
 pub struct RouterData {
-    pub server_config: config_reader::ServerConfig,
+    pub server_config: server::server_config::ServerConfig,
     pub site_config: site_config::SiteConfig,
     pub db_pool: sqlx::PgPool,
     pub session: session::Session,

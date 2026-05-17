@@ -3,7 +3,7 @@
 Invoice
 {% endblock %}
 {% block content%}
-Transfer the exact amount of {{ amount }} {{ currency }} to this address: {{ address }}<br>
+Transfer the exact amount of {{ amount }} {{ method }} to this address: {{ address }}<br>
 <div id="payment_status" data-invoice-id="{{ invoice_id }}">Awaiting payment...</div>
 <script nonce="{{ main_info.nonce }}">
     (function () {

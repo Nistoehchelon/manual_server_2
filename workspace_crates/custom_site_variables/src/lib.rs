@@ -36,5 +36,5 @@ pub async fn find_custom_site_variable(
         let val = row.value;
         return Ok(Some(val));
     }
-    Err(SomeSortOfError::new("Could not get custom_site_variable"))
+    Err(SomeSortOfError::new(format!("Could not find custom_site_variable {var_name}")))
 }

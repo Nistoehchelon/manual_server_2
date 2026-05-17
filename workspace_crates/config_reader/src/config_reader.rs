@@ -23,6 +23,7 @@ pub struct Config {
     pub cloudflare_turnstile_post_parameter_name: String,
 
     pub webhook_and_api_secret_path_prefix: String,
+    pub payment_server_url: String,
 
     pub port: u64,
     pub ip: String,

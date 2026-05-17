@@ -773,6 +773,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
 
 [[package]]
+name = "financial_stuff"
+version = "0.1.0"
+dependencies = [
+ "cryptocurrencies_stuff",
+ "custom_site_variables",
+ "error_structs",
+ "sqlx",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1394,6 +1404,7 @@ dependencies = [
  "cryptocurrencies_stuff",
  "error_structs",
  "id_generator_unique_in_db",
+ "payment_system_client",
  "sqlx",
  "user",
 ]
@@ -1789,6 +1800,18 @@ name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
+
+[[package]]
+name = "payment_system_client"
+version = "0.1.0"
+dependencies = [
+ "custom_site_variables",
+ "error_structs",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+]
 
 [[package]]
 name = "pem-rfc7468"
@@ -2273,6 +2296,7 @@ dependencies = [
  "dynamic_stylesheets",
  "email_otp",
  "error_structs",
+ "financial_stuff",
  "forum",
  "html_templating",
  "http_stuff",

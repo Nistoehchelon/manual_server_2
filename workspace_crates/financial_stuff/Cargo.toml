@@ -1,0 +1,10 @@
+[package]
+name = "financial_stuff"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sqlx = { workspace = true }
+custom_site_variables = { workspace = true }
+error_structs = { workspace = true }
+cryptocurrencies_stuff = { workspace = true }

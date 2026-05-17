@@ -3,10 +3,33 @@ use error_structs::SomeSortOfError;
 use id_generator_unique_in_db::Table;
 use sqlx::{Postgres, Transaction};
 
-pub enum ServiceData {
-    Subscription { months: u64, expires_at: u64 },
+
+
+#[derive(Clone)]
+pub struct PaymentData {
+    pub amount: String,
+    pub address: String,
+    pub method: String,
+}
+pub async fn get_payment_data(tx: &mut Transaction<'_, Postgres>, invoice_id: InvoiceId) -> Result<PaymentData, SomeSortOfError> {
+    let amount = get_invoice_data(tx, invoice_id.clone(), "amount_from_payment_server").await?;
+    let address = get_invoice_data(tx, invoice_id.clone(), "address_from_payment_server").await?;
+    let method = get_invoice_data(tx, invoice_id, "method_from_payment_server").await?;
+    Ok(PaymentData {
+        amount,
+        address,
+        method,
+    })
 }
 
+#[derive(Clone, Debug)]
+pub enum ServiceData {
+    Subscription {  months: u64, expires_at: u64 },
+}
+
+
+
+#[derive(Clone, Debug)]
 pub enum PaymentMethod {
     XMR { amount: XMRAtomicUnit },
     LTC { amount: LTCAtomicUnit },
@@ -86,7 +109,7 @@ pub async fn create_invoice(
     user_id: String,
     service: ServiceData,
     payment_method: PaymentMethod,
-) -> Result<InvoiceId, SomeSortOfError> {
+) -> Result<(InvoiceId, PaymentMethod, ServiceData), SomeSortOfError> {
     let invoice_id_string = id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices)
         .await
         .map_err(SomeSortOfError::new)?;
@@ -111,7 +134,7 @@ pub async fn create_invoice(
     .await
     .map_err(SomeSortOfError::new)?;
 
-    let payment_amount_atomic_units = match payment_method {
+    let payment_amount_atomic_units = match payment_method.clone() {
         PaymentMethod::XMR { amount } => amount.as_atomic(),
         PaymentMethod::LTC { amount } => amount.as_atomic(),
     };
@@ -159,7 +182,15 @@ pub async fn create_invoice(
             .map_err(SomeSortOfError::new)?;
         }
     }
-    Ok(invoice_id)
+    let invoice = (invoice_id.clone(), payment_method.clone(), service);
+
+    
+ let payment_info = payment_system_client::new_invoice(tx, invoice_id_string, payment_amount_atomic_units, payment_method.to_string()).await?;
+
+ set_invoice_data(tx, invoice_id.clone(), "address_from_payment_server", &payment_info.address.to_string()).await?;
+ set_invoice_data(tx, invoice_id.clone(), "amount_from_payment_server", &payment_info.amount.to_string()).await?;
+ set_invoice_data(tx, invoice_id.clone(), "method_from_payment_server", &payment_info.method.to_string()).await?;
+    Ok(invoice)
 }
 
 pub async fn get_invoice_data(

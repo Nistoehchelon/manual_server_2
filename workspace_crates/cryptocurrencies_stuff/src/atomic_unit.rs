@@ -6,6 +6,7 @@ pub trait CryptocurrencyConfig {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct AtomicUnit<C: CryptocurrencyConfig>(u64, std::marker::PhantomData<C>);
 
 impl<C: CryptocurrencyConfig> AtomicUnit<C> {
@@ -33,13 +34,16 @@ impl<C: CryptocurrencyConfig> AtomicUnit<C> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct XMR;
 impl CryptocurrencyConfig for XMR {
     const ATOMIC_PER_UNIT: u64 = 1_000_000_000_000;
     const SYMBOL: &'static str = "XMR";
 }
+
 pub type XMRAtomicUnit = AtomicUnit<XMR>;
 
+#[derive(Clone, Debug)]
 pub struct LTC;
 impl CryptocurrencyConfig for LTC {
     const ATOMIC_PER_UNIT: u64 = 100_000_000;

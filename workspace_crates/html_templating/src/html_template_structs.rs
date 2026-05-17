@@ -75,7 +75,7 @@ pub struct NotFoundTemplate {
 pub struct ViewInvoiceTemplate {
     pub main_info: BaseTemplateData,
     pub amount: String,
-    pub currency: String,
+    pub method: String,
     pub address: String,
     pub invoice_id: String,
 

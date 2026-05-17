@@ -1,6 +1,8 @@
+use financial_stuff::get_by_usd;
+use invoice::InvoiceId;
 use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
-use cryptocurrencies_stuff::atomic_unit::{AtomicUnit, CryptocurrencyConfig, LTC, XMR};
-use error_structs::{InternalAppError, SomeSortOfError};
+use cryptocurrencies_stuff::atomic_unit::{LTC, XMR};
+use error_structs::InternalAppError;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
 use http_stuff::{
     http_request_parsing::parse_body_into_string_form_input_params,
@@ -75,13 +77,13 @@ pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, Inter
     }
 
     // test
-    let currency = "LTC".to_string();
-    let amount = "0.017".to_string();
-    let address = "ltcj23jke231rj1kn".to_string();
+    let mut tx  = db_pool.clone().begin().await.map_err(InternalAppError::new)?;
+    let invoice::PaymentData {  method, address, amount } = invoice::get_payment_data(&mut tx, InvoiceId(invoice_id.clone())).await.map_err(InternalAppError::new)?;
+    tx.commit().await.map_err(InternalAppError::new)?;
     Ok(ok_html(render(ViewInvoiceTemplate {
         main_info: router_data.base_template_data,
         amount,
-        currency,
+        method,
         address,
         invoice_id,
     })))
@@ -188,12 +190,12 @@ pub async fn post_create_invoice(
     let method = match service {
         ServiceData::Subscription { months, .. } => match payment_method.as_str() {
             "ltc" => PaymentMethod::LTC {
-                amount: get_by_usd::<LTC>(1.0 * (months as f64))
+                amount: get_by_usd::<LTC>(&mut tx, 1.0 * (months as f64))
                     .await
                     .map_err(InternalAppError::new)?,
             },
             "xmr" => PaymentMethod::XMR {
-                amount: get_by_usd::<XMR>(1.0 * (months as f64))
+                amount: get_by_usd::<XMR>(&mut tx, 1.0 * (months as f64))
                     .await
                     .map_err(InternalAppError::new)?,
             },
@@ -204,7 +206,7 @@ pub async fn post_create_invoice(
         },
     };
 
-    let id = create_invoice(&mut tx, user.id, service, method)
+    let invoice_data = create_invoice(&mut tx, user.id, service, method)
         .await
         .map_err(InternalAppError::new)?;
     tx.commit().await.map_err(InternalAppError::new)?;
@@ -214,19 +216,6 @@ pub async fn post_create_invoice(
         "Invoice creation successful".to_string(),
     )
     .await;
-    Ok(redirect_to(format!("/invoice/view?id={}", id.0)))
-}
-
-pub async fn get_by_usd<C: CryptocurrencyConfig>(
-    usd: f64,
-) -> Result<AtomicUnit<C>, SomeSortOfError> {
-    let coin_price_usd = match C::SYMBOL {
-        "LTC" => 55.0,
-        "XMR" => 350.0,
-        _ => return Err(SomeSortOfError::new("Unsupported crypto")),
-    };
-
-    let atomic = ((usd / coin_price_usd) * C::ATOMIC_PER_UNIT as f64).round() as u64;
-
-    Ok(AtomicUnit::<C>::from_atomic(atomic))
+   
+    Ok(redirect_to(format!("/invoice/view?id={}", invoice_data.0.0)))
 }

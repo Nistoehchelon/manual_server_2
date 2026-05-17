@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+financial_stuff = { workspace = true }
 custom_site_variables = { workspace = true }
 invoice = { workspace = true }
 cryptocurrencies_stuff = { workspace = true }

@@ -1,7 +1,5 @@
 use error_structs::InternalAppError;
-use html_templating::html_template_structs::{
-    BaseTemplateData, SubscriptionTemplate,
-};
+use html_templating::html_template_structs::{BaseTemplateData, SubscriptionTemplate};
 
 use user::get_user_by_user_id;
 
@@ -36,22 +34,31 @@ pub async fn get(
     )
     .await
     .map_err(InternalAppError::new)?;
+    let usd_cost = financial_stuff::get_subscription_cost_usd(db_pool.clone()).await.map_err(InternalAppError::new)?;
+    let xmr_cost = financial_stuff::convert_usd_price_to_xmr(db_pool.clone(), usd_cost).await.map_err(InternalAppError::new)?;
+    let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), usd_cost).await.map_err(InternalAppError::new)?;
     Ok(http_stuff::http_response::ok_html(get_html(
-        router_data.base_template_data, csrf_token
+        router_data.base_template_data,
+        csrf_token,
+        usd_cost.to_string(),
+        xmr_cost.to_string(),
+        ltc_cost.to_string(),
     )))
 }
 
 fn get_html(
     base_template: BaseTemplateData,
     csrf_token: String,
+    usd_cost: String,
+    xmr_cost: String,
+    ltc_cost: String,
 ) -> String {
-
     let sub_template = SubscriptionTemplate {
-       csrf_token,
+        csrf_token,
         main_info: base_template,
-        usd_cost: "1.0".to_string(),
-        xmr_cost: "0.0025".to_string(),
-        ltc_cost: "0.017".to_string(),
+        usd_cost,
+        xmr_cost,
+        ltc_cost,
     };
     html_templating::render(sub_template)
 }

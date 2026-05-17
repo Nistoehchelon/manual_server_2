@@ -8,7 +8,7 @@ use http_stuff::{
 
 use routing::router::response_to_bytes;
 
-use server::{
+use crate::{
     buckets_for_requests::{
         GlobalBuckets, IpBuckets, TimeBucket, TokenAndTimeBuckets, TokenAndTimeBucketsAndLastSeen,
         TokenBucket,
@@ -18,11 +18,7 @@ use server::{
 };
 
 use std::{
-    collections::HashMap,
-    net::IpAddr,
-    path::PathBuf,
-    sync::Arc,
-    time::{Duration, Instant},
+    collections::HashMap, net::IpAddr, path::PathBuf, pin::Pin, sync::Arc, time::{Duration, Instant}
 };
 
 use tokio::{
@@ -35,8 +31,12 @@ use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
 
-#[tokio::main(flavor = "multi_thread")]
-async fn main() -> std::io::Result<()> {
+pub type HandlerFn = Arc<
+    dyn Fn(HttpRequestData, sqlx::PgPool, Config) -> Pin<Box<dyn Future<Output = HttpResponseData> + Send>>
+        + Send
+        + Sync,
+>; 
+pub async fn run(handler: HandlerFn) -> std::io::Result<()> {
     let args = match parse_args::parse_args() {
         Ok(args) => args,
         Err(e) => {
@@ -106,10 +106,11 @@ async fn main() -> std::io::Result<()> {
                         }
                     };
 
+                let handler_clone = handler.clone();
                 tasks.spawn(async move {
                     let stream = tcp;
                     let mut reader = BufReader::new(stream);
-
+                   
                     handle_stream(
                         &mut reader,
                         db_pool,
@@ -117,11 +118,12 @@ async fn main() -> std::io::Result<()> {
                         global_bucket,
                         ip_buckets,
                         server_config.clone(),
+                        handler_clone,
                     )
                     .await;
                 });
             },
-            _ = server::shutdown_signal::shutdown_signal() => {
+            _ = crate::shutdown_signal::shutdown_signal() => {
                 tracing::info!("Shutdown signal received");
                 break;
             }
@@ -150,6 +152,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     global_bucket: GlobalBuckets,
     ip_buckets: IpBuckets,
     server_config: Config,
+    handler: HandlerFn,
 ) {
     Span::current().record(
         "span_id",
@@ -244,6 +247,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
             db_pool.clone(),
             requests_count > keep_alive_max_requests_per_connection,
             server_config.clone(),
+            handler.clone(),
         )
         .await;
         let response_bytes = response_to_bytes(response_data.clone()).await;
@@ -296,9 +300,10 @@ pub async fn generate_response(
     db_pool: sqlx::PgPool,
     keep_alive_max_requests_reached: bool,
     server_config: Config,
+    handler: HandlerFn,
 ) -> HttpResponseData {
     let mut response_data =
-        routing::generate_response_data(request_data.clone(), db_pool, server_config).await;
+        handler(request_data.clone(), db_pool, server_config).await;
     let close_or_keep_alive = if keep_alive_max_requests_reached {
         KeepAliveOrClose::Close
     } else {

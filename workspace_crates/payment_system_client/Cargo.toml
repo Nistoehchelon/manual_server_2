@@ -11,3 +11,4 @@ custom_site_variables = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true }
+webhooks = { workspace = true }

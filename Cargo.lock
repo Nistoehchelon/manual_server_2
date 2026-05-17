@@ -1835,6 +1835,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "webhooks",
 ]
 
 [[package]]
@@ -3823,7 +3824,9 @@ dependencies = [
  "cryptocurrencies_stuff",
  "custom_site_variables",
  "error_structs",
+ "server_config",
  "sqlx",
+ "strum",
 ]
 
 [[package]]

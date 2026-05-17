@@ -18,6 +18,8 @@ pub enum CustomSiteVariableName {
     WebsiteFundXMRBalanceAtomicUnits,
     #[strum(serialize = "website_fund_xmr_balance_visual")]
     WebsiteFundXMRBalanceVisual,
+    #[strum(serialize = "website_root_url")]
+    WebsiteRootUrl,
 }
 
 pub async fn set_custom_site_variable(

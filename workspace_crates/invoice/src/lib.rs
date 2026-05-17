@@ -159,6 +159,8 @@ pub async fn create_invoice(
     user_id: String,
     service: ServiceData,
     payment_method: PaymentMethod,
+    payment_success_webhook_url: String,
+    payment_status_update_webhook_url: String,
 ) -> Result<(InvoiceId, PaymentMethod, ServiceData), SomeSortOfError> {
     let invoice_id_string = id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices)
         .await
@@ -244,6 +246,8 @@ pub async fn create_invoice(
         invoice_id_string,
         payment_amount_atomic_units,
         payment_method.to_string(),
+        payment_success_webhook_url,
+        payment_status_update_webhook_url,
     )
     .await?;
 

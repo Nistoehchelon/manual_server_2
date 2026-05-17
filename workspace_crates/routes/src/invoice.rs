@@ -224,8 +224,9 @@ pub async fn post_create_invoice(
             }
         },
     };
-
-    let invoice_data = create_invoice(&mut tx, user.id, service, method)
+    let payment_success_url = webhooks::get_endpoint_url(&mut tx, site_config.webhook_and_api_secret_path_prefix.clone(),webhooks::WebhookEndpoint::PaymentSuccess).await.map_err(InternalAppError::new)?;
+    let payment_status_update_url = webhooks::get_endpoint_url(&mut tx, site_config.webhook_and_api_secret_path_prefix.clone(),webhooks::WebhookEndpoint::PaymentStatusUpdate).await.map_err(InternalAppError::new)?;
+    let invoice_data = create_invoice(&mut tx, user.id, service, method, payment_success_url, payment_status_update_url)
         .await
         .map_err(InternalAppError::new)?;
     tx.commit().await.map_err(InternalAppError::new)?;

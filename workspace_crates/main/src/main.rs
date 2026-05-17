@@ -12,5 +12,5 @@ async fn main() -> std::io::Result<()> {
         let db_pool = db_pool.clone();
         Box::pin(async move { routing::generate_response_data(request_data, db_pool, server_config).await })
     });
-    server::run::run(handler).await
+    server::run(handler).await
 }

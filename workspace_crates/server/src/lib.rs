@@ -4,3 +4,4 @@ pub mod log_tracing;
 pub mod shutdown_signal;
 pub mod parse_args;
 pub mod run;
+pub use run::run;

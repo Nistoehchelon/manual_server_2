@@ -27,21 +27,17 @@ custom_site_variables  =  { path = "workspace_crates/custom_site_variables" }
 cryptocurrencies_stuff  =  { path = "workspace_crates/cryptocurrencies_stuff" }
 invoice = { path = "workspace_crates/invoice" }
 email_otp = { path = "workspace_crates/email_otp" }
-app_executable_version = { path = "workspace_crates/app_executable_version" }
 dynamic_stylesheets = { path = "workspace_crates/dynamic_stylesheets" }
 count_string_length = { path = "workspace_crates/count_string_length" }
 webhooks = { path = "workspace_crates/webhooks" }
 cloudflare_turnstile = { path = "workspace_crates/cloudflare_turnstile" }
 custom_site_pages = { path = "workspace_crates/custom_site_pages" }
-db_manager = { path = "workspace_crates/db_manager" }
-config_reader = { path = "workspace_crates/config_reader" } 
-error_structs = { path = "workspace_crates/error_structs" }
+db_manager = { path = "workspace_crates/db_manager" } 
 forum = { path = "workspace_crates/forum" }
 html_templating = { path = "workspace_crates/html_templating" }
 id_generator = { path = "workspace_crates/id_generator" }
 id_generator_unique_in_db = { path = "workspace_crates/id_generator_unique_in_db" }
 password_hashing = { path = "workspace_crates/password_hashing" }
-server = { path = "workspace_crates/server" }
 session = { path = "workspace_crates/session" }
 session_structs_and_so_on = { path = "workspace_crates/session_structs_and_so_on" }
 user = { path = "workspace_crates/user" }
@@ -49,12 +45,18 @@ user_creation = { path = "workspace_crates/user_creation" }
 into_vec = { path = "workspace_crates/into_vec" }
 routing = { path = "workspace_crates/routing" }
 routing_structs = { path = "workspace_crates/routing_structs" }
-http_stuff = { path = "workspace_crates/http_stuff" }
 abac = { path = "workspace_crates/abac" }
 csrf_stuff = { path = "workspace_crates/csrf_stuff" }
 pagination = { path = "workspace_crates/pagination" }
-url = { path = "workspace_crates/url" }
-encoding = { path = "workspace_crates/encoding" }
+app_executable_version = { path = "workspace_crates/app_executable_version" }
+
+
+config_reader = { git = "ssh://git@github.com/Aeroel/server_2_only.git" } 
+server = { git = "ssh://git@github.com/Aeroel/server_2_only.git"}
+http_stuff = { git = "ssh://git@github.com/Aeroel/server_2_only.git"}
+encoding = { git = "ssh://git@github.com/Aeroel/server_2_only.git" }
+url = {git = "ssh://git@github.com/Aeroel/server_2_only.git" } 
+error_structs = { git = "ssh://git@github.com/Aeroel/server_2_only.git" }
 
 
 

@@ -12,7 +12,6 @@ cryptocurrencies_stuff = { workspace = true }
 password_hashing = { workspace = true }
 email_otp = { workspace = true }
 dynamic_stylesheets = { workspace = true }
-app_executable_version = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 webhooks = { workspace = true }

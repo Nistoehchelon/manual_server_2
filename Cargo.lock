@@ -56,6 +56,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "app_executable_version"
+version = "0.1.0"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#5d690579c2d9561ea37e1f0185fd387072e60995"
+dependencies = [
+ "git-version",
+]
+
+[[package]]
 name = "argon2"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -354,6 +362,7 @@ dependencies = [
 [[package]]
 name = "config_reader"
 version = "0.1.0"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#5d690579c2d9561ea37e1f0185fd387072e60995"
 dependencies = [
  "config",
  "dotenvy",
@@ -699,6 +708,7 @@ dependencies = [
 [[package]]
 name = "encoding"
 version = "0.1.0"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#5d690579c2d9561ea37e1f0185fd387072e60995"
 dependencies = [
  "urlencoding",
 ]
@@ -742,6 +752,7 @@ dependencies = [
 [[package]]
 name = "error_structs"
 version = "0.1.0"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#5d690579c2d9561ea37e1f0185fd387072e60995"
 
 [[package]]
 name = "etcetera"
@@ -1134,6 +1145,7 @@ dependencies = [
 [[package]]
 name = "http_stuff"
 version = "0.1.0"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#5d690579c2d9561ea37e1f0185fd387072e60995"
 dependencies = [
  "config_reader",
  "encoding",
@@ -2298,7 +2310,7 @@ name = "routes"
 version = "0.1.0"
 dependencies = [
  "abac",
- "app_executable_version",
+ "app_executable_version 0.1.0",
  "cloudflare_turnstile",
  "config_reader",
  "cryptocurrencies_stuff",
@@ -2339,7 +2351,6 @@ name = "routing"
 version = "0.1.0"
 dependencies = [
  "abac",
- "app_executable_version",
  "cloudflare_turnstile",
  "config_reader",
  "cryptocurrencies_stuff",
@@ -2672,8 +2683,9 @@ dependencies = [
 [[package]]
 name = "server"
 version = "0.1.0"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#5d690579c2d9561ea37e1f0185fd387072e60995"
 dependencies = [
- "app_executable_version",
+ "app_executable_version 0.1.0 (git+ssh://git@github.com/Aeroel/server_2_only.git)",
  "config_reader",
  "dotenvy",
  "http_stuff",
@@ -3521,6 +3533,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 [[package]]
 name = "url"
 version = "0.1.0"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#5d690579c2d9561ea37e1f0185fd387072e60995"
 dependencies = [
  "encoding",
  "indexmap",

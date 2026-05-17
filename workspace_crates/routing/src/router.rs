@@ -1,4 +1,4 @@
-use config_reader::Config;
+use config_reader::ServerConfig;
 use dynamic_stylesheets::dynamic_stylesheets;
 use html_templating::html_template_structs::BaseTemplateData;
 use into_vec::into_vec;
@@ -19,7 +19,7 @@ use routes;
 
 pub async fn route(
     db_pool: sqlx::PgPool,
-    server_config: Config,
+    server_config: ServerConfig,
     session: Session,
     created_new_session: bool,
     request_data: HttpRequestData,
@@ -250,7 +250,7 @@ pub async fn response_to_bytes(response_data: HttpResponseData) -> Vec<u8> {
 pub async fn generate_response_data(
     request_data: HttpRequestData,
     db_pool: sqlx::PgPool,
-    server_config: Config,
+    server_config: ServerConfig,
 ) -> HttpResponseData {
     let nonce = id_generator::generate_random_alphanumeric_id(50).to_string();
     let request_start = Instant::now();
@@ -397,7 +397,7 @@ pub async fn inject_custom_css(
 pub fn add_some_headers(
     request_data: HttpRequestData,
     mut response_data: HttpResponseData,
-    server_config: Config,
+    server_config: ServerConfig,
     nonce: String,
 ) -> HttpResponseData {
     // KEEP_ALIVE_ENABLED

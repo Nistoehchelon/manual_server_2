@@ -1,4 +1,4 @@
-use config_reader::Config;
+use config_reader::ServerConfig;
 use http_stuff::{
     http_request_parsing::{
         HttpParserConfig, HttpRequestData, HttpRequestParsingError, parse_http_request,
@@ -32,7 +32,7 @@ use tracing_appender::rolling;
 
 
 pub type HandlerFn = Arc<
-    dyn Fn(HttpRequestData, Config) -> Pin<Box<dyn Future<Output = HttpResponseData> + Send>>
+    dyn Fn(HttpRequestData, ServerConfig) -> Pin<Box<dyn Future<Output = HttpResponseData> + Send>>
         + Send
         + Sync,
 >; 
@@ -145,7 +145,7 @@ pub async fn handle_stream<S: AsyncRead + AsyncWrite + Unpin>(
     peer_ip: IpAddr,
     global_bucket: GlobalBuckets,
     ip_buckets: IpBuckets,
-    server_config: Config,
+    server_config: ServerConfig,
     handler: HandlerFn,
 ) {
     Span::current().record(
@@ -279,7 +279,7 @@ pub async fn consume_time_spent_from_time_credits_bucket(
     start: Instant,
     peer_ip: IpAddr,
     ip_buckets: IpBuckets,
-    server_config: Config,
+    server_config: ServerConfig,
 ) {
     let time_elapsed = start.elapsed();
     let mut ip_buckets = ip_buckets.lock().await;
@@ -291,7 +291,7 @@ pub async fn consume_time_spent_from_time_credits_bucket(
 pub async fn generate_response(
     request_data: HttpRequestData,
     keep_alive_max_requests_reached: bool,
-    server_config: Config,
+    server_config: ServerConfig,
     handler: HandlerFn,
 ) -> HttpResponseData {
     let mut response_data =

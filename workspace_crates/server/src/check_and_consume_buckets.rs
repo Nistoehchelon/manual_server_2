@@ -1,4 +1,4 @@
-use config_reader::Config;
+use config_reader::ServerConfig;
 use http_stuff::http_response::standalone_response;
 use std::net::IpAddr;
 use std::time::Duration;
@@ -16,13 +16,13 @@ pub async fn check_and_consume_buckets(
     peer_ip: &IpAddr,
     global_bucket: &GlobalBuckets,
     ip_buckets: &IpBuckets,
-    Config {
+    ServerConfig {
         per_ip_token_bucket_capacity,
         per_ip_token_bucket_refill_rate_per_millis,
         per_ip_time_credits_capacity,
         per_ip_time_credits_refill_rate_per_millis,
         ..
-    }: Config,
+    }: ServerConfig,
 ) -> Result<(), Vec<u8>> {
     let mut ip_buckets = ip_buckets.lock().await;
     // I guess it makes sense to remove old entries.... ?

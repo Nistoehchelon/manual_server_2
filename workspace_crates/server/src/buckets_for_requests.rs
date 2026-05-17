@@ -1,4 +1,4 @@
-use config_reader::Config;
+use config_reader::ServerConfig;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -18,7 +18,7 @@ pub struct TokenAndTimeBucketsAndLastSeen {
     pub last_seen: Instant,
 }
 impl TokenAndTimeBucketsAndLastSeen {
-    pub fn default_with_settings(server_config: Config) -> Self {
+    pub fn default_with_settings(server_config: ServerConfig) -> Self {
         Self {
             token_bucket: TokenBucket::new(
                 server_config.per_ip_token_bucket_capacity,

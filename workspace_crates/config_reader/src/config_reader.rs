@@ -2,7 +2,10 @@ use password_hashing::PasswordHasherConfig;
 use std::{path::PathBuf, time::Duration};
 
 #[derive(Debug, Clone, serde::Deserialize)]
-pub struct Config {
+pub struct ServerConfig {
+    // app specific
+    pub password_hasher_config: PasswordHasherConfig,
+    pub using_https: bool,
     pub min_length_user_password: usize,
     pub max_length_user_password: usize,
 
@@ -12,11 +15,6 @@ pub struct Config {
     pub min_length_forum_message: usize,
     pub max_length_forum_message: usize,
 
-    pub using_https: bool,
-
-    pub rust_log: String,
-    pub rust_log_directory_path: String,
-
     pub cloudflare_turnstile_enabled: bool,
     pub cloudflare_turnstile_site_key: String,
     pub cloudflare_turnstile_secret_key: String,
@@ -24,6 +22,11 @@ pub struct Config {
 
     pub webhook_and_api_secret_path_prefix: String,
     pub payment_server_url: String,
+
+    // more generic
+
+    pub rust_log: String,
+    pub rust_log_directory_path: String,
 
     pub port: u64,
     pub ip: String,
@@ -59,11 +62,9 @@ pub struct Config {
     pub per_ip_time_credits_refill_rate_per_millis: Duration,
     #[serde(with = "humantime_serde")]
     pub per_ip_time_credits_capacity: Duration,
-
-    pub password_hasher_config: PasswordHasherConfig,
 }
 
-pub fn read_config(config_file_path: PathBuf) -> Config {
+pub fn read_config(config_file_path: PathBuf) -> ServerConfig {
     dotenvy::from_path(config_file_path).ok();
 
     config::Config::builder()
@@ -72,6 +73,6 @@ pub fn read_config(config_file_path: PathBuf) -> Config {
         )
         .build()
         .expect("Failed to build config")
-        .try_deserialize::<Config>()
+        .try_deserialize::<ServerConfig>()
         .expect("Invalid or missing config values")
 }

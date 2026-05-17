@@ -1,4 +1,4 @@
-use config_reader::Config;
+use config_reader::ServerConfig;
 use encoding::decode_request_string;
 use error_structs::SomeSortOfError;
 use indexmap::IndexMap;
@@ -26,8 +26,8 @@ pub struct HttpParserConfig {
     pub max_request_target_length: u64,
     pub max_cookies_per_request_count: u64,
 }
-impl From<Config> for HttpParserConfig {
-    fn from(server_config: Config) -> Self {
+impl From<ServerConfig> for HttpParserConfig {
+    fn from(server_config: ServerConfig) -> Self {
         Self {
             read_timeout: server_config.common_stream_timeout,
             max_headers_len: server_config.max_total_headers_size_bytes,

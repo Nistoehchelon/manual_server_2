@@ -8,7 +8,7 @@ pub struct ServerConfig {
 
     pub port: u64,
     pub ip: String,
-    pub database_url: String,
+
 
     pub server_global_request_token_bucket_capacity: f64,
     pub server_global_request_token_bucket_refill_rate_per_millis: f64,

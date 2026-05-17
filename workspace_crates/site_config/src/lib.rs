@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct SiteConfig {
     // app specific
+    pub database_url: String,
     pub password_hasher_config: password_hashing::PasswordHasherConfig,
     pub using_https: bool,
     pub min_length_user_password: usize,

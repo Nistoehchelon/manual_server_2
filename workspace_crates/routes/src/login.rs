@@ -8,7 +8,7 @@ use http_stuff::{
 use session::{Session, SessionNotification, add_session_notification, edit_session};
 use user::find_by_username_and_password;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,

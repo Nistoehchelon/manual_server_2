@@ -12,7 +12,8 @@ use session::{
 };
 use user::{ValidatedPassword, ValidatedUsername};
 
-use crate::{RouterData, validate_turnstile};
+use routing_structs::RouterData;
+use crate::validate_turnstile;
 
 pub async fn get(
     router_data: RouterData,

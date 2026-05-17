@@ -8,7 +8,7 @@ use user::{User, get_user_by_user_id};
 
 use http_stuff::http_response::HttpResponseData;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,

@@ -4,7 +4,7 @@ use html_templating::html_template_structs::{self};
 use http_stuff::http_response::{HttpResponseData, redirect_to};
 use user;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(
     mut router_data: RouterData,

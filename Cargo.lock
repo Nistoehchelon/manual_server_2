@@ -2282,6 +2282,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "routes"
+version = "0.1.0"
+dependencies = [
+ "abac",
+ "app_executable_version",
+ "cloudflare_turnstile",
+ "config_reader",
+ "cryptocurrencies_stuff",
+ "csrf_stuff",
+ "custom_site_pages",
+ "custom_site_variables",
+ "db_manager",
+ "dynamic_stylesheets",
+ "email_otp",
+ "error_structs",
+ "financial_stuff",
+ "forum",
+ "html_templating",
+ "http_stuff",
+ "id_generator",
+ "id_generator_unique_in_db",
+ "into_vec",
+ "invoice",
+ "lol_html",
+ "pagination",
+ "password_hashing",
+ "reqwest",
+ "routing_structs",
+ "serde",
+ "serde_json",
+ "session",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "url 0.1.0",
+ "user",
+ "user_creation",
+ "webhooks",
+]
+
+[[package]]
 name = "routing"
 version = "0.1.0"
 dependencies = [
@@ -2309,6 +2350,8 @@ dependencies = [
  "pagination",
  "password_hashing",
  "reqwest",
+ "routes",
+ "routing_structs",
  "serde",
  "serde_json",
  "session",
@@ -2319,6 +2362,17 @@ dependencies = [
  "user",
  "user_creation",
  "webhooks",
+]
+
+[[package]]
+name = "routing_structs"
+version = "0.1.0"
+dependencies = [
+ "config_reader",
+ "html_templating",
+ "http_stuff",
+ "session",
+ "sqlx",
 ]
 
 [[package]]

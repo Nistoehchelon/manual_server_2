@@ -7,7 +7,7 @@ use into_vec::into_vec;
 use session::{SessionNotification, add_session_notification};
 use user::find_user_by_user_id;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(
     mut router_data: RouterData,

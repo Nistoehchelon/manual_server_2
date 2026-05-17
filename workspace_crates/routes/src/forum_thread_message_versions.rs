@@ -10,7 +10,7 @@ use session::{SessionNotification, SessionNotificationType, add_session_notifica
 use url::Url;
 use user::get_user_by_user_id;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, InternalAppError> {
     let db_pool = router_data.db_pool.clone();

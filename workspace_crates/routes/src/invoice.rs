@@ -10,7 +10,7 @@ use http_stuff::{
 use invoice::InvoiceId;
 use session::{add_session_notification_error, add_session_notification_success};
 
-use crate::{RouterData, validate_turnstile};
+use routing_structs::RouterData;
 
 
 
@@ -140,7 +140,7 @@ pub async fn post_create_invoice(
             .map_err(InternalAppError::new)?;
 
     if server_config.cloudflare_turnstile_enabled
-        && !validate_turnstile(
+        && !crate::validate_turnstile(
             body_params.clone(),
             server_config
                 .cloudflare_turnstile_post_parameter_name

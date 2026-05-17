@@ -13,21 +13,13 @@ use http_stuff::{
     },
 };
 use session::{
-    self, Session, SessionNotification, get_session_by_session_id, set_previous_page_load_time_ms,
+    self, Session, get_session_by_session_id, set_previous_page_load_time_ms,
 };
 use user::{self, get_user_by_user_id};
 
-use crate::routes;
+use routes;
 
-#[derive(Clone)]
-pub struct RouterData {
-    pub server_config: Config,
-    pub db_pool: sqlx::PgPool,
-    pub session: Session,
-    pub http_request_data: HttpRequestData,
-    pub base_template_data: BaseTemplateData,
-    pub session_notifications: Vec<SessionNotification>,
-}
+
 
 pub async fn route(
     db_pool: sqlx::PgPool,
@@ -46,7 +38,7 @@ pub async fn route(
         ..
     } = request_data.clone();
 
-    let router_data = RouterData {
+    let router_data = routing_structs::RouterData {
         session_notifications: Vec::new(),
         server_config: server_config.clone(),
         db_pool: db_pool.clone(),
@@ -110,7 +102,7 @@ pub async fn route(
             session::read_and_delete_session_notifications(db_pool.clone(), session.id.clone())
                 .await
                 .map_err(InternalAppError::new)?;
-        let router_data = RouterData {
+        let router_data = routing_structs::RouterData {
             session_notifications,
             server_config: server_config.clone(),
             db_pool: db_pool.clone(),

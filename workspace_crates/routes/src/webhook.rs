@@ -7,7 +7,7 @@ use http_stuff::{
     http_response::{Charset, HttpResponseData, ok},
 };
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> {
     let body_params =

@@ -2,7 +2,7 @@ use error_structs::InternalAppError;
 use http_stuff::http_response::{HttpResponseData, redirect_to};
 use session::edit_session;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,

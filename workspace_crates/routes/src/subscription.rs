@@ -5,7 +5,7 @@ use user::get_user_by_user_id;
 
 use http_stuff::http_response::{HttpResponseData, redirect_to};
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,

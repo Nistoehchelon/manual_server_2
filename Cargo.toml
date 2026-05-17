@@ -19,6 +19,7 @@ members = ["workspace_crates/*"]
 [workspace.dependencies]
 
 # internal workspace crates
+routes  =  { path = "workspace_crates/routes" }
 payment_system_client  =  { path = "workspace_crates/payment_system_client" }
 financial_stuff  =  { path = "workspace_crates/financial_stuff" }
 custom_site_variables  =  { path = "workspace_crates/custom_site_variables" }
@@ -46,6 +47,7 @@ user = { path = "workspace_crates/user" }
 user_creation = { path = "workspace_crates/user_creation" }
 into_vec = { path = "workspace_crates/into_vec" }
 routing = { path = "workspace_crates/routing" }
+routing_structs = { path = "workspace_crates/routing_structs" }
 http_stuff = { path = "workspace_crates/http_stuff" }
 abac = { path = "workspace_crates/abac" }
 csrf_stuff = { path = "workspace_crates/csrf_stuff" }

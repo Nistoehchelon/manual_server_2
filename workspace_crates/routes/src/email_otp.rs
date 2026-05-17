@@ -12,7 +12,7 @@ use session::{
 use user::ValidatedUsername;
 use user_creation::try_to_create_new_user;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,

@@ -6,7 +6,7 @@ use http_stuff::http_response::{HttpResponseData, redirect_to};
 use into_vec::into_vec;
 use custom_site_pages::FORUM_ID;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,

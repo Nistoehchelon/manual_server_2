@@ -17,7 +17,7 @@ use session::add_session_notification_error;
 use url::Url;
 use user::find_user_by_user_id;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(
     mut router_data: RouterData,

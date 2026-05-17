@@ -1,6 +1,6 @@
 use http_stuff::http_response::{self, HttpResponseData};
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub fn dump_request(
     router_data: RouterData,

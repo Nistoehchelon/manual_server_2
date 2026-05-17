@@ -1,0 +1,41 @@
+[package]
+name = "routes"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+financial_stuff = { workspace = true }
+custom_site_variables = { workspace = true }
+invoice = { workspace = true }
+cryptocurrencies_stuff = { workspace = true }
+password_hashing = { workspace = true }
+email_otp = { workspace = true }
+dynamic_stylesheets = { workspace = true }
+app_executable_version = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+webhooks = { workspace = true }
+custom_site_pages = { workspace = true }
+cloudflare_turnstile = { workspace = true }
+config_reader = { workspace = true }
+id_generator = { workspace = true }
+id_generator_unique_in_db = { workspace = true }
+session = { workspace = true }
+forum = { workspace = true }
+html_templating = { workspace = true }
+user = { workspace = true }
+user_creation = { workspace = true }
+http_stuff = { workspace = true }
+db_manager = { workspace = true }
+into_vec = { workspace = true }
+sqlx = { workspace = true }
+abac = { workspace = true }
+csrf_stuff = { workspace = true }
+error_structs = { workspace = true }
+url = { workspace = true }
+pagination = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true }
+lol_html = { workspace = true }
+routing_structs = { workspace = true }

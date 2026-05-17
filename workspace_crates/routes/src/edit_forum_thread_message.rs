@@ -6,7 +6,7 @@ use html_templating::html_template_structs::EditForumThreadMessageTemplate;
 use http_stuff::{http_request_parsing, http_response::{self, HttpResponseData, bad_request_400, redirect_to}};
 use url::Url;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,

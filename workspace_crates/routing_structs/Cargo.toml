@@ -1,0 +1,11 @@
+[package]
+name = "routing_structs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sqlx = { workspace = true }
+http_stuff = { workspace = true }
+config_reader = { workspace = true }
+session = { workspace = true }
+html_templating = { workspace = true }

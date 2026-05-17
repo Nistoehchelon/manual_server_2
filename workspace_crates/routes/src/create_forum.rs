@@ -7,7 +7,7 @@ use http_stuff::{
 };
 use session::add_session_notification_success;
 
-use crate::RouterData;
+use routing_structs::RouterData;
 
 pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> {
     if !abac::can_create_forum(abac::CanCreateForumInput {

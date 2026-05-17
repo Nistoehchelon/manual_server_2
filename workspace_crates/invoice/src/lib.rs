@@ -1,6 +1,7 @@
 use cryptocurrencies_stuff::atomic_unit::{LTCAtomicUnit, XMRAtomicUnit};
 use error_structs::SomeSortOfError;
 use id_generator_unique_in_db::Table;
+use serde::Serialize;
 use sqlx::{Postgres, Transaction};
 
 
@@ -97,11 +98,59 @@ pub async fn success(db_pool: sqlx::PgPool, invoice_id: InvoiceId) -> Result<(),
     Ok(())
 }
 
+#[derive(Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum InvoicePaymentStatus {
+    Pending,
+    Confirmations { current: u8, required: u8 },
+    Complete,
+}
+
+use std::str::FromStr;
+
+#[derive(Debug, PartialEq)]
+pub struct ParseInvoicePaymentStatusError(String);
+
+impl std::fmt::Display for ParseInvoicePaymentStatusError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "invalid invoice payment status: {:?}", self.0)
+    }
+}
+
+impl std::error::Error for ParseInvoicePaymentStatusError {}
+
+impl FromStr for InvoicePaymentStatus {
+    type Err = ParseInvoicePaymentStatusError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim() {
+            "pending" => Ok(Self::Pending),
+            "complete" => Ok(Self::Complete),
+            s => {
+                // expects "confirmations x out of y"
+                let nums: Option<(u8, u8)> = s
+                    .strip_prefix("confirmations ")
+                    .and_then(|rest| rest.split_once(" out of "))
+                    .and_then(|(current, required)| {
+                        Some((current.parse().ok()?, required.parse().ok()?))
+                    });
+
+                match nums {
+                    Some((current, required)) => Ok(Self::Confirmations { current, required }),
+                    None => Err(ParseInvoicePaymentStatusError(s.to_string())),
+                }
+            }
+        }
+    }
+}
+
 pub async fn invoice_status(
-    _tx: &mut Transaction<'_, Postgres>,
-    _invoice_id: InvoiceId,
-) -> Result<String, SomeSortOfError> {
-    todo!();
+    tx: &mut Transaction<'_, Postgres>,
+    invoice_id: InvoiceId,
+) -> Result<InvoicePaymentStatus, SomeSortOfError> {
+    let raw = get_invoice_data(tx, invoice_id, "status").await?;
+    let status = raw.parse::<InvoicePaymentStatus>().map_err(SomeSortOfError::new)?;
+    Ok(status)
 }
 
 pub async fn create_invoice(

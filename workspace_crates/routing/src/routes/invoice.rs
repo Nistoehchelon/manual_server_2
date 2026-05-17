@@ -1,60 +1,24 @@
-use financial_stuff::get_by_usd;
-use invoice::InvoiceId;
 use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
 use cryptocurrencies_stuff::atomic_unit::{LTC, XMR};
 use error_structs::InternalAppError;
+use financial_stuff::get_by_usd;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
 use http_stuff::{
     http_request_parsing::parse_body_into_string_form_input_params,
     http_response::{Charset, HttpResponseData, ok_html, redirect_to},
 };
+use invoice::InvoiceId;
 use session::{add_session_notification_error, add_session_notification_success};
 
 use crate::{RouterData, validate_turnstile};
-use serde::Serialize;
 
-#[derive(Serialize)]
-#[serde(tag = "status", rename_all = "snake_case")]
-enum PaymentStatusResponse {
-    _Pending,
-    Confirmations { current: u8, required: u8 },
-    _Complete,
+
+
+pub enum PreliminaryProcessing {
+    Forbid,
+    Okay { invoice_id: String }
 }
-
-pub async fn get_json_status(
-    router_data: RouterData,
-) -> Result<HttpResponseData, InternalAppError> {
-    let confs = session::get_custom_data_or_empty_string(
-        router_data.db_pool.clone(),
-        router_data.session.id.clone(),
-        "test_confs".to_string(),
-    )
-    .await
-    .map_err(InternalAppError::new)?;
-    let confs = confs.parse::<u64>().unwrap_or_default();
-    session::set_custom_data(
-        router_data.db_pool.clone(),
-        router_data.session.id.clone(),
-        "test_confs".to_string(),
-        (confs + 1).to_string(),
-    )
-    .await
-    .map_err(InternalAppError::new)?;
-
-    let content = serde_json::to_string(&PaymentStatusResponse::Confirmations {
-        current: confs as u8,
-        required: 10,
-    })
-    .map_err(InternalAppError::new)?; // test random paymentstatusresponse, let's say confirmations current 5 out of 10
-    let resp = http_stuff::http_response::ok(
-        content.into(),
-        http_stuff::http_response::ContentType::ApplicationJson,
-        Some(Charset::Utf8),
-    );
-    Ok(resp)
-}
-
-pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, InternalAppError> {
+pub async fn invoice_viewing_preliminary_checks_and_processing(router_data: RouterData) -> Result<PreliminaryProcessing, InternalAppError> {
     let RouterData {
         server_config: _,
         db_pool,
@@ -62,9 +26,8 @@ pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, Inter
         session,
         ..
     } = router_data.clone();
-
-    let Some(invoice_id) = http_request_data.query.get("id").cloned() else {
-        return Ok(redirect_to("/".to_string()));
+        let Some(invoice_id) = http_request_data.query.get("id").cloned() else {
+        return Ok(PreliminaryProcessing::Forbid);
     };
     if !abac::user_can_view_invoice(db_pool.clone(), session.user_id.clone(), invoice_id.clone())
         .await
@@ -73,12 +36,71 @@ pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, Inter
         tracing::error!(
             "User tried to view an invoice (not necessarily an invoice that actually exists) but were denied"
         );
-        return Ok(redirect_to("/".to_string()));
+        return Ok(PreliminaryProcessing::Forbid);
     }
+    let Some(invoice_id) = http_request_data.query.get("id").cloned() else {
+        return Ok(PreliminaryProcessing::Forbid);
+    };
+    if !abac::user_can_view_invoice(db_pool.clone(), session.user_id.clone(), invoice_id.clone())
+        .await
+        .map_err(InternalAppError::new)?
+    {
+        tracing::error!(
+            "User tried to view an invoice (not necessarily an invoice that actually exists) but were denied"
+        );
+        return Ok(PreliminaryProcessing::Forbid);
+    }
+    Ok(PreliminaryProcessing::Okay { invoice_id })
+}
+
+pub async fn get_json_status(
+    router_data: RouterData,
+) -> Result<HttpResponseData, InternalAppError> {
+    let RouterData {
+        db_pool,
+        ..
+    } = router_data.clone();
+
+    let invoice_id  = match invoice_viewing_preliminary_checks_and_processing(router_data.clone()).await? {
+        PreliminaryProcessing::Forbid => { return Ok(redirect_to("/".to_string()))},
+        PreliminaryProcessing::Okay { invoice_id } => { invoice_id},
+    };
+    let mut tx = db_pool.begin().await.map_err(InternalAppError::new)?;
+    let payment_status = invoice::invoice_status(&mut tx, InvoiceId(invoice_id)).await.map_err(InternalAppError::new)?;
+    let payment_status_json = serde_json::to_string(&payment_status).map_err(InternalAppError::new)?;
+
+    let resp = http_stuff::http_response::ok(
+        payment_status_json.into(),
+        http_stuff::http_response::ContentType::ApplicationJson,
+        Some(Charset::Utf8),
+    );
+    Ok(resp)
+}
+
+pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, InternalAppError> {
+    let RouterData {
+        db_pool,
+        ..
+    } = router_data.clone();
+
+    let invoice_id  = match invoice_viewing_preliminary_checks_and_processing(router_data.clone()).await? {
+        PreliminaryProcessing::Forbid => { return Ok(redirect_to("/".to_string()))},
+        PreliminaryProcessing::Okay { invoice_id } => { invoice_id},
+    };
 
     // test
-    let mut tx  = db_pool.clone().begin().await.map_err(InternalAppError::new)?;
-    let invoice::PaymentData {  method, address, amount } = invoice::get_payment_data(&mut tx, InvoiceId(invoice_id.clone())).await.map_err(InternalAppError::new)?;
+    let mut tx = db_pool
+        .clone()
+        .begin()
+        .await
+        .map_err(InternalAppError::new)?;
+    let invoice::PaymentData {
+        method,
+        address,
+        amount,
+    } = invoice::get_payment_data(&mut tx, InvoiceId(invoice_id.clone()))
+        .await
+        .map_err(InternalAppError::new)?;
     tx.commit().await.map_err(InternalAppError::new)?;
     Ok(ok_html(render(ViewInvoiceTemplate {
         main_info: router_data.base_template_data,
@@ -216,6 +238,9 @@ pub async fn post_create_invoice(
         "Invoice creation successful".to_string(),
     )
     .await;
-   
-    Ok(redirect_to(format!("/invoice/view?id={}", invoice_data.0.0)))
+
+    Ok(redirect_to(format!(
+        "/invoice/view?id={}",
+        invoice_data.0.0
+    )))
 }

@@ -5,7 +5,9 @@ use user::get_user_by_user_id;
 
 pub async fn user_can_view_invoice(db_pool: sqlx::PgPool, user_id: String, invoice_id: String) -> Result<bool, SomeSortOfError> {
     let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
-    let invoice_user_id = invoice::get_invoice_data(&mut tx, invoice::InvoiceId(invoice_id), "user_id").await.map_err(SomeSortOfError::new)?;
+    let Ok(invoice_user_id) = invoice::get_invoice_data(&mut tx, invoice::InvoiceId(invoice_id), "user_id").await else {
+        return Ok(false);
+    };
     tx.commit().await.map_err(SomeSortOfError::new)?;
     Ok(user_id == invoice_user_id)
 }

@@ -11,3 +11,4 @@ cryptocurrencies_stuff = { workspace = true }
 chrono = { workspace = true }
 user = { workspace = true }
 payment_system_client = { workspace = true }
+serde = { workspace = true }

@@ -21,11 +21,16 @@ pub async fn get(
         tracing::debug!("Could not  extract stylesheet_number");
         return crate::not_found::not_found(router_data);
     };
-    let Ok(content) =
-        dynamic_stylesheets::get_content(router_data.db_pool.clone(), page.clone(), stylesheet_number)
-            .await
+    let Ok(content) = dynamic_stylesheets::get_content(
+        router_data.db_pool.clone(),
+        page.clone(),
+        stylesheet_number,
+    )
+    .await
     else {
-        tracing::debug!("Could not get content for page={page} stylesheet_number={stylesheet_number}");
+        tracing::debug!(
+            "Could not get content for page={page} stylesheet_number={stylesheet_number}"
+        );
         return crate::not_found::not_found(router_data);
     };
     let resp = ok(

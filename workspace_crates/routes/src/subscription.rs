@@ -34,9 +34,15 @@ pub async fn get(
     )
     .await
     .map_err(InternalAppError::new)?;
-    let usd_cost = financial_stuff::get_subscription_cost_usd(db_pool.clone()).await.map_err(InternalAppError::new)?;
-    let xmr_cost = financial_stuff::convert_usd_price_to_xmr(db_pool.clone(), usd_cost).await.map_err(InternalAppError::new)?;
-    let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), usd_cost).await.map_err(InternalAppError::new)?;
+    let usd_cost = financial_stuff::get_subscription_cost_usd(db_pool.clone())
+        .await
+        .map_err(InternalAppError::new)?;
+    let xmr_cost = financial_stuff::convert_usd_price_to_xmr(db_pool.clone(), usd_cost)
+        .await
+        .map_err(InternalAppError::new)?;
+    let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), usd_cost)
+        .await
+        .map_err(InternalAppError::new)?;
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         csrf_token,

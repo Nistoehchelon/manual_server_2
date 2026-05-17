@@ -31,7 +31,11 @@ pub struct ValidForumThreadMessageContent {
 }
 
 impl ValidForumThreadMessageContent {
-    pub fn parse(s: String, min_length_forum_message: usize, max_length_forum_message: usize) -> Result<Self, PublicError> {
+    pub fn parse(
+        s: String,
+        min_length_forum_message: usize,
+        max_length_forum_message: usize,
+    ) -> Result<Self, PublicError> {
         let trimmed = s.trim().to_string();
 
         if !valid_string_length(
@@ -63,7 +67,11 @@ pub struct ValidForumThreadName {
 }
 
 impl ValidForumThreadName {
-    pub fn parse(s: String, min_length_forum_thread_name: usize, max_length_forum_thread_name: usize) -> Result<Self, PublicError> {
+    pub fn parse(
+        s: String,
+        min_length_forum_thread_name: usize,
+        max_length_forum_thread_name: usize,
+    ) -> Result<Self, PublicError> {
         let s = s.trim().to_string();
         if !valid_string_length(
             s.clone(),

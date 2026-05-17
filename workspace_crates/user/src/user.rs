@@ -9,7 +9,7 @@ pub async fn get_user_by_user_id(
     db_pool: sqlx::PgPool,
     user_id: String,
 ) -> Result<User, error_structs::ExpectedToGetButFailed> {
-    match find_user_by_user_id( db_pool,user_id,)
+    match find_user_by_user_id(db_pool, user_id)
         .await
         .map_err(ExpectedToGetButFailed::new)?
     {
@@ -19,7 +19,7 @@ pub async fn get_user_by_user_id(
 }
 pub async fn find_user_by_user_id(
     db_pool: sqlx::PgPool,
-     user_id: String,
+    user_id: String,
 ) -> Result<Option<User>, DbError> {
     let user_opt = storage_specific_get_user_by_user_id(user_id, db_pool).await?;
     Ok(user_opt)
@@ -33,11 +33,11 @@ pub async fn try_to_create_new_user(
     username: ValidatedUsername,
     password_hash: String,
 ) -> Result<Result<User, PublicError>, SomeSortOfError> {
-
-   
     let new_user = User {
         primary_key: 0,
-        id: id_generator_unique_in_db::generate_unique_user_id(tx).await.map_err(SomeSortOfError::new)?,
+        id: id_generator_unique_in_db::generate_unique_user_id(tx)
+            .await
+            .map_err(SomeSortOfError::new)?,
         username: username.to_string(),
         password_hash,
     };
@@ -47,7 +47,6 @@ pub async fn try_to_create_new_user(
 
     Ok(Ok(user))
 }
-
 
 pub async fn set_user_data(
     tx: &mut Transaction<'_, Postgres>,
@@ -76,11 +75,11 @@ pub async fn set_user_data(
         data_value
     )
     .execute(&mut **tx)
-    .await.map_err(SomeSortOfError::new)?;
+    .await
+    .map_err(SomeSortOfError::new)?;
 
     Ok(())
 }
-
 
 #[derive(Debug)]
 pub struct UserData {
@@ -132,11 +131,11 @@ pub async fn get_user_data(
         data_name
     )
     .fetch_optional(&mut **tx)
-    .await.map_err(SomeSortOfError::new)?;
+    .await
+    .map_err(SomeSortOfError::new)?;
 
     Ok(row.map(|r| r.data_value))
 }
-
 
 pub async fn is_username_available(
     username: String,
@@ -208,9 +207,6 @@ pub async fn find_by_username_and_password(
     }
     Ok(Some(user))
 }
-
-
- 
 
 async fn storage_specific_is_username_available(
     tx: &mut Transaction<'_, Postgres>,

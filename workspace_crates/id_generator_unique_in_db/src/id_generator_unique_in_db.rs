@@ -5,7 +5,8 @@ use sqlx::{Postgres, Transaction};
 // error only on runtime... Not sure if the match case below is worth it, though...
 pub enum Table {
     Users,
-    ForumThreads, ForumThreadMessages,
+    ForumThreads,
+    ForumThreadMessages,
     Invoices,
     Forums,
 }
@@ -71,16 +72,20 @@ pub async fn generate_unique_user_id(
     generate_unique_id_for(tx, Table::Users).await
 }
 
-pub async fn generate_unique_thread_id(tx: &mut Transaction<'_, Postgres>) -> Result<String, DbError> {
-   generate_unique_id_for(tx, Table::ForumThreads).await
+pub async fn generate_unique_thread_id(
+    tx: &mut Transaction<'_, Postgres>,
+) -> Result<String, DbError> {
+    generate_unique_id_for(tx, Table::ForumThreads).await
 }
 
-pub async fn generate_unique_forum_id(tx: &mut Transaction<'_, Postgres>) -> Result<String, DbError> {
-   generate_unique_id_for(tx, Table::Forums).await
-   }
+pub async fn generate_unique_forum_id(
+    tx: &mut Transaction<'_, Postgres>,
+) -> Result<String, DbError> {
+    generate_unique_id_for(tx, Table::Forums).await
+}
 
 pub async fn generate_unique_forum_thread_message_id(
     tx: &mut Transaction<'_, Postgres>,
 ) -> Result<String, DbError> {
-   generate_unique_id_for(tx, Table::ForumThreadMessages).await
+    generate_unique_id_for(tx, Table::ForumThreadMessages).await
 }

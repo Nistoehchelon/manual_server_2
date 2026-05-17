@@ -5,7 +5,6 @@ pub struct User {
     pub username: String,
 }
 
-
 pub struct Forum {
     pub id: String,
     pub name: String,
@@ -78,9 +77,7 @@ pub struct ViewInvoiceTemplate {
     pub method: String,
     pub address: String,
     pub invoice_id: String,
-
 }
-
 
 #[derive(Template)]
 #[template(path = "forum_thread.html")]
@@ -156,13 +153,12 @@ pub struct SubscriptionTemplate {
     pub ltc_cost: String,
 }
 
-
 #[derive(Template)]
 #[template(path = "index_not_logged_in.html")]
 pub struct IndexNotLoggedInTemplate {
     pub main_info: BaseTemplateData,
 }
- 
+
 #[derive(Template)]
 #[template(path = "signup.html")]
 pub struct SignupTemplate {
@@ -173,7 +169,6 @@ pub struct SignupTemplate {
     pub main_info: BaseTemplateData,
     pub csrf_token: String,
 }
-
 
 #[derive(Template)]
 #[template(path = "email_otp.html")]
@@ -236,12 +231,12 @@ pub struct CreateThreadTemplate {
     pub draft_thread_custom_id: String,
     pub can_set_custom_id: bool,
     pub csrf_token: String,
-} 
+}
 
 #[derive(Template)]
 #[template(path = "edit_forum_thread_message.html")]
 pub struct EditForumThreadMessageTemplate {
-    pub thread_message_length_max: usize, 
+    pub thread_message_length_max: usize,
     pub main_info: BaseTemplateData,
     pub thread: ForumThreadIdAndName,
     pub thread_page: String,

@@ -1,30 +1,8 @@
-use password_hashing::PasswordHasherConfig;
+use serde::Deserialize;
 use std::{path::PathBuf, time::Duration};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ServerConfig {
-    // app specific
-    pub password_hasher_config: PasswordHasherConfig,
-    pub using_https: bool,
-    pub min_length_user_password: usize,
-    pub max_length_user_password: usize,
-
-    pub min_length_forum_thread_name: usize,
-    pub max_length_forum_thread_name: usize,
-
-    pub min_length_forum_message: usize,
-    pub max_length_forum_message: usize,
-
-    pub cloudflare_turnstile_enabled: bool,
-    pub cloudflare_turnstile_site_key: String,
-    pub cloudflare_turnstile_secret_key: String,
-    pub cloudflare_turnstile_post_parameter_name: String,
-
-    pub webhook_and_api_secret_path_prefix: String,
-    pub payment_server_url: String,
-
-    // more generic
-
     pub rust_log: String,
     pub rust_log_directory_path: String,
 
@@ -64,7 +42,7 @@ pub struct ServerConfig {
     pub per_ip_time_credits_capacity: Duration,
 }
 
-pub fn read_config(config_file_path: PathBuf) -> ServerConfig {
+pub fn read_config<T: for<'a> Deserialize<'a>>(config_file_path: PathBuf) -> T {
     dotenvy::from_path(config_file_path).ok();
 
     config::Config::builder()
@@ -73,6 +51,6 @@ pub fn read_config(config_file_path: PathBuf) -> ServerConfig {
         )
         .build()
         .expect("Failed to build config")
-        .try_deserialize::<ServerConfig>()
+        .try_deserialize::<T>()
         .expect("Invalid or missing config values")
 }

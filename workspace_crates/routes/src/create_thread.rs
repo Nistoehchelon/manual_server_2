@@ -1,14 +1,16 @@
-use abac::{CanAccessThisForumInput, CanCreateThreadInput, CanSetCustomThreadIdWhenCreatingItInput, can_access_this_forum};
+use abac::{
+    CanAccessThisForumInput, CanCreateThreadInput, CanSetCustomThreadIdWhenCreatingItInput,
+    can_access_this_forum,
+};
 use error_structs::InternalAppError;
-use forum::{self, ValidForumThreadMessageContent, ValidForumThreadName};
 use forum::find_forum_by_id;
+use forum::{self, ValidForumThreadMessageContent, ValidForumThreadName};
 use html_templating::html_template_structs;
 use http_stuff::{
     http_request_parsing::{self},
     http_response::{HttpResponseData, bad_request_400, ok_html, redirect_to},
 };
 use session::{SessionNotification, add_session_notification, add_session_notification_error};
-
 
 use routing_structs::RouterData;
 
@@ -33,8 +35,6 @@ pub async fn get(
         .cloned()
         .unwrap_or_else(|| "0".to_string());
 
-
-
     let forum = find_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
         .map_err(InternalAppError::new)?;
@@ -54,7 +54,6 @@ pub async fn get(
     }
     let forum = forum.unwrap();
 
-    
     let csrf_token = csrf_stuff::get_or_create_token(
         db_pool.clone(),
         session.id.clone(),
@@ -63,7 +62,14 @@ pub async fn get(
     .await
     .map_err(InternalAppError::new)?;
 
-    if !can_access_this_forum(CanAccessThisForumInput{ db_pool:db_pool.clone(), user_id: session.user_id.clone(), forum_id: forum_id.clone() }).await.map_err(InternalAppError::new)? {
+    if !can_access_this_forum(CanAccessThisForumInput {
+        db_pool: db_pool.clone(),
+        user_id: session.user_id.clone(),
+        forum_id: forum_id.clone(),
+    })
+    .await
+    .map_err(InternalAppError::new)?
+    {
         println!("User doesn't have permissions to access this forum");
         return Ok(redirect_to("/".to_string()));
     }
@@ -79,7 +85,6 @@ pub async fn get(
             db_pool.clone(),
             session.id.clone(),
             "draft_forum_thread_content".to_string(),
-            
         )
         .await
         .map_err(InternalAppError::new)?,
@@ -115,9 +120,8 @@ pub async fn get(
         )
         .await
         .map_err(InternalAppError::new)?,
-        thread_name_length_max: router_data.server_config.max_length_forum_thread_name,
-        thread_message_length_max: router_data.server_config.max_length_forum_message,
-        
+        thread_name_length_max: router_data.site_config.max_length_forum_thread_name,
+        thread_message_length_max: router_data.site_config.max_length_forum_message,
     });
     Ok(ok_html(html))
 }
@@ -158,26 +162,31 @@ pub async fn post(
         return Ok(bad_request_400());
     }
 
-    
-    let content = match ValidForumThreadMessageContent::parse(content, router_data.server_config.min_length_forum_message, router_data.server_config.max_length_forum_message) {
+    let content = match ValidForumThreadMessageContent::parse(
+        content,
+        router_data.site_config.min_length_forum_message,
+        router_data.site_config.max_length_forum_message,
+    ) {
         Ok(c) => c,
         Err(e) => {
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
             return Ok(redirect_to(session.previous_get_page.clone()));
         }
     };
-    let name = match ValidForumThreadName::parse(name, router_data.server_config.min_length_forum_thread_name, router_data.server_config.max_length_forum_thread_name) {
+    let name = match ValidForumThreadName::parse(
+        name,
+        router_data.site_config.min_length_forum_thread_name,
+        router_data.site_config.max_length_forum_thread_name,
+    ) {
         Ok(c) => c,
         Err(e) => {
             add_session_notification_error(db_pool.clone(), session.id.clone(), e.message).await;
             return Ok(redirect_to(session.previous_get_page.clone()));
         }
-        
     };
     let forum = find_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
         .map_err(InternalAppError::new)?;
-
 
     if forum.is_none() {
         session::add_session_notification_error(
@@ -189,7 +198,14 @@ pub async fn post(
         return Ok(redirect_to(format!("/create_thread?forum_id={forum_id}")));
     }
 
-    if !can_access_this_forum(CanAccessThisForumInput{ db_pool:db_pool.clone(), user_id: session.user_id.clone(), forum_id: forum_id.clone() }).await.map_err(InternalAppError::new)? {
+    if !can_access_this_forum(CanAccessThisForumInput {
+        db_pool: db_pool.clone(),
+        user_id: session.user_id.clone(),
+        forum_id: forum_id.clone(),
+    })
+    .await
+    .map_err(InternalAppError::new)?
+    {
         println!("User doesn't have permissions to access this forum");
         return Ok(redirect_to("/".to_string()));
     }
@@ -199,7 +215,7 @@ pub async fn post(
         .await
         .map_err(InternalAppError::new)?;
     tx.commit().await.map_err(InternalAppError::new)?;
-    
+
     if let Some(custom_id) = params.get("custom_id")
         && custom_id != "[auto]"
     {

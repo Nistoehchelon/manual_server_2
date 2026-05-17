@@ -3,15 +3,24 @@ use session::get_session_by_session_id;
 use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;
 
-pub async fn user_can_view_invoice(db_pool: sqlx::PgPool, user_id: String, invoice_id: String) -> Result<bool, SomeSortOfError> {
+pub async fn user_can_view_invoice(
+    db_pool: sqlx::PgPool,
+    user_id: String,
+    invoice_id: String,
+) -> Result<bool, SomeSortOfError> {
     let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
-    let Ok(invoice_user_id) = invoice::get_invoice_data(&mut tx, invoice::InvoiceId(invoice_id), "user_id").await else {
+    let Ok(invoice_user_id) =
+        invoice::get_invoice_data(&mut tx, invoice::InvoiceId(invoice_id), "user_id").await
+    else {
         return Ok(false);
     };
     tx.commit().await.map_err(SomeSortOfError::new)?;
     Ok(user_id == invoice_user_id)
 }
-pub async fn user_can_create_invoice(_db_pool: sqlx::PgPool, _user_id: String) -> Result<bool, SomeSortOfError> {
+pub async fn user_can_create_invoice(
+    _db_pool: sqlx::PgPool,
+    _user_id: String,
+) -> Result<bool, SomeSortOfError> {
     Ok(true)
 }
 
@@ -114,12 +123,17 @@ pub async fn can_access_this_forum(
         .await
         .map_err(SomeSortOfError::new)?;
     match forum.id.as_str() {
-        id if id == custom_site_pages::FORUM_ID || id == forum::NONE_ID || id == dynamic_stylesheets::FORUM_ID => can_manage_site_pages(CanManageSitePagesInput {
-            db_pool: db_pool.clone(),
-            user_id: user_id.clone(),
-        })
-        .await
-        .map_err(SomeSortOfError::new),
+        id if id == custom_site_pages::FORUM_ID
+            || id == forum::NONE_ID
+            || id == dynamic_stylesheets::FORUM_ID =>
+        {
+            can_manage_site_pages(CanManageSitePagesInput {
+                db_pool: db_pool.clone(),
+                user_id: user_id.clone(),
+            })
+            .await
+            .map_err(SomeSortOfError::new)
+        }
         _ => Ok(true),
     }
 }

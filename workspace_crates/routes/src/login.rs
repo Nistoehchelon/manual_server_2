@@ -29,8 +29,8 @@ pub async fn get(
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         csrf_token,
-        router_data.server_config.min_length_user_password,
-        router_data.server_config.max_length_user_password,
+        router_data.site_config.min_length_user_password,
+        router_data.site_config.max_length_user_password,
     )))
 }
 
@@ -39,7 +39,7 @@ pub async fn post(
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
-    let hasher_config = router_data.server_config.password_hasher_config;
+    let hasher_config = router_data.site_config.password_hasher_config;
     if session.logged_in {
         add_session_notification(
             db_pool,
@@ -91,7 +91,7 @@ pub async fn post(
             return Ok(redirect_to(session.previous_get_page.clone()));
         }
     };
-    if router_data.server_config.cloudflare_turnstile_enabled {
+    if router_data.site_config.cloudflare_turnstile_enabled {
         let cf_turnstile_token = match body_params.get("cf-turnstile-response").cloned() {
             Some(t) => t,
             None => {
@@ -104,7 +104,7 @@ pub async fn post(
 
         if !cloudflare_turnstile::validate_turnstile(
             router_data
-                .server_config
+                .site_config
                 .cloudflare_turnstile_secret_key
                 .clone(),
             cf_turnstile_token,
@@ -182,7 +182,12 @@ pub async fn post(
     Ok(redirect_to("/".to_string()))
 }
 
-fn get_html(mut base_template: BaseTemplateData, csrf_token: String, min_length_user_password: usize, max_length_user_password: usize) -> String {
+fn get_html(
+    mut base_template: BaseTemplateData,
+    csrf_token: String,
+    min_length_user_password: usize,
+    max_length_user_password: usize,
+) -> String {
     base_template.title = "Login".to_string();
     html_templating::render(html_template_structs::LoginTemplate {
         csrf_token,
@@ -191,6 +196,5 @@ fn get_html(mut base_template: BaseTemplateData, csrf_token: String, min_length_
         username_length_max: user::MAX_LENGTH_USERNAME,
         password_length_min: min_length_user_password,
         password_length_max: max_length_user_password,
-        
     })
 }

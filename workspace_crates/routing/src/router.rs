@@ -20,18 +20,16 @@ use routes;
 pub async fn route(
     db_pool: sqlx::PgPool,
     server_config: ServerConfig,
+    site_config: site_config::SiteConfig,
     session: Session,
     created_new_session: bool,
     request_data: HttpRequestData,
     base_template_data: BaseTemplateData,
 ) -> Result<HttpResponseData, InternalAppError> {
-    let HttpRequestData {
-        path,
-        method,
-        ..
-    } = request_data.clone();
+    let HttpRequestData { path, method, .. } = request_data.clone();
 
     let router_data = routing_structs::RouterData {
+        site_config: site_config.clone(),
         session_notifications: Vec::new(),
         server_config: server_config.clone(),
         db_pool: db_pool.clone(),
@@ -43,7 +41,7 @@ pub async fn route(
         (HttpMethod::Post, path)
             if path.starts_with(&format!(
                 "/{}/",
-                server_config.webhook_and_api_secret_path_prefix.clone()
+                site_config.webhook_and_api_secret_path_prefix.clone()
             )) =>
         {
             tracing::debug!(path);
@@ -98,6 +96,7 @@ pub async fn route(
         let router_data = routing_structs::RouterData {
             session_notifications,
             server_config: server_config.clone(),
+            site_config: site_config.clone(),
             db_pool: db_pool.clone(),
             session: session.clone(),
             http_request_data: request_data.clone(),
@@ -224,7 +223,7 @@ pub async fn route(
             key: session::get_name_of_cookie_containing_session_id(),
             value: session.id.clone(),
             path: "/".to_string(),
-            secure: server_config.using_https,
+            secure: site_config.using_https,
         };
         dbg!(ch.clone());
         match response_data.set_cookie {
@@ -251,6 +250,7 @@ pub async fn generate_response_data(
     request_data: HttpRequestData,
     db_pool: sqlx::PgPool,
     server_config: ServerConfig,
+    site_config: site_config::SiteConfig,
 ) -> HttpResponseData {
     let nonce = id_generator::generate_random_alphanumeric_id(50).to_string();
     let request_start = Instant::now();
@@ -290,14 +290,15 @@ pub async fn generate_response_data(
     let base_template_data = html_templating::html_template_structs::BaseTemplateData {
         title: "".to_string(),
         page: request_data.path.clone(),
-        cloudflare_turnstile_enabled: server_config.cloudflare_turnstile_enabled,
-        cloudflare_turnstile_site_key: server_config.cloudflare_turnstile_site_key.clone(),
+        cloudflare_turnstile_enabled: site_config.cloudflare_turnstile_enabled,
+        cloudflare_turnstile_site_key: site_config.cloudflare_turnstile_site_key.clone(),
         notifications: into_vec(notifications),
         nonce: nonce.clone(),
     };
     let response_data = route(
         db_pool.clone(),
         server_config.clone(),
+        site_config.clone(),
         session.clone(),
         created_new_session,
         request_data.clone(),
@@ -318,6 +319,7 @@ pub async fn generate_response_data(
         request_data.clone(),
         response_data.clone(),
         server_config,
+        site_config,
         nonce,
     );
 
@@ -398,6 +400,7 @@ pub fn add_some_headers(
     request_data: HttpRequestData,
     mut response_data: HttpResponseData,
     server_config: ServerConfig,
+    site_config: site_config::SiteConfig,
     nonce: String,
 ) -> HttpResponseData {
     // KEEP_ALIVE_ENABLED
@@ -415,7 +418,7 @@ pub fn add_some_headers(
     // I guess this will disable sts whenever I run this without ssl, right?..
     response_data.headers.insert(
         "Strict-Transport-Security",
-        if server_config.using_https {
+        if site_config.using_https {
             "max-age=99999999; includeSubDomains; preload"
         } else {
             "max-age=0"
@@ -459,7 +462,7 @@ bluetooth=()"
     let mut frame_src = String::new();
     // if on pages using cf turntile, include the url in the csp headers
 
-    if server_config.cloudflare_turnstile_enabled {
+    if site_config.cloudflare_turnstile_enabled {
         match request_data.path.as_str() {
             "/signup" | "/login" | "/email_otp" | "/subscription" => {
                 script_src = String::from("https://challenges.cloudflare.com");

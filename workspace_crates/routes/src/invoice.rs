@@ -12,21 +12,21 @@ use session::{add_session_notification_error, add_session_notification_success};
 
 use routing_structs::RouterData;
 
-
-
 pub enum PreliminaryProcessing {
     Forbid,
-    Okay { invoice_id: String }
+    Okay { invoice_id: String },
 }
-pub async fn invoice_viewing_preliminary_checks_and_processing(router_data: RouterData) -> Result<PreliminaryProcessing, InternalAppError> {
+pub async fn invoice_viewing_preliminary_checks_and_processing(
+    router_data: RouterData,
+) -> Result<PreliminaryProcessing, InternalAppError> {
     let RouterData {
-        server_config: _,
+        site_config: _,
         db_pool,
         http_request_data,
         session,
         ..
     } = router_data.clone();
-        let Some(invoice_id) = http_request_data.query.get("id").cloned() else {
+    let Some(invoice_id) = http_request_data.query.get("id").cloned() else {
         return Ok(PreliminaryProcessing::Forbid);
     };
     if !abac::user_can_view_invoice(db_pool.clone(), session.user_id.clone(), invoice_id.clone())
@@ -56,18 +56,19 @@ pub async fn invoice_viewing_preliminary_checks_and_processing(router_data: Rout
 pub async fn get_json_status(
     router_data: RouterData,
 ) -> Result<HttpResponseData, InternalAppError> {
-    let RouterData {
-        db_pool,
-        ..
-    } = router_data.clone();
+    let RouterData { db_pool, .. } = router_data.clone();
 
-    let invoice_id  = match invoice_viewing_preliminary_checks_and_processing(router_data.clone()).await? {
-        PreliminaryProcessing::Forbid => { return Ok(redirect_to("/".to_string()))},
-        PreliminaryProcessing::Okay { invoice_id } => { invoice_id},
-    };
+    let invoice_id =
+        match invoice_viewing_preliminary_checks_and_processing(router_data.clone()).await? {
+            PreliminaryProcessing::Forbid => return Ok(redirect_to("/".to_string())),
+            PreliminaryProcessing::Okay { invoice_id } => invoice_id,
+        };
     let mut tx = db_pool.begin().await.map_err(InternalAppError::new)?;
-    let payment_status = invoice::invoice_status(&mut tx, InvoiceId(invoice_id)).await.map_err(InternalAppError::new)?;
-    let payment_status_json = serde_json::to_string(&payment_status).map_err(InternalAppError::new)?;
+    let payment_status = invoice::invoice_status(&mut tx, InvoiceId(invoice_id))
+        .await
+        .map_err(InternalAppError::new)?;
+    let payment_status_json =
+        serde_json::to_string(&payment_status).map_err(InternalAppError::new)?;
 
     let resp = http_stuff::http_response::ok(
         payment_status_json.into(),
@@ -78,15 +79,13 @@ pub async fn get_json_status(
 }
 
 pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, InternalAppError> {
-    let RouterData {
-        db_pool,
-        ..
-    } = router_data.clone();
+    let RouterData { db_pool, .. } = router_data.clone();
 
-    let invoice_id  = match invoice_viewing_preliminary_checks_and_processing(router_data.clone()).await? {
-        PreliminaryProcessing::Forbid => { return Ok(redirect_to("/".to_string()))},
-        PreliminaryProcessing::Okay { invoice_id } => { invoice_id},
-    };
+    let invoice_id =
+        match invoice_viewing_preliminary_checks_and_processing(router_data.clone()).await? {
+            PreliminaryProcessing::Forbid => return Ok(redirect_to("/".to_string())),
+            PreliminaryProcessing::Okay { invoice_id } => invoice_id,
+        };
 
     // test
     let mut tx = db_pool
@@ -114,7 +113,7 @@ pub async fn post_create_invoice(
     router_data: RouterData,
 ) -> Result<HttpResponseData, InternalAppError> {
     let RouterData {
-        server_config,
+        site_config,
         db_pool,
         http_request_data,
         session,
@@ -139,14 +138,12 @@ pub async fn post_create_invoice(
         parse_body_into_string_form_input_params(http_request_data.body_bytes.clone())
             .map_err(InternalAppError::new)?;
 
-    if server_config.cloudflare_turnstile_enabled
+    if site_config.cloudflare_turnstile_enabled
         && !crate::validate_turnstile(
             body_params.clone(),
-            server_config
-                .cloudflare_turnstile_post_parameter_name
-                .clone(),
+            site_config.cloudflare_turnstile_post_parameter_name.clone(),
             http_request_data.x_real_ip,
-            server_config.cloudflare_turnstile_secret_key.clone(),
+            site_config.cloudflare_turnstile_secret_key.clone(),
         )
         .await
         .map_err(InternalAppError::new)?

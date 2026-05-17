@@ -65,7 +65,6 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
             }
         }
     };
-     
 
     let id_source = {
         let opt = body_params.get("custom_id");
@@ -90,7 +89,14 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
             .await
             .map_err(InternalAppError::new)?;
     }
-    if !can_access_this_forum(CanAccessThisForumInput{ db_pool:rt.db_pool.clone(), user_id: rt.session.user_id.clone(), forum_id: parent_forum_id.clone() }).await.map_err(InternalAppError::new)? {
+    if !can_access_this_forum(CanAccessThisForumInput {
+        db_pool: rt.db_pool.clone(),
+        user_id: rt.session.user_id.clone(),
+        forum_id: parent_forum_id.clone(),
+    })
+    .await
+    .map_err(InternalAppError::new)?
+    {
         tracing::info!("User doesn't have permissions to access this forum");
         return Ok(redirect_to("/".to_string()));
     }

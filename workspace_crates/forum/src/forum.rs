@@ -1,5 +1,7 @@
 use crate::{
-    ForumThreadMessage, NONE_ID, DEFAULT_FORUM_ID, ValidForumThreadMessageContent, ValidForumThreadName, forum_structs::{Forum, ForumThread, ForumThreadMessageVersion}
+    DEFAULT_FORUM_ID, ForumThreadMessage, NONE_ID, ValidForumThreadMessageContent,
+    ValidForumThreadName,
+    forum_structs::{Forum, ForumThread, ForumThreadMessageVersion},
 };
 use db_manager::DbError;
 use error_structs::{ExpectedToGetButFailed, SomeSortOfError};
@@ -20,9 +22,10 @@ impl UniqueForumId {
             .await
             .map_err(SomeSortOfError::new)?;
         if let Some(forum) = forum {
-            return Err(SomeSortOfError::new(
-                format!("Could not parse String into UniqueForumId: the provided id is not unique, a forum with id  \"{}\" already exists", forum.id),
-            ));
+            return Err(SomeSortOfError::new(format!(
+                "Could not parse String into UniqueForumId: the provided id is not unique, a forum with id  \"{}\" already exists",
+                forum.id
+            )));
         }
         Ok(UniqueForumId { inner: id })
     }
@@ -266,7 +269,9 @@ pub async fn get_thread(
     {
         Some(t) => t,
         None => {
-            return Err(ExpectedToGetButFailed::new("I called get_thread because I expected to get it, but it was not actually found."));
+            return Err(ExpectedToGetButFailed::new(
+                "I called get_thread because I expected to get it, but it was not actually found.",
+            ));
         }
     };
     Ok(thread)
@@ -276,7 +281,15 @@ pub async fn get_thread_by_forum_id_and_title(
     forum_id: String,
     title: String,
 ) -> Result<ForumThread, ExpectedToGetButFailed> {
-   let thread_id = sqlx::query!("SELECT id FROM forum_threads WHERE forum_id = $1 AND name = $2", forum_id, title).fetch_one(&db_pool).await.map_err(ExpectedToGetButFailed::new)?.id;
+    let thread_id = sqlx::query!(
+        "SELECT id FROM forum_threads WHERE forum_id = $1 AND name = $2",
+        forum_id,
+        title
+    )
+    .fetch_one(&db_pool)
+    .await
+    .map_err(ExpectedToGetButFailed::new)?
+    .id;
     get_thread(db_pool, thread_id).await
 }
 
@@ -399,7 +412,9 @@ async fn storage_specific_create_thread(
     .await
     .map_err(DbError::new)?;
 
-    let message_id = id_generator_unique_in_db::generate_unique_forum_thread_message_id(&mut tx).await.map_err(DbError::new)?;
+    let message_id = id_generator_unique_in_db::generate_unique_forum_thread_message_id(&mut tx)
+        .await
+        .map_err(DbError::new)?;
     let message_id_result = sqlx::query!("INSERT INTO forum_thread_messages (id, thread_id, user_id) VALUES ($1, $2, $3) RETURNING ID", message_id, thread_id_result.id.clone(), user_id.clone()).fetch_one(&mut *tx).await.map_err(DbError::new)?;
 
     let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), content.to_string(), message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;

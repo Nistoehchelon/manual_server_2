@@ -1,4 +1,3 @@
-
 use cryptocurrencies_stuff::atomic_unit::XMRAtomicUnit;
 use custom_site_variables::set_custom_site_variable;
 use error_structs::SomeSortOfError;

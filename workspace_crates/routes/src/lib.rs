@@ -2,27 +2,26 @@ use std::{collections::HashMap, net::IpAddr};
 
 use error_structs::SomeSortOfError;
 
+pub mod create_forum;
 pub mod create_thread;
 pub mod dashboard;
 pub mod dump_request;
+pub mod dynamic_stylesheet;
+pub mod edit_forum_thread_message;
+pub mod email_otp;
 pub mod forum;
-pub mod create_forum;
 pub mod forum_thread;
 pub mod forum_thread_message_versions;
-pub mod edit_forum_thread_message;
 pub mod index;
+pub mod invoice;
 pub mod login;
 pub mod logout;
 pub mod manage_custom_site_pages;
-pub mod view_custom_site_page;
-pub mod signup;
-pub mod webhook;
 pub mod not_found;
-pub mod dynamic_stylesheet;
-pub mod email_otp;
+pub mod signup;
 pub mod subscription;
-pub mod invoice;
-
+pub mod view_custom_site_page;
+pub mod webhook;
 
 pub async fn validate_turnstile(
     body_params: HashMap<String, String>,

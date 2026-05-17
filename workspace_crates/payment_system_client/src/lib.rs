@@ -1,4 +1,3 @@
-
 use custom_site_variables::find_custom_site_variable;
 use error_structs::SomeSortOfError;
 use serde::{Deserialize, Serialize};

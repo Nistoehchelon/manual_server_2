@@ -1617,6 +1617,7 @@ dependencies = [
  "dotenvy",
  "routing",
  "server",
+ "site_config",
  "sqlx",
  "tokio",
 ]
@@ -2367,6 +2368,7 @@ dependencies = [
  "serde",
  "serde_json",
  "session",
+ "site_config",
  "sqlx",
  "tokio",
  "tracing",
@@ -2384,6 +2386,7 @@ dependencies = [
  "html_templating",
  "http_stuff",
  "session",
+ "site_config",
  "sqlx",
 ]
 
@@ -2793,6 +2796,14 @@ name = "siphasher"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ee5873ec9cce0195efcb7a4e9507a04cd49aec9c83d0389df45b1ef7ba2e649"
+
+[[package]]
+name = "site_config"
+version = "0.1.0"
+dependencies = [
+ "password_hashing",
+ "serde",
+]
 
 [[package]]
 name = "slab"

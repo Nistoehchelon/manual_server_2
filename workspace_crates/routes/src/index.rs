@@ -20,7 +20,10 @@ pub async fn get(
             .await
             .map_err(InternalAppError::new)?;
         let mut tx = db_pool.begin().await.map_err(InternalAppError::new)?;
-        let user_has_a_subscription = user::subscription::user_has_a_subscription(&mut tx, &user.id).await.map_err(InternalAppError::new)?;
+        let user_has_a_subscription =
+            user::subscription::user_has_a_subscription(&mut tx, &user.id)
+                .await
+                .map_err(InternalAppError::new)?;
         tx.commit().await.map_err(InternalAppError::new)?;
 
         return Ok(http_stuff::http_response::ok_html(get_html(
@@ -38,7 +41,12 @@ pub async fn get(
     )))
 }
 
-fn get_html(mut base_template: BaseTemplateData, session: Session, user: User, user_has_a_subscription: bool) -> String {
+fn get_html(
+    mut base_template: BaseTemplateData,
+    session: Session,
+    user: User,
+    user_has_a_subscription: bool,
+) -> String {
     if session.logged_in {
         base_template.title = "Welcome back!".to_string();
 

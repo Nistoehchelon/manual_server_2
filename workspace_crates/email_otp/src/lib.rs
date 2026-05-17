@@ -1,4 +1,3 @@
-
 use std::fmt;
 
 use chrono::Utc;
@@ -41,10 +40,9 @@ impl From<sqlx::Error> for ConsumeEmailOtpError {
 }
 
 pub async fn consume_email_otp(
-   tx: &mut Transaction<'_, Postgres>,
+    tx: &mut Transaction<'_, Postgres>,
     code: &str,
 ) -> Result<PendingUser, ConsumeEmailOtpError> {
-
     let otp = sqlx::query!(
         r#"
         SELECT
@@ -71,7 +69,7 @@ pub async fn consume_email_otp(
 
     let expires_at = otp.created_at.unix_timestamp() + OTP_TTL_SECS;
 
-    if  expires_at < Utc::now().timestamp() {
+    if expires_at < Utc::now().timestamp() {
         return Err(ConsumeEmailOtpError::Expired);
     }
 
@@ -106,10 +104,8 @@ pub async fn consume_email_otp(
     .execute(&mut **tx)
     .await?;
 
-
     Ok(pending_user)
 }
-
 
 #[derive(Debug)]
 pub struct CreateEmailOtpInput {

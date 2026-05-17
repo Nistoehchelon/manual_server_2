@@ -3,7 +3,6 @@ use tracing_appender::rolling::RollingFileAppender;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-
 use tracing_subscriber::fmt;
 
 // purpose: fix duplication when using multiple formatters (in this case fileout and stdout)
@@ -16,17 +15,25 @@ struct FileFields(fmt::format::DefaultFields);
 
 // Implement the trait for both (boilerplate)
 impl<'writer> fmt::FormatFields<'writer> for StdoutFields {
-    fn format_fields<R>(&self, w: fmt::format::Writer<'writer>, f: R) -> std::fmt::Result 
-    where R: tracing_subscriber::field::RecordFields { self.0.format_fields(w, f) }
+    fn format_fields<R>(&self, w: fmt::format::Writer<'writer>, f: R) -> std::fmt::Result
+    where
+        R: tracing_subscriber::field::RecordFields,
+    {
+        self.0.format_fields(w, f)
+    }
 }
 impl<'writer> fmt::FormatFields<'writer> for FileFields {
-    fn format_fields<R>(&self, w: fmt::format::Writer<'writer>, f: R) -> std::fmt::Result 
-    where R: tracing_subscriber::field::RecordFields { self.0.format_fields(w, f) }
+    fn format_fields<R>(&self, w: fmt::format::Writer<'writer>, f: R) -> std::fmt::Result
+    where
+        R: tracing_subscriber::field::RecordFields,
+    {
+        self.0.format_fields(w, f)
+    }
 }
 
-pub fn init_tracing(enable_stdout: bool, file_appender: RollingFileAppender)  -> WorkerGuard {
+pub fn init_tracing(enable_stdout: bool, file_appender: RollingFileAppender) -> WorkerGuard {
     let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
-    
+
     let file_layer = tracing_subscriber::fmt::layer()
         .with_writer(file_writer)
         .with_ansi(false)
@@ -37,7 +44,8 @@ pub fn init_tracing(enable_stdout: bool, file_appender: RollingFileAppender)  ->
     // Optional stdout layer
     let stdout_layer = tracing_subscriber::fmt::layer()
         .with_target(true)
-        .with_line_number(true).fmt_fields(StdoutFields::default());
+        .with_line_number(true)
+        .fmt_fields(StdoutFields::default());
 
     let filter = EnvFilter::from_default_env();
 

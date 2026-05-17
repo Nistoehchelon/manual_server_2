@@ -102,9 +102,9 @@ pub async fn parse_http_request<S: AsyncRead + Unpin>(
         return Err(HttpRequestParsingError::BadRequest);
     }
     let method = HttpMethod::parse(first_line_split[0].to_string()).map_err(|e| {
-                dbg!(e);
-                HttpRequestParsingError::BadRequest
-            })?;
+        dbg!(e);
+        HttpRequestParsingError::BadRequest
+    })?;
     let path_and_query = first_line_split[1].to_string();
     let http_version = first_line_split[2].to_string();
 

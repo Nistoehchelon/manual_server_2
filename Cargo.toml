@@ -17,8 +17,9 @@ resolver = "3"
 members = ["workspace_crates/*"]
 
 [workspace.dependencies]
-
+ 
 # internal workspace crates
+site_config  =  { path = "workspace_crates/site_config" }
 routes  =  { path = "workspace_crates/routes" }
 payment_system_client  =  { path = "workspace_crates/payment_system_client" }
 financial_stuff  =  { path = "workspace_crates/financial_stuff" }

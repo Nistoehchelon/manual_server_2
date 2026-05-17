@@ -64,7 +64,7 @@ pub async fn post(
         session,
         db_pool,
         http_request_data,
-        server_config,
+        site_config,
         ..
     } = router_data.clone();
     if session.logged_in {
@@ -109,7 +109,7 @@ pub async fn post(
         }
     };
 
-    if server_config.cloudflare_turnstile_enabled {
+    if site_config.cloudflare_turnstile_enabled {
         let cf_turnstile_token = match body_params.get("cf-turnstile-response").cloned() {
             Some(t) => t,
             None => {
@@ -122,7 +122,7 @@ pub async fn post(
 
         if !cloudflare_turnstile::validate_turnstile(
             router_data
-                .server_config
+                .site_config
                 .cloudflare_turnstile_secret_key
                 .clone(),
             cf_turnstile_token,

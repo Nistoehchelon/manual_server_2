@@ -25,16 +25,18 @@ pub async fn find_custom_site_variable(
     tx: &mut Transaction<'_, Postgres>,
     var_name: String,
 ) -> Result<Option<String>, SomeSortOfError> {
-        let row = sqlx::query!(
-            r#"SELECT value FROM custom_site_variables WHERE name = $1"#,
-            var_name
-        )
-        .fetch_optional(&mut **tx)
-        .await
-        .map_err(SomeSortOfError::new)?;
+    let row = sqlx::query!(
+        r#"SELECT value FROM custom_site_variables WHERE name = $1"#,
+        var_name
+    )
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(SomeSortOfError::new)?;
     if let Some(row) = row {
         let val = row.value;
         return Ok(Some(val));
     }
-    Err(SomeSortOfError::new(format!("Could not find custom_site_variable {var_name}")))
+    Err(SomeSortOfError::new(format!(
+        "Could not find custom_site_variable {var_name}"
+    )))
 }

@@ -26,7 +26,13 @@ pub async fn get(
     .await
     .map_err(InternalAppError::new)?;
 
-    let user_can_view_app_executable_version = abac::user_can_view_app_executable_version(UserCanViewAppExecutableVersionInput {db_pool: db_pool.clone(), user_id: user.id.clone()}).await.map_err(InternalAppError::new)?;
+    let user_can_view_app_executable_version =
+        abac::user_can_view_app_executable_version(UserCanViewAppExecutableVersionInput {
+            db_pool: db_pool.clone(),
+            user_id: user.id.clone(),
+        })
+        .await
+        .map_err(InternalAppError::new)?;
     let app_executable_version = if user_can_view_app_executable_version {
         Some(app_executable_version::VERSION.to_string())
     } else {

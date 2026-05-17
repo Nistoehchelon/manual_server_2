@@ -89,7 +89,7 @@ pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, Intern
         .await
         .map_err(InternalAppError::new)?;
 
-        if !can_access_this_forum_thread(CanAccessThisForumThreadInput {
+    if !can_access_this_forum_thread(CanAccessThisForumThreadInput {
         db_pool: db_pool.clone(),
         user_id: session.user_id.clone(),
         thread_id: thread.id.clone(),

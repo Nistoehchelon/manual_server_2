@@ -45,10 +45,7 @@ pub struct SomeSortOfError {
 impl SomeSortOfError {
     pub fn new<E: Debug>(s: E) -> Self {
         let message = format!("{s:?}");
-        println!(
-            "SomeSortOfError: {}",
-            message.clone()
-        );
+        println!("SomeSortOfError: {}", message.clone());
         Self { message }
     }
 }

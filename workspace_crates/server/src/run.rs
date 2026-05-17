@@ -18,7 +18,12 @@ use crate::{
 };
 
 use std::{
-    collections::HashMap, net::IpAddr, path::PathBuf, pin::Pin, sync::Arc, time::{Duration, Instant}
+    collections::HashMap,
+    net::IpAddr,
+    path::PathBuf,
+    pin::Pin,
+    sync::Arc,
+    time::{Duration, Instant},
 };
 
 use tokio::{
@@ -30,12 +35,11 @@ use tokio::{
 use tracing::{Span, field, info, span::Id};
 use tracing_appender::rolling;
 
-
 pub type HandlerFn = Arc<
     dyn Fn(HttpRequestData, ServerConfig) -> Pin<Box<dyn Future<Output = HttpResponseData> + Send>>
         + Send
         + Sync,
->; 
+>;
 pub async fn run(handler: HandlerFn) -> std::io::Result<()> {
     let args = match parse_args::parse_args() {
         Ok(args) => args,
@@ -52,7 +56,7 @@ pub async fn run(handler: HandlerFn) -> std::io::Result<()> {
     dotenvy::dotenv().ok();
     tracing::info!("Server version: {}", app_executable_version::VERSION);
 
-    let server_config = config_reader::read_config(PathBuf::from(".env"));
+    let server_config = config_reader::read_config::<ServerConfig>(PathBuf::from(".env"));
 
     // File appender (rotates daily)
     let file_appender =
@@ -85,7 +89,6 @@ pub async fn run(handler: HandlerFn) -> std::io::Result<()> {
     }));
     let ip_buckets: IpBuckets = Arc::new(Mutex::new(HashMap::new()));
 
-
     let mut tasks = tokio::task::JoinSet::new();
     loop {
         tokio::select! {
@@ -106,7 +109,7 @@ pub async fn run(handler: HandlerFn) -> std::io::Result<()> {
                 tasks.spawn(async move {
                     let stream = tcp;
                     let mut reader = BufReader::new(stream);
-                   
+
                     handle_stream(
                         &mut reader,
                         peer_ip.ip(),
@@ -294,8 +297,7 @@ pub async fn generate_response(
     server_config: ServerConfig,
     handler: HandlerFn,
 ) -> HttpResponseData {
-    let mut response_data =
-        handler(request_data.clone(), server_config).await;
+    let mut response_data = handler(request_data.clone(), server_config).await;
     let close_or_keep_alive = if keep_alive_max_requests_reached {
         KeepAliveOrClose::Close
     } else {

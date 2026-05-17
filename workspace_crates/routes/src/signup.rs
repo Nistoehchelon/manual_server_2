@@ -1,4 +1,3 @@
-
 use email_otp::CreateEmailOtpInput;
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, BaseTemplateData};
@@ -12,8 +11,8 @@ use session::{
 };
 use user::{ValidatedPassword, ValidatedUsername};
 
-use routing_structs::RouterData;
 use crate::validate_turnstile;
+use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,
@@ -47,8 +46,8 @@ pub async fn get(
     Ok(ok_html(get_signup_html(
         router_data.base_template_data,
         csrf_token,
-        router_data.server_config.min_length_user_password,
-        router_data.server_config.max_length_user_password,
+        router_data.site_config.min_length_user_password,
+        router_data.site_config.max_length_user_password,
     )))
 }
 
@@ -69,7 +68,6 @@ fn get_signup_html(
     })
 }
 
-
 pub async fn post(
     router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
@@ -77,7 +75,7 @@ pub async fn post(
         session,
         db_pool,
         http_request_data,
-        server_config,
+        site_config,
         ..
     } = router_data.clone();
     if session.logged_in {
@@ -126,14 +124,12 @@ pub async fn post(
             }
         };
 
-    if server_config.cloudflare_turnstile_enabled
+    if site_config.cloudflare_turnstile_enabled
         && !validate_turnstile(
             body_params.clone(),
-            server_config
-                .cloudflare_turnstile_post_parameter_name
-                .clone(),
+            site_config.cloudflare_turnstile_post_parameter_name.clone(),
             http_request_data.x_real_ip,
-            server_config.cloudflare_turnstile_secret_key.clone(),
+            site_config.cloudflare_turnstile_secret_key.clone(),
         )
         .await
         .map_err(InternalAppError::new)?
@@ -152,7 +148,11 @@ pub async fn post(
             .await
             .map_err(InternalAppError::new)?;
     if !csrf_token_valid {
-        add_session_notification_error(db_pool.clone(), session.id.clone(), "csrf_token validation error".to_string())
+        add_session_notification_error(
+            db_pool.clone(),
+            session.id.clone(),
+            "csrf_token validation error".to_string(),
+        )
         .await;
         return Ok(redirect_to("/signup".to_string()));
     }
@@ -167,8 +167,8 @@ pub async fn post(
     };
     let password = match ValidatedPassword::validate(
         password,
-        router_data.server_config.min_length_user_password,
-        router_data.server_config.max_length_user_password,
+        router_data.site_config.min_length_user_password,
+        router_data.site_config.max_length_user_password,
     ) {
         Ok(u) => u,
         Err(e) => {
@@ -203,7 +203,7 @@ pub async fn post(
 
     let password_hash = password_hashing::hash_password(
         password.to_string(),
-        server_config.password_hasher_config.clone(),
+        site_config.password_hasher_config.clone(),
     )
     .map_err(InternalAppError::new)?;
 

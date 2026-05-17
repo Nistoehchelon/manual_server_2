@@ -1,6 +1,6 @@
 use error_structs::SomeSortOfError;
 use sqlx::{Postgres, Transaction};
-use strum::{EnumString, Display};
+use strum::{Display, EnumString};
 
 #[derive(Debug, EnumString, Display)]
 pub enum CustomSiteVariableName {
@@ -12,11 +12,11 @@ pub enum CustomSiteVariableName {
     SubscriptionCostUsd,
     #[strum(serialize = "usd_per_ltc")]
     USDPerLTC,
-    #[strum(serialize = "usd_per_xmr")]    
+    #[strum(serialize = "usd_per_xmr")]
     USDPerXMR,
-    #[strum(serialize = "website_fund_xmr_balance_atomic_units")]   
+    #[strum(serialize = "website_fund_xmr_balance_atomic_units")]
     WebsiteFundXMRBalanceAtomicUnits,
- #[strum(serialize = "website_fund_xmr_balance_visual")]   
+    #[strum(serialize = "website_fund_xmr_balance_visual")]
     WebsiteFundXMRBalanceVisual,
 }
 
@@ -56,6 +56,6 @@ pub async fn find_custom_site_variable(
         return Ok(Some(val));
     }
     Err(SomeSortOfError::new(format!(
-        "Could not find custom_site_setting {var_name}", 
+        "Could not find custom_site_setting {var_name}",
     )))
 }

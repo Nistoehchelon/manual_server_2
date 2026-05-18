@@ -1841,7 +1841,7 @@ dependencies = [
 [[package]]
 name = "payment_system_structs"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/payment_system.git#afb159f3c7659ea974bfc793c542868f948a09fa"
+source = "git+ssh://git@github.com/Aeroel/payment_system.git#f662c0c1c240c0efa50539fa0fd346573ee10e0f"
 dependencies = [
  "serde",
  "serde_json",

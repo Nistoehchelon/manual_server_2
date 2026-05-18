@@ -1,6 +1,6 @@
 use custom_site_variables::find_custom_site_variable;
 use error_structs::SomeSortOfError;
-use payment_system_structs::{NewInvoiceRequest, NewInvoiceResponse, PaymentInfo, Amount, Address, Method};
+use payment_system_structs::{NewInvoiceRequest, PaymentInfo, };
 use sqlx::{Postgres, Transaction};
 
 pub async fn new_invoice(
@@ -32,16 +32,12 @@ pub async fn new_invoice(
         .await
         .map_err(|e| SomeSortOfError::new(e.to_string()))?;
 
-    let invoice_data: NewInvoiceResponse = response
+    let payment_info: PaymentInfo = response
         .json()
         .await
         .map_err(|e| SomeSortOfError::new(e.to_string()))?;
 
-    Ok(PaymentInfo {
-        amount: Amount::from(invoice_data.amount),
-        address: Address::from(invoice_data.address),
-        method: Method::from(invoice_data.method),
-    })
+    Ok(payment_info)
 }
 
 pub async fn get_status_update_callback_url(

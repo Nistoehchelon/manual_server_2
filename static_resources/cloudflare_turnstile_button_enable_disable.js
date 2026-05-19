@@ -13,6 +13,8 @@ const cf_success_auto_indicator = getOrCreateCfStatusHiddenField();
     const answer= cf_success_auto_indicator.value === "true";
     return answer;
 }
+window.script_cloudflare_turnstile__is_verified = script_cloudflare_turnstile__is_verified;
+
 function enableSubmitButton() {
     setCfValid(true);
     submit_button.disabled = false;

@@ -1,13 +1,15 @@
+use std::collections::HashMap;
+
 use custom_site_variables::find_custom_site_variable;
 use error_structs::SomeSortOfError;
-use payment_system_structs::{NewInvoiceRequest, PaymentInfo, };
+use payment_system_structs::{CallbackHeaders, NewInvoiceRequest, PaymentInfo };
 use sqlx::{Postgres, Transaction};
 
 pub async fn new_invoice(
     tx: &mut Transaction<'_, Postgres>,
     invoice_id: String,
     amount_atomic: u64,
-    method: String,
+    method: payment_system_structs::PaymentMethod,
     success_callback: String,
     status_update_callback: String,
 ) -> Result<PaymentInfo, SomeSortOfError> {
@@ -19,14 +21,15 @@ pub async fn new_invoice(
         invoice_id,
         method,
         amount_atomic,
-        token,
         success_callback,
         status_update_callback,
+        callback_headers: CallbackHeaders(HashMap::new())
     };
     let client = reqwest::Client::new();
 
     let response = client
         .post(&request_url)
+        .header("x-api-token", token)
         .json(&payload)
         .send()
         .await

@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use server::BackgroundSpawnTasks;
+
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
@@ -17,5 +19,5 @@ async fn main() -> std::io::Result<()> {
                     .await
             })
         });
-    server::run(handler, app_executable_version::VERSION.to_string()).await
+    server::run(app_executable_version::VERSION.to_string(), handler, BackgroundSpawnTasks { new_tasks_to_spawn: None}).await
 }

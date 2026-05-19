@@ -8,7 +8,7 @@ const submit_button = document.querySelector(`.${button_class}`);
 // disable on initial load
 submit_button.disabled = true;
 const cf_success_auto_indicator = getOrCreateCfStatusHiddenField();
-function script_cloudflare_turnstile__is_verified() {
+ function script_cloudflare_turnstile__is_verified() {
     
     const answer= cf_success_auto_indicator.value === "true";
     return answer;

@@ -206,29 +206,63 @@ pub async fn post_create_invoice(
             return Ok(redirect_to("/".to_string()));
         }
     };
+
     let method = match service {
-        ServiceData::Subscription { months, .. } => match payment_method.as_str() {
-            "ltc" => PaymentMethod::LTC {
-                amount: get_by_usd::<LTC>(&mut tx, 1.0 * (months as f64))
-                    .await
-                    .map_err(InternalAppError::new)?,
-            },
-            "xmr" => PaymentMethod::XMR {
-                amount: get_by_usd::<XMR>(&mut tx, 1.0 * (months as f64))
-                    .await
-                    .map_err(InternalAppError::new)?,
-            },
-            _ => {
-                tracing::error!("Invalid invoice payment method");
-                return Ok(redirect_to("/".to_string()));
+        ServiceData::Subscription { months, .. } => {
+            let Some(sub_cost) = custom_site_variables::find_custom_site_variable(
+                &mut tx,
+                custom_site_variables::CustomSiteVariableName::SubscriptionCostUsd,
+            )
+            .await
+            .map_err(InternalAppError::new)?
+            else {
+                return Err(InternalAppError::new("No usd cost custom site var set"));
+            };
+            let sub_cost: f64 = sub_cost.parse().map_err(InternalAppError::new)?;
+
+            
+            match payment_method.as_str() {
+                "litecoin" => PaymentMethod::LTC {
+                    amount: get_by_usd::<LTC>(&mut tx, sub_cost * (months as f64))
+                        .await
+                        .map_err(InternalAppError::new)?,
+                },
+                "monero" => PaymentMethod::XMR {
+                    amount: get_by_usd::<XMR>(&mut tx, sub_cost * (months as f64))
+                        .await
+                        .map_err(InternalAppError::new)?,
+                },
+                _ => {
+                    tracing::error!("Invalid invoice payment method");
+                    return Ok(redirect_to("/".to_string()));
+                }
             }
-        },
+        }
     };
-    let payment_success_url = webhooks::get_endpoint_url(&mut tx, site_config.webhook_and_api_secret_path_prefix.clone(),webhooks::WebhookEndpoint::PaymentSuccess).await.map_err(InternalAppError::new)?;
-    let payment_status_update_url = webhooks::get_endpoint_url(&mut tx, site_config.webhook_and_api_secret_path_prefix.clone(),webhooks::WebhookEndpoint::PaymentStatusUpdate).await.map_err(InternalAppError::new)?;
-    let invoice_data = create_invoice(&mut tx, user.id, service, method, payment_success_url, payment_status_update_url)
-        .await
-        .map_err(InternalAppError::new)?;
+    let payment_success_url = webhooks::get_endpoint_url(
+        &mut tx,
+        site_config.webhook_and_api_secret_path_prefix.clone(),
+        webhooks::WebhookEndpoint::PaymentSuccess,
+    )
+    .await
+    .map_err(InternalAppError::new)?;
+    let payment_status_update_url = webhooks::get_endpoint_url(
+        &mut tx,
+        site_config.webhook_and_api_secret_path_prefix.clone(),
+        webhooks::WebhookEndpoint::PaymentStatusUpdate,
+    )
+    .await
+    .map_err(InternalAppError::new)?;
+    let invoice_data = create_invoice(
+        &mut tx,
+        user.id,
+        service,
+        method,
+        payment_success_url,
+        payment_status_update_url,
+    )
+    .await
+    .map_err(InternalAppError::new)?;
     tx.commit().await.map_err(InternalAppError::new)?;
     add_session_notification_success(
         db_pool.clone(),

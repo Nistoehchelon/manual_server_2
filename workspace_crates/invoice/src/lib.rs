@@ -38,8 +38,8 @@ pub enum PaymentMethod {
 impl std::fmt::Display for PaymentMethod {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            PaymentMethod::XMR { .. } => "ltc",
-            PaymentMethod::LTC { .. } => "xmr",
+            PaymentMethod::XMR { .. } => "litecoin",
+            PaymentMethod::LTC { .. } => "monero",
         };
         write!(f, "{}", s)
     }
@@ -245,7 +245,7 @@ pub async fn create_invoice(
         tx,
         invoice_id_string,
         payment_amount_atomic_units,
-        payment_method.to_string(),
+        payment_method.to_string().parse().map_err(SomeSortOfError::new)?,
         payment_success_webhook_url,
         payment_status_update_webhook_url,
     )

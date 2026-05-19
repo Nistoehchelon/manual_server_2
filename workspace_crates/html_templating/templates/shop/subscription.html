@@ -28,12 +28,12 @@ Subscription
         </legend>
 
 
-        <div> <input type="radio" id="ltc" name="payment_method" value="ltc" checked>
+        <div> <input type="radio" id="ltc" name="payment_method" value="litecoin" checked>
             <label for="ltc">LTC</label>
         </div>
 
 
-        <div><input type="radio" id="xmr" name="payment_method" value="xmr">
+        <div><input type="radio" id="xmr" name="payment_method" value="monero">
             <label for="xmr">XMR</label>
         </div>
 
@@ -107,10 +107,10 @@ Subscription
 
             let paymentCurrencyString = "";
             let paymentAmountString = "";
-            if (method === "ltc") {
+            if (method === "litecoin") {
                 paymentCurrencyString = "LTC";
                 paymentAmountString = `${totalLtc.toFixed(8)}`;
-            } else if (method === "xmr") {
+            } else if (method === "monero") {
                 paymentCurrencyString = "XMR";
                 paymentAmountString = `${totalXmr.toFixed(8)}`;
             }

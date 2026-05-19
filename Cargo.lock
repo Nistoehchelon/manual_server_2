@@ -338,7 +338,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f316c6237b2d38be61949ecd15268a4c6ca32570079394a2444d9ce2c72a72d8"
 dependencies = [
  "async-trait",
- "convert_case",
+ "convert_case 0.6.0",
  "json5",
  "pathdiff",
  "ron",
@@ -354,7 +354,7 @@ dependencies = [
 [[package]]
 name = "config_reader"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#dce966fe0935653b900d65c7ccfda5d00dc40c03"
 dependencies = [
  "config",
  "dotenvy",
@@ -393,6 +393,15 @@ name = "convert_case"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "convert_case"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -604,10 +613,12 @@ version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "799a97264921d8623a957f6c3b9011f3b5492f557bbb7a5a19b7fa6d06ba8dcb"
 dependencies = [
+ "convert_case 0.10.0",
  "proc-macro2",
  "quote",
  "rustc_version",
  "syn",
+ "unicode-xid",
 ]
 
 [[package]]
@@ -701,7 +712,7 @@ dependencies = [
 [[package]]
 name = "encoding"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#dce966fe0935653b900d65c7ccfda5d00dc40c03"
 dependencies = [
  "urlencoding",
 ]
@@ -745,7 +756,7 @@ dependencies = [
 [[package]]
 name = "error_structs"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#dce966fe0935653b900d65c7ccfda5d00dc40c03"
 
 [[package]]
 name = "etcetera"
@@ -1150,7 +1161,7 @@ dependencies = [
 [[package]]
 name = "http_stuff"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#dce966fe0935653b900d65c7ccfda5d00dc40c03"
 dependencies = [
  "config_reader",
  "encoding",
@@ -1706,9 +1717,9 @@ dependencies = [
 
 [[package]]
 name = "num-conv"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6673768db2d862beb9b39a78fdcb1a69439615d5794a1be50caa9bc92c81967"
+checksum = "521739c6d2bac4aa25192232afe6841231376b2b26d4d9fae5ecf8ca5772e441"
 
 [[package]]
 name = "num-integer"
@@ -1841,10 +1852,14 @@ dependencies = [
 [[package]]
 name = "payment_system_structs"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/payment_system.git#f662c0c1c240c0efa50539fa0fd346573ee10e0f"
+source = "git+ssh://git@github.com/Aeroel/payment_system.git#caa4a93169cecd8d309a3ce3332378cc111c366e"
 dependencies = [
+ "anyhow",
+ "derive_more",
  "serde",
  "serde_json",
+ "sqlx",
+ "strum",
 ]
 
 [[package]]
@@ -2694,7 +2709,7 @@ dependencies = [
 [[package]]
 name = "server"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#dce966fe0935653b900d65c7ccfda5d00dc40c03"
 dependencies = [
  "config_reader",
  "dotenvy",
@@ -2712,7 +2727,7 @@ dependencies = [
 [[package]]
 name = "server_config"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#dce966fe0935653b900d65c7ccfda5d00dc40c03"
 dependencies = [
  "humantime-serde",
  "serde",
@@ -2895,6 +2910,7 @@ checksum = "ee6798b1838b6a0f69c007c133b8df5866302197e404e8b6ee8ed3e3a5e68dc6"
 dependencies = [
  "base64",
  "bytes",
+ "chrono",
  "crc",
  "crossbeam-queue",
  "either",
@@ -2973,6 +2989,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "bytes",
+ "chrono",
  "crc",
  "digest",
  "dotenvy",
@@ -3015,6 +3032,7 @@ dependencies = [
  "base64",
  "bitflags",
  "byteorder",
+ "chrono",
  "crc",
  "dotenvy",
  "etcetera",
@@ -3050,6 +3068,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2d12fe70b2c1b4401038055f90f151b78208de1f9f89a7dbfd41587a10c3eea"
 dependencies = [
  "atoi",
+ "chrono",
  "flume",
  "futures-channel",
  "futures-core",
@@ -3389,9 +3408,9 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.6.10"
+version = "0.6.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68d6fdd9f81c2819c9a8b0e0cd91660e7746a8e6ea2ba7c6b2b057985f6bcb51"
+checksum = "4cfcf7e2740e6fc6d4d688b4ef00650406bb94adf4731e43c096c3a19fe40840"
 dependencies = [
  "bitflags",
  "bytes",
@@ -3577,7 +3596,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 [[package]]
 name = "url"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#b16c6cc9314388b859c444dc197711170777b552"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#dce966fe0935653b900d65c7ccfda5d00dc40c03"
 dependencies = [
  "encoding",
  "indexmap",

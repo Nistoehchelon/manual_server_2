@@ -38,8 +38,8 @@ pub enum PaymentMethod {
 impl std::fmt::Display for PaymentMethod {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            PaymentMethod::XMR { .. } => "litecoin",
-            PaymentMethod::LTC { .. } => "monero",
+            PaymentMethod::XMR { .. } => "monero",
+            PaymentMethod::LTC { .. } => "litecoin",
         };
         write!(f, "{}", s)
     }

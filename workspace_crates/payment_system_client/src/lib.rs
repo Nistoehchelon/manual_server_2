@@ -34,7 +34,7 @@ pub async fn new_invoice(
         .send()
         .await
         .map_err(|e| SomeSortOfError::new(e.to_string()))?;
-
+ 
     let payment_info: PaymentInfo = response
         .json()
         .await

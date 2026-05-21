@@ -49,6 +49,16 @@ pub async fn validate_token(db_pool: sqlx::PgPool, token: String) -> Result<bool
     Ok(token.is_some())
 }
 
+pub async fn get_token(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>) -> Result<String, SomeSortOfError> {
+     let token = sqlx::query_as!(
+        WebhookToken,
+        "SELECT primary_key, token, designated_purpose FROM webhook_tokens LIMIT 1",
+    )
+    .fetch_one(&mut **tx)
+    .await
+    .map_err(SomeSortOfError::new)?;
+   Ok(token.token)
+}
 pub async fn set_website_fund_xmr(
     db_pool: sqlx::PgPool,
     amount: XMRAtomicUnit,

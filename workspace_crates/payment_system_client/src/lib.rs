@@ -22,6 +22,8 @@ pub async fn new_invoice(
     let request_url = format!("{payment_server_url}/{path}");
     let mut callback_headers = HashMap::new();
     callback_headers.insert(cloudflare_bypass_under_attack_check_header_name.clone(), cloudflare_bypass_under_attack_check_header_value.clone());
+    callback_headers.insert("x-api-key".to_string(), webhooks::get_token(&mut *tx).await.map_err(SomeSortOfError::new)?);
+    
     let payload = NewInvoiceRequest {
         invoice_id,
         method,

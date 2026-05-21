@@ -165,6 +165,7 @@ pub async fn invoice_status(
     Ok(status)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_invoice(
     tx: &mut Transaction<'_, Postgres>,
     user_id: String,
@@ -172,6 +173,8 @@ pub async fn create_invoice(
     payment_method: PaymentMethod,
     payment_success_webhook_url: String,
     payment_status_update_webhook_url: String,
+    cloudflare_bypass_under_attack_check_header_name: String,
+    cloudflare_bypass_under_attack_check_header_value: String,
 ) -> Result<(InvoiceId, PaymentMethod, ServiceData), SomeSortOfError> {
     let invoice_id_string = id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices)
         .await
@@ -259,6 +262,8 @@ pub async fn create_invoice(
         payment_method.to_string().parse().map_err(SomeSortOfError::new)?,
         payment_success_webhook_url,
         payment_status_update_webhook_url,
+        cloudflare_bypass_under_attack_check_header_name,
+        cloudflare_bypass_under_attack_check_header_value,
     )
     .await?;
 

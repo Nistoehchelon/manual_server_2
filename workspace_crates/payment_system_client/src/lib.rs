@@ -5,6 +5,7 @@ use error_structs::SomeSortOfError;
 use payment_system_structs::{CallbackHeaders, NewInvoiceRequest, PaymentInfo };
 use sqlx::{Postgres, Transaction};
 
+#[allow(clippy::too_many_arguments)]
 pub async fn new_invoice(
     tx: &mut Transaction<'_, Postgres>,
     invoice_id: String,
@@ -12,18 +13,22 @@ pub async fn new_invoice(
     method: payment_system_structs::PaymentMethod,
     success_callback: String,
     status_update_callback: String,
+    cloudflare_bypass_under_attack_check_header_name: String,
+    cloudflare_bypass_under_attack_check_header_value: String,
 ) -> Result<PaymentInfo, SomeSortOfError> {
     let payment_server_url = get_payment_server_url(tx).await?;
     let path = "new_invoice".to_string();
     let token = get_payment_server_token(tx).await?;
     let request_url = format!("{payment_server_url}/{path}");
+    let mut callback_headers = HashMap::new();
+    callback_headers.insert(cloudflare_bypass_under_attack_check_header_name, cloudflare_bypass_under_attack_check_header_value);
     let payload = NewInvoiceRequest {
         invoice_id,
         method,
         amount_atomic,
         success_callback,
         status_update_callback,
-        callback_headers: CallbackHeaders(HashMap::new())
+        callback_headers: CallbackHeaders(callback_headers)
     };
     let client = reqwest::Client::new();
 

@@ -1,5 +1,5 @@
 use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
-use cryptocurrencies_stuff::atomic_unit::{LTC, XMR, XMRAtomicUnit};
+use cryptocurrencies_stuff::atomic_unit::{LTC, XMR};
 use error_structs::InternalAppError;
 use financial_stuff::get_by_usd;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
@@ -261,6 +261,9 @@ pub async fn post_create_invoice(
         method,
         payment_success_url,
         payment_status_update_url,
+        router_data.server_config.cloudflare_bypass_under_attack_check_header_name.clone(),
+        router_data.server_config.cloudflare_bypass_under_attack_check_header_token_value.clone(),
+        
     )
     .await
     .map_err(InternalAppError::new)?;

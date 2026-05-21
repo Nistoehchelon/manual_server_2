@@ -80,7 +80,10 @@ Subscription
             }
 
             monthsError.innerText = "";
-            let cf_turnstile_verified = script_cloudflare_turnstile__is_verified();
+            let cf_turnstile_verified = true;
+            if (typeof script_cloudflare_turnstile__is_verified === "function") {
+                cf_turnstile_verified = script_cloudflare_turnstile__is_verified();
+            }
             if (cf_turnstile_verified) {
                 submitButton.disabled = false;
             }

@@ -45,7 +45,7 @@ pub async fn validate_token(db_pool: sqlx::PgPool, token: String) -> Result<bool
     )
     .fetch_optional(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?;
+    .map_err(|e| {println!("Could not validate token"); SomeSortOfError::new(format!("Token err, {e}"))})?;
     Ok(token.is_some())
 }
 

@@ -11,6 +11,7 @@ use payment_system_structs::PaymentId;
 use routing_structs::RouterData;
 
 pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> {
+    println!("Parsing body...");
     let body_params =
         parse_body_into_string_form_input_params(rt.http_request_data.body_bytes.clone())
             .map_err(InternalAppError::new)?;
@@ -66,6 +67,7 @@ pub async fn call_action(
 ) -> Result<HttpResponseData, InternalAppError> {
     match action.as_str() {
         "payment_success" => {
+            tracing::info!("Entering payment_success webhook");
             let Some(payment_id) = body_params.get("payment_id") else {
                 return Err(InternalAppError::new(format!(
                     "Did not get payment_id, {body_params:#?}"

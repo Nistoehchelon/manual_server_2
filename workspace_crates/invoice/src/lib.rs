@@ -18,6 +18,14 @@ pub async fn get_payment_data(
     let amount = get_invoice_data(tx, invoice_id.clone(), "amount_from_payment_server").await?;
     let address = get_invoice_data(tx, invoice_id.clone(), "address_from_payment_server").await?;
     let method = get_invoice_data(tx, invoice_id, "method_from_payment_server").await?;
+    let amount = match method.as_str() {
+        "monero" => {
+            XMRAtomicUnit::from_atomic(amount.parse().map_err(SomeSortOfError::new)?).to_string_trimmed()
+        }
+        _ => {
+            "unk".to_string()
+        }
+    };
     Ok(PaymentData {
         amount,
         address,
@@ -258,7 +266,7 @@ pub async fn create_invoice(
         tx,
         invoice_id.clone(),
         "payment_id_from_payment_server",
-        &payment_info.address.to_string(),
+        &payment_info.payment_id.to_string(),
     )
     .await?;
     set_invoice_data(

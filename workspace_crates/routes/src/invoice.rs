@@ -1,5 +1,5 @@
 use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
-use cryptocurrencies_stuff::atomic_unit::{LTC, XMR};
+use cryptocurrencies_stuff::atomic_unit::{LTC, XMR, XMRAtomicUnit};
 use error_structs::InternalAppError;
 use financial_stuff::get_by_usd;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
@@ -100,6 +100,7 @@ pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, Inter
     } = invoice::get_payment_data(&mut tx, InvoiceId(invoice_id.clone()))
         .await
         .map_err(InternalAppError::new)?;
+    
     tx.commit().await.map_err(InternalAppError::new)?;
     Ok(ok_html(render(ViewInvoiceTemplate {
         main_info: router_data.base_template_data,

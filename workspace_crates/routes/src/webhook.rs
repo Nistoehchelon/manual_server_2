@@ -17,8 +17,18 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
     let token = body_params
         .get("token")
         .map(|s| s.as_str())
-        .unwrap_or("")
+        .unwrap_or("check_headers")
         .to_string();
+    let token = if token.as_str() == "check_headers" {
+        let tin = rt
+            .http_request_data
+            .headers
+            .get("x-api-token")
+            .unwrap_or("nope");
+        tin.to_string()
+    } else {
+        token
+    };
     let validity_of_the_token = webhooks::validate_token(rt.db_pool.clone(), token.clone())
         .await
         .map_err(InternalAppError::new)?;
@@ -57,7 +67,9 @@ pub async fn call_action(
     match action.as_str() {
         "payment_success" => {
             let Some(payment_id) = body_params.get("payment_id") else {
-                return Err(InternalAppError::new(format!("Did not get payment_id, {body_params:#?}")))?;
+                return Err(InternalAppError::new(format!(
+                    "Did not get payment_id, {body_params:#?}"
+                )))?;
             };
             let payment_id = PaymentId(payment_id.to_string());
             invoice::success(db_pool.clone(), payment_id)

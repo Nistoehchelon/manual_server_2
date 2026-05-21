@@ -21,7 +21,7 @@ pub async fn new_invoice(
     let token = get_payment_server_token(tx).await?;
     let request_url = format!("{payment_server_url}/{path}");
     let mut callback_headers = HashMap::new();
-    callback_headers.insert(cloudflare_bypass_under_attack_check_header_name, cloudflare_bypass_under_attack_check_header_value);
+    callback_headers.insert(cloudflare_bypass_under_attack_check_header_name.clone(), cloudflare_bypass_under_attack_check_header_value.clone());
     let payload = NewInvoiceRequest {
         invoice_id,
         method,
@@ -35,6 +35,7 @@ pub async fn new_invoice(
     let response = client
         .post(&request_url)
         .header("x-api-token", token)
+        .header(cloudflare_bypass_under_attack_check_header_name, cloudflare_bypass_under_attack_check_header_value)
         .json(&payload)
         .send()
         .await

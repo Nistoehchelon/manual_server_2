@@ -254,6 +254,13 @@ pub async fn create_invoice(
     set_invoice_data(
         tx,
         invoice_id.clone(),
+        "payment_id_from_payment_server",
+        &payment_info.address.to_string(),
+    )
+    .await?;
+    set_invoice_data(
+        tx,
+        invoice_id.clone(),
         "address_from_payment_server",
         &payment_info.address.to_string(),
     )

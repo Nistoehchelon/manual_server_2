@@ -13,3 +13,4 @@ chrono = { workspace = true }
 user = { workspace = true }
 payment_system_client = { workspace = true }
 serde = { workspace = true }
+payment_system_structs = { workspace = true }

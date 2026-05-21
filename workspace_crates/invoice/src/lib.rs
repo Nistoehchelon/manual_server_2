@@ -1,6 +1,7 @@
 use cryptocurrencies_stuff::atomic_unit::{LTCAtomicUnit, XMRAtomicUnit};
 use error_structs::SomeSortOfError;
 use id_generator_unique_in_db::Table;
+use payment_system_structs::PaymentId;
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
 
@@ -60,8 +61,10 @@ impl ValidService {
     }
 }
 
-pub async fn success(db_pool: sqlx::PgPool, invoice_id: InvoiceId) -> Result<(), SomeSortOfError> {
+pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> Result<(), SomeSortOfError> {
     let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
+    let invoice_id = sqlx::query!("SELECT invoice_id FROM invoice_data WHERE name = $1 AND value = $2", "payment_id", payment_id.to_string()).fetch_one(&db_pool).await.map_err(SomeSortOfError::new)?.invoice_id;
+    let invoice_id = InvoiceId(invoice_id);
     let invoice = sqlx::query!("SELECT id FROM invoices WHERE id = $1", invoice_id.0)
         .fetch_optional(&mut *tx)
         .await

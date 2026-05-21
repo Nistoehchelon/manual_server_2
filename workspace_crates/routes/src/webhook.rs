@@ -7,6 +7,7 @@ use http_stuff::{
     http_response::{Charset, HttpResponseData, ok},
 };
 
+use payment_system_structs::PaymentId;
 use routing_structs::RouterData;
 
 pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> {
@@ -55,11 +56,11 @@ pub async fn call_action(
 ) -> Result<HttpResponseData, InternalAppError> {
     match action.as_str() {
         "payment_success" => {
-            let Some(invoice_id) = body_params.get("invoice_id") else {
-                return Err(InternalAppError::new("Invalid format"))?;
+            let Some(payment_id) = body_params.get("payment_id") else {
+                return Err(InternalAppError::new(format!("Did not get payment_id, {body_params:#?}")))?;
             };
-            let invoice_id = invoice::InvoiceId(invoice_id.to_string());
-            invoice::success(db_pool.clone(), invoice_id)
+            let payment_id = PaymentId(payment_id.to_string());
+            invoice::success(db_pool.clone(), payment_id)
                 .await
                 .map_err(InternalAppError::new)?;
             println!("payment_success webhook success");

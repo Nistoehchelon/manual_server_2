@@ -39,3 +39,4 @@ serde_json = { workspace = true }
 reqwest = { workspace = true }
 lol_html = { workspace = true }
 routing_structs = { workspace = true }
+payment_system_structs = { workspace = true }

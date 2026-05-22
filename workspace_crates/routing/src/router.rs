@@ -62,12 +62,14 @@ pub async fn route(
                             };
                         return Ok(resp);
                     }
-                    _ => {
+                    unk_call => {
+                        tracing::error!("Call_type {unk_call} is unknown");
                         return Ok(internal_server_error_500());
                     }
                 },
 
-                _ => {
+                _unk_parts => {
+                    tracing::error!("Could not retrieve desired slices from parts {_unk_parts:#?}");
                     return Ok(internal_server_error_500());
                 }
             }

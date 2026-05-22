@@ -18,12 +18,12 @@ pub enum WebhookEndpoint {
     PaymentStatusUpdate,
 }
 
-pub async fn get_endpoint_url(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, secret_webhook_prefix: String, endpoint: WebhookEndpoint) -> Result<String, SomeSortOfError> {
-    let webhook_root = get_webhook_root(tx, secret_webhook_prefix).await?;
+pub async fn get_endpoint_url(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, secret_prefix: String, endpoint: WebhookEndpoint) -> Result<String, SomeSortOfError> {
+    let webhook_root = get_webhook_root(tx, secret_prefix).await?;
     Ok(format!("{webhook_root}/{}", endpoint))
 }
 
-pub async fn get_webhook_root(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, secret_webhook_prefix: String) -> Result<String, SomeSortOfError> {
+pub async fn get_webhook_root(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, secret_prefix: String) -> Result<String, SomeSortOfError> {
     use custom_site_variables::CustomSiteVariableName;
     let Some(website_root) = custom_site_variables::find_custom_site_variable(
         tx,
@@ -34,7 +34,7 @@ pub async fn get_webhook_root(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, se
         return Err(SomeSortOfError::new("..."))?;
     };
 
-    Ok(format!("{website_root}/{secret_webhook_prefix}/webhook"))
+    Ok(format!("{website_root}/{secret_prefix}/webhook"))
 }
 
 pub async fn validate_token(db_pool: sqlx::PgPool, token: String) -> Result<bool, SomeSortOfError> {

@@ -34,7 +34,7 @@ pub async fn get_webhook_root(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, se
         return Err(SomeSortOfError::new("..."))?;
     };
 
-    Ok(format!("{website_root}/{secret_webhook_prefix}"))
+    Ok(format!("{website_root}/{secret_webhook_prefix}/webhook"))
 }
 
 pub async fn validate_token(db_pool: sqlx::PgPool, token: String) -> Result<bool, SomeSortOfError> {

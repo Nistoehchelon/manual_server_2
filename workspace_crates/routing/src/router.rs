@@ -51,9 +51,16 @@ pub async fn route(
                 [_secret, call_type, _action] => match *call_type {
                     "api" => {}
                     "webhook" => {
-                        return Ok(routes::webhook::post(router_data.clone())
+                        let resp = match routes::webhook::post(router_data.clone())
                             .await
-                            .unwrap_or(internal_server_error_500()));
+                            {
+                                Ok(r)=>r,
+                                Err(e) => {
+                                    tracing::error!("Error webhook: {e:#?}");
+                                    internal_server_error_500()
+                                }
+                            };
+                        return Ok(resp);
                     }
                     _ => {
                         return Ok(internal_server_error_500());

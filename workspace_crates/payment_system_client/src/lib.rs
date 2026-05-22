@@ -4,6 +4,7 @@ use custom_site_variables::find_custom_site_variable;
 use error_structs::SomeSortOfError;
 use payment_system_structs::{CallbackHeaders, NewInvoiceRequest, PaymentInfo };
 use sqlx::{Postgres, Transaction};
+use webhooks::X_API_TOKEN;
 
 #[allow(clippy::too_many_arguments)]
 pub async fn new_invoice(
@@ -36,7 +37,7 @@ pub async fn new_invoice(
 
     let response = client
         .post(&request_url)
-        .header("x-api-token", token)
+        .header(X_API_TOKEN, token)
         .header(cloudflare_bypass_under_attack_check_header_name, cloudflare_bypass_under_attack_check_header_value)
         .json(&payload)
         .send()

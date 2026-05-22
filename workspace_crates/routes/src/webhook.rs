@@ -9,6 +9,7 @@ use http_stuff::{
 
 use payment_system_structs::PaymentId;
 use routing_structs::RouterData;
+use webhooks::X_API_TOKEN;
 
 pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> {
     println!("Parsing body...");
@@ -24,7 +25,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         let tin = rt
             .http_request_data
             .headers
-            .get("x-api-token")
+            .get(X_API_TOKEN)
             .unwrap_or("nope");
         tin.to_string()
     } else {

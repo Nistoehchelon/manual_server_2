@@ -3,6 +3,8 @@ use custom_site_variables::set_custom_site_variable;
 use error_structs::SomeSortOfError;
 use strum::{Display, EnumString};
 
+pub const X_API_TOKEN: &str = "x-api-token";
+
 pub struct WebhookToken {
     pub primary_key: i64,
     pub token: String,

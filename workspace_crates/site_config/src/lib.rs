@@ -19,5 +19,4 @@ pub struct SiteConfig {
     pub cloudflare_turnstile_post_parameter_name: String,
 
     pub webhook_and_api_secret_path_prefix: String,
-    pub payment_server_url: String,
 }

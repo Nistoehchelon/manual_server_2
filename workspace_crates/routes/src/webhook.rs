@@ -34,13 +34,14 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         .await
         .map_err(InternalAppError::new)?;
     if !validity_of_the_token {
-        tracing::warn!("Invalid token provided.");
+        let resp_msg = format!("Invalid token {token} provided");
+        tracing::warn!("{resp_msg}");
         let mut resp = ok(
-            format!("Invalid token {token} provided").into_bytes(),
+            resp_msg.into_bytes(),
             http_stuff::http_response::ContentType::TextPlain,
             Some(Charset::Utf8),
         );
-        resp.status_code = http_stuff::http_response::StatusCode::Code404NotFound;
+        resp.status_code = http_stuff::http_response::StatusCode::Code200Ok;
         return Ok(resp);
     }
 

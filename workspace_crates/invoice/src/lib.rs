@@ -1,4 +1,5 @@
-use cryptocurrencies_stuff::atomic_unit::{LTCAtomicUnit, XMRAtomicUnit};
+
+use cryptocurrencies_stuff::currencies::{LTCAtomicUnit, XMRAtomicUnit};
 use error_structs::SomeSortOfError;
 use id_generator_unique_in_db::Table;
 use payment_system_structs::PaymentId;

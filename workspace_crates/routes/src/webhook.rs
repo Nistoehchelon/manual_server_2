@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use cryptocurrencies_stuff::atomic_unit::XMRAtomicUnit;
+use cryptocurrencies_stuff::currencies::XMRAtomicUnit;
 use error_structs::InternalAppError;
 use http_stuff::{
     http_request_parsing::parse_body_into_string_form_input_params,

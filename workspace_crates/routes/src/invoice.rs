@@ -1,5 +1,5 @@
+use cryptocurrencies_stuff::currencies::{LTC, XMR};
 use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
-use cryptocurrencies_stuff::atomic_unit::{LTC, XMR};
 use error_structs::InternalAppError;
 use financial_stuff::get_by_usd;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};

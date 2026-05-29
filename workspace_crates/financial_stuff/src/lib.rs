@@ -1,4 +1,4 @@
-use cryptocurrencies_stuff::atomic_unit::{AtomicUnit, CryptocurrencyConfig, LTC, XMR};
+use cryptocurrencies_stuff::{atomic_unit::{AtomicUnit, CryptocurrencyConfig}, currencies::{LTC, XMR}};
 use error_structs::SomeSortOfError;
 use sqlx::{Postgres, Transaction};
 

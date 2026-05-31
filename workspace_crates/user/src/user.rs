@@ -1,6 +1,6 @@
 use db_manager::{DbError, DbSuccess};
 use error_structs::{ExpectedToGetButFailed, PublicError, SomeSortOfError};
-use password_hashing::password_hashing::PasswordHasherConfig;
+use password_hashing::PasswordHasherConfig;
 use sqlx::{Postgres, Transaction};
 
 use crate::{ValidatedUsername, user_structs_and_so_on::User};

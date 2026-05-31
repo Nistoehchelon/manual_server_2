@@ -2054,6 +2054,7 @@ dependencies = [
 [[package]]
 name = "password_hashing"
 version = "0.1.0"
+source = "git+ssh://git@github.com/Aeroel/password_hashing.git#8deadc301f33501762a1978e8d4ac4dc28326b49"
 dependencies = [
  "argon2",
  "rand 0.10.1",

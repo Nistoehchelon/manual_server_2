@@ -438,7 +438,7 @@ dependencies = [
 [[package]]
 name = "config_reader"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#c21848bd816ee08ac4e1ff4fb633ad71d017543f"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#fbf30fabd766abcecb14e3de3c4d71b9e33f9735"
 dependencies = [
  "config",
  "dotenvy",
@@ -878,7 +878,7 @@ dependencies = [
 [[package]]
 name = "encoding"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#c21848bd816ee08ac4e1ff4fb633ad71d017543f"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#fbf30fabd766abcecb14e3de3c4d71b9e33f9735"
 dependencies = [
  "urlencoding",
 ]
@@ -922,7 +922,7 @@ dependencies = [
 [[package]]
 name = "error_structs"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#c21848bd816ee08ac4e1ff4fb633ad71d017543f"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#fbf30fabd766abcecb14e3de3c4d71b9e33f9735"
 
 [[package]]
 name = "etcetera"
@@ -1370,7 +1370,7 @@ dependencies = [
 [[package]]
 name = "http_stuff"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#c21848bd816ee08ac4e1ff4fb633ad71d017543f"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#fbf30fabd766abcecb14e3de3c4d71b9e33f9735"
 dependencies = [
  "config_reader",
  "encoding",
@@ -2085,7 +2085,7 @@ dependencies = [
 [[package]]
 name = "payment_system_structs"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/payment_system.git#298dcf9c02fc5e6720aad9b596988a96ce45d885"
+source = "git+ssh://git@github.com/Aeroel/payment_system.git#e68464ca90f760b8e46e4b33c42e4de04939b2fc"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3033,7 +3033,7 @@ dependencies = [
 [[package]]
 name = "server"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#c21848bd816ee08ac4e1ff4fb633ad71d017543f"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#fbf30fabd766abcecb14e3de3c4d71b9e33f9735"
 dependencies = [
  "config_reader",
  "dotenvy",
@@ -3052,7 +3052,7 @@ dependencies = [
 [[package]]
 name = "server_config"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#c21848bd816ee08ac4e1ff4fb633ad71d017543f"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#fbf30fabd766abcecb14e3de3c4d71b9e33f9735"
 dependencies = [
  "humantime-serde",
  "serde",
@@ -3936,7 +3936,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 [[package]]
 name = "url"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#c21848bd816ee08ac4e1ff4fb633ad71d017543f"
+source = "git+ssh://git@github.com/Aeroel/server_2_only.git#fbf30fabd766abcecb14e3de3c4d71b9e33f9735"
 dependencies = [
  "encoding",
  "indexmap",

@@ -261,8 +261,8 @@ pub async fn post_create_invoice(
         method,
         payment_success_url,
         payment_status_update_url,
-        router_data.server_config.cloudflare_bypass_under_attack_check_header_name.clone(),
-        router_data.server_config.cloudflare_bypass_under_attack_check_header_token_value.clone(),
+        router_data.site_config.payment_server_cloudflare_bypass_under_attack_check_header_name.clone(),
+        router_data.site_config.payment_server_cloudflare_bypass_under_attack_check_header_token_value.clone(),
         
     )
     .await

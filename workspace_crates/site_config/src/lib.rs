@@ -1,6 +1,8 @@
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct SiteConfig {
-    // app specific
+    pub ip: String,
+    pub port: u64,
+    pub rust_log_directory_path: String,
     pub database_url: String,
     pub password_hasher_config: password_hashing::PasswordHasherConfig,
     pub using_https: bool,
@@ -17,6 +19,8 @@ pub struct SiteConfig {
     pub cloudflare_turnstile_site_key: String,
     pub cloudflare_turnstile_secret_key: String,
     pub cloudflare_turnstile_post_parameter_name: String,
+    pub payment_server_cloudflare_bypass_under_attack_check_header_name: String,
+    pub payment_server_cloudflare_bypass_under_attack_check_header_token_value: String,
 
     pub webhook_and_api_secret_path_prefix: String,
 }

@@ -1,4 +1,3 @@
-
 use cryptocurrencies_stuff::currencies::{LTCAtomicUnit, XMRAtomicUnit};
 use error_structs::SomeSortOfError;
 use id_generator_unique_in_db::Table;
@@ -20,12 +19,9 @@ pub async fn get_payment_data(
     let address = get_invoice_data(tx, invoice_id.clone(), "address_from_payment_server").await?;
     let method = get_invoice_data(tx, invoice_id, "method_from_payment_server").await?;
     let amount = match method.as_str() {
-        "monero" => {
-            XMRAtomicUnit::from_atomic(amount.parse().map_err(SomeSortOfError::new)?).to_string_trimmed()
-        }
-        _ => {
-            "unk".to_string()
-        }
+        "monero" => XMRAtomicUnit::from_atomic(amount.parse().map_err(SomeSortOfError::new)?)
+            .to_string_trimmed(),
+        _ => "unk".to_string(),
     };
     Ok(PaymentData {
         amount,
@@ -72,7 +68,15 @@ impl ValidService {
 
 pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> Result<(), SomeSortOfError> {
     let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
-    let invoice_id = sqlx::query!("SELECT invoice_id FROM invoice_data WHERE name = $1 AND value = $2", "payment_id_from_payment_server", payment_id.to_string()).fetch_one(&db_pool).await.map_err(SomeSortOfError::new)?.invoice_id;
+    let invoice_id = sqlx::query!(
+        "SELECT invoice_id FROM invoice_data WHERE name = $1 AND value = $2",
+        "payment_id_from_payment_server",
+        payment_id.to_string()
+    )
+    .fetch_one(&db_pool)
+    .await
+    .map_err(SomeSortOfError::new)?
+    .invoice_id;
     let invoice_id = InvoiceId(invoice_id);
     let invoice = sqlx::query!("SELECT id FROM invoices WHERE id = $1", invoice_id.0)
         .fetch_optional(&mut *tx)
@@ -260,7 +264,10 @@ pub async fn create_invoice(
         tx,
         invoice_id_string,
         payment_amount_atomic_units,
-        payment_method.to_string().parse().map_err(SomeSortOfError::new)?,
+        payment_method
+            .to_string()
+            .parse()
+            .map_err(SomeSortOfError::new)?,
         payment_success_webhook_url,
         payment_status_update_webhook_url,
         cloudflare_bypass_under_attack_check_header_name,

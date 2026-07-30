@@ -1,5 +1,5 @@
-use cryptocurrencies_stuff::currencies::{LTC, XMR};
 use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
+use cryptocurrencies_stuff::currencies::{LTC, XMR};
 use error_structs::InternalAppError;
 use financial_stuff::get_by_usd;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
@@ -100,7 +100,7 @@ pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, Inter
     } = invoice::get_payment_data(&mut tx, InvoiceId(invoice_id.clone()))
         .await
         .map_err(InternalAppError::new)?;
-    
+
     tx.commit().await.map_err(InternalAppError::new)?;
     Ok(ok_html(render(ViewInvoiceTemplate {
         main_info: router_data.base_template_data,
@@ -221,7 +221,6 @@ pub async fn post_create_invoice(
             };
             let sub_cost: f64 = sub_cost.parse().map_err(InternalAppError::new)?;
 
-            
             match payment_method.as_str() {
                 "litecoin" => PaymentMethod::LTC {
                     amount: get_by_usd::<LTC>(&mut tx, sub_cost * (months as f64))
@@ -261,9 +260,14 @@ pub async fn post_create_invoice(
         method,
         payment_success_url,
         payment_status_update_url,
-        router_data.site_config.payment_server_cloudflare_bypass_under_attack_check_header_name.clone(),
-        router_data.site_config.payment_server_cloudflare_bypass_under_attack_check_header_token_value.clone(),
-        
+        router_data
+            .site_config
+            .payment_server_cloudflare_bypass_under_attack_check_header_name
+            .clone(),
+        router_data
+            .site_config
+            .payment_server_cloudflare_bypass_under_attack_check_header_token_value
+            .clone(),
     )
     .await
     .map_err(InternalAppError::new)?;

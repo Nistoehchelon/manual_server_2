@@ -1,7 +1,8 @@
-use server::server_config::ServerConfig;
 use dynamic_stylesheets::dynamic_stylesheets;
 use html_templating::html_template_structs::BaseTemplateData;
 use into_vec::into_vec;
+use server::server_config::ServerConfig;
+use tracing::debug;
 use std::time::Instant;
 
 use error_structs::InternalAppError;
@@ -51,15 +52,13 @@ pub async fn route(
                 [_secret, call_type, _action] => match *call_type {
                     "api" => {}
                     "webhook" => {
-                        let resp = match routes::webhook::post(router_data.clone())
-                            .await
-                            {
-                                Ok(r)=>r,
-                                Err(e) => {
-                                    tracing::error!("Error webhook: {e:#?}");
-                                    internal_server_error_500()
-                                }
-                            };
+                        let resp = match routes::webhook::post(router_data.clone()).await {
+                            Ok(r) => r,
+                            Err(e) => {
+                                tracing::error!("Error webhook: {e:#?}");
+                                internal_server_error_500()
+                            }
+                        };
                         return Ok(resp);
                     }
                     unk_call => {
@@ -187,6 +186,7 @@ pub async fn route(
             (HttpMethod::Get, "/subscription") => routes::subscription::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
+
             (HttpMethod::Get, p) if p.starts_with("/dynamic_stylesheet/") => {
                 routes::dynamic_stylesheet::get(router_data.clone())
                     .await
@@ -206,6 +206,7 @@ pub async fn route(
                     .unwrap_or(internal_server_error_500())
             }
             (_method, path) => {
+                debug!("Path might be a dynamic custom page");
                 // in this route, either the page is a dynamic custom page (uses forum as backbone) or not found.
                 let mut path = path.to_string();
                 path.remove(0); // remove slash
@@ -248,7 +249,6 @@ pub async fn route(
 
     Ok(response_data)
 }
-
 
 pub async fn generate_response_data(
     request_data: HttpRequestData,

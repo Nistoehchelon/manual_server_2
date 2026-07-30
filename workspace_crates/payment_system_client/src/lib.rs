@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use custom_site_variables::find_custom_site_variable;
 use error_structs::SomeSortOfError;
-use payment_system_structs::{CallbackHeaders, NewInvoiceRequest, PaymentInfo };
+use payment_system_structs::{CallbackHeaders, NewInvoiceRequest, PaymentInfo};
 use sqlx::{Postgres, Transaction};
 use webhooks::X_API_TOKEN;
 
@@ -22,28 +22,39 @@ pub async fn new_invoice(
     let token = get_payment_server_token(tx).await?;
     let request_url = format!("{payment_server_url}/{path}");
     let mut callback_headers = HashMap::new();
-    callback_headers.insert(cloudflare_bypass_under_attack_check_header_name.clone(), cloudflare_bypass_under_attack_check_header_value.clone());
-    callback_headers.insert("x-api-token".to_string(), webhooks::get_token(&mut *tx).await.map_err(SomeSortOfError::new)?);
-    
+    callback_headers.insert(
+        cloudflare_bypass_under_attack_check_header_name.clone(),
+        cloudflare_bypass_under_attack_check_header_value.clone(),
+    );
+    callback_headers.insert(
+        "x-api-token".to_string(),
+        webhooks::get_token(&mut *tx)
+            .await
+            .map_err(SomeSortOfError::new)?,
+    );
+
     let payload = NewInvoiceRequest {
         invoice_id,
         method,
         amount_atomic,
         success_callback,
         status_update_callback,
-        callback_headers: CallbackHeaders(callback_headers)
+        callback_headers: CallbackHeaders(callback_headers),
     };
     let client = reqwest::Client::new();
 
     let response = client
         .post(&request_url)
         .header(X_API_TOKEN, token)
-        .header(cloudflare_bypass_under_attack_check_header_name, cloudflare_bypass_under_attack_check_header_value)
+        .header(
+            cloudflare_bypass_under_attack_check_header_name,
+            cloudflare_bypass_under_attack_check_header_value,
+        )
         .json(&payload)
         .send()
         .await
         .map_err(|e| SomeSortOfError::new(e.to_string()))?;
- 
+
     let payment_info: PaymentInfo = response
         .json()
         .await

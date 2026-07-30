@@ -1,15 +1,17 @@
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{BaseTemplateData, SubscriptionTemplate};
 
+use tracing::debug;
 use user::get_user_by_user_id;
 
-use http_stuff::http_response::{HttpResponseData, redirect_to};
+use http_stuff::http_response::{HttpResponseData, ok_html, redirect_to};
 
 use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
+    return Ok(ok_html("Hhe".to_string()));
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     if !session.logged_in {

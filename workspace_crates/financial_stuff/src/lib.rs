@@ -1,4 +1,7 @@
-use cryptocurrencies_stuff::{atomic_unit::{AtomicUnit, CryptocurrencyConfig}, currencies::{LTC, XMR}};
+use cryptocurrencies_stuff::{
+    atomic_unit::{AtomicUnit, CryptocurrencyConfig},
+    currencies::{LTC, XMR},
+};
 use error_structs::SomeSortOfError;
 use sqlx::{Postgres, Transaction};
 
@@ -54,10 +57,12 @@ pub async fn get_by_usd<C: CryptocurrencyConfig>(
 ) -> Result<AtomicUnit<C>, SomeSortOfError> {
     let coin_price_usd = match C::SYMBOL {
         "LTC" => {
-            let Some(usd_per_ltc) =
-                custom_site_variables::find_custom_site_variable(tx, custom_site_variables::CustomSiteVariableName::USDPerLTC)
-                    .await
-                    .map_err(SomeSortOfError::new)?
+            let Some(usd_per_ltc) = custom_site_variables::find_custom_site_variable(
+                tx,
+                custom_site_variables::CustomSiteVariableName::USDPerLTC,
+            )
+            .await
+            .map_err(SomeSortOfError::new)?
             else {
                 return Err(SomeSortOfError::new("Could not get usd per ltc site var"));
             };
@@ -65,10 +70,12 @@ pub async fn get_by_usd<C: CryptocurrencyConfig>(
             usd_per_ltc
         }
         "XMR" => {
-            let Some(usd_per_xmr) =
-                custom_site_variables::find_custom_site_variable(tx, custom_site_variables::CustomSiteVariableName::USDPerXMR)
-                    .await
-                    .map_err(SomeSortOfError::new)?
+            let Some(usd_per_xmr) = custom_site_variables::find_custom_site_variable(
+                tx,
+                custom_site_variables::CustomSiteVariableName::USDPerXMR,
+            )
+            .await
+            .map_err(SomeSortOfError::new)?
             else {
                 return Err(SomeSortOfError::new("Could not get usd per xmr site var"));
             };

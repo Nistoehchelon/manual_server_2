@@ -24,7 +24,7 @@ pub async fn get_content(
     Ok(content)
 }
 
-pub async fn get_numbers_for_page(
+pub async fn get_indices_of_this_page_s_stylesheets(
     db_pool: sqlx::PgPool,
     page: String,
 ) -> Result<Vec<u64>, SomeSortOfError> {

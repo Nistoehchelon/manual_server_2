@@ -281,16 +281,38 @@ pub async fn get_thread_by_forum_id_and_title(
     forum_id: String,
     title: String,
 ) -> Result<ForumThread, ExpectedToGetButFailed> {
-    let thread_id = sqlx::query!(
+    match find_thread_by_forum_id_and_title(db_pool, forum_id, title)
+        .await
+        .map_err(ExpectedToGetButFailed::new)
+    {
+        Ok(Some(t)) => Ok(t),
+        Ok(None) => Err(ExpectedToGetButFailed::new(
+            "Thread with that id does not appear to exist",
+        )),
+        Err(e) => Err(e),
+    }
+}
+
+pub async fn find_thread_by_forum_id_and_title(
+    db_pool: sqlx::PgPool,
+    forum_id: String,
+    title: String,
+) -> Result<Option<ForumThread>, DbError> {
+    let thread_id = match sqlx::query!(
         "SELECT id FROM forum_threads WHERE forum_id = $1 AND name = $2",
         forum_id,
         title
     )
-    .fetch_one(&db_pool)
+    .fetch_optional(&db_pool)
     .await
-    .map_err(ExpectedToGetButFailed::new)?
-    .id;
-    get_thread(db_pool, thread_id).await
+    .map_err(DbError::new)?
+    {
+        Some(t) => t.id,
+        None => return Ok(None),
+    };
+
+    let t = get_thread(db_pool, thread_id).await.map_err(DbError::new)?;
+    Ok(Some(t))
 }
 
 pub async fn get_latest_message_version(

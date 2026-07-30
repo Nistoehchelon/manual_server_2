@@ -2,8 +2,8 @@ use dynamic_stylesheets::dynamic_stylesheets;
 use html_templating::html_template_structs::BaseTemplateData;
 use into_vec::into_vec;
 use server::server_config::ServerConfig;
-use tracing::debug;
 use std::time::Instant;
+use tracing::debug;
 
 use error_structs::InternalAppError;
 use http_stuff::{
@@ -341,27 +341,36 @@ pub async fn generate_response_data(
         .await;
     }
     let response_data =
-        inject_custom_css(db_pool.clone(), request_data.clone(), response_data.clone()).await;
+        inject_custom_css_if_needed(db_pool.clone(), request_data.clone(), response_data.clone())
+            .await;
     // hm
     response_data
 }
 
-pub async fn inject_custom_css(
+pub async fn inject_custom_css_if_needed(
     db_pool: sqlx::PgPool,
     request_data: HttpRequestData,
     response_data: HttpResponseData,
 ) -> HttpResponseData {
-    let Ok(stylesheet_numbers) =
-        dynamic_stylesheets::get_numbers_for_page(db_pool.clone(), request_data.path.clone()).await
-    else {
+    let page = request_data.path.clone();
+    let mut needs_injecting = true;
+    let Ok(stylesheet_numbers) = dynamic_stylesheets::get_indices_of_this_page_s_stylesheets(
+        db_pool.clone(),
+        page.clone(),
+    )
+    .await else {
         return response_data;
     };
     if stylesheet_numbers.is_empty() {
-        return response_data;
+        needs_injecting = false;
     }
+    if !needs_injecting {
+        debug!("Page {page} does not have dynamic stylesheets associated with it, not engaging the injection process");
+    }
+    debug!("Found {} dynamic stylesheets for this (/{page}) page, injecting as link rel stylesheets", stylesheet_numbers.len());
     let url = {
         let prefix = "/dynamic_stylesheet";
-        let page = request_data.path;
+        let page = page.clone();
         format!("{prefix}{page}?stylesheet_number=")
     };
     let urls: Vec<String> = stylesheet_numbers

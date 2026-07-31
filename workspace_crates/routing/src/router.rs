@@ -357,11 +357,8 @@ pub async fn generate_response_data(
         )
         .await;
     }
-    let response_data =
-        inject_custom_css_if_needed(db_pool.clone(), request_data.clone(), response_data.clone())
-            .await;
-    // hm
-    response_data
+
+    inject_custom_css_if_needed(db_pool.clone(), request_data.clone(), response_data.clone()).await
 }
 
 pub async fn inject_custom_css_if_needed(
@@ -412,7 +409,10 @@ pub async fn inject_custom_css_if_needed(
         lol_html::RewriteStrSettings::new().append_element_content_handler(lol_html::element!(
             "head",
             |el| {
-                el.append(&css_stylesheet_linkrels, lol_html::html_content::ContentType::Html);
+                el.append(
+                    &css_stylesheet_linkrels,
+                    lol_html::html_content::ContentType::Html,
+                );
                 Ok(())
             }
         )),

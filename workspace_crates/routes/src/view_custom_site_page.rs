@@ -1,8 +1,6 @@
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, CustomPage};
-use http_stuff::http_response::{
-    HttpResponseData, ok_html, redirect_to,
-};
+use http_stuff::http_response::{HttpResponseData, ok_html, redirect_to};
 
 use routing_structs::RouterData;
 use session::add_session_notification_error;

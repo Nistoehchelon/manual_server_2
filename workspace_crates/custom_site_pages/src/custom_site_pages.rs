@@ -11,13 +11,15 @@ pub struct CustomSitePage {
     pub name: String,
     pub content: String,
 }
-pub async fn find_custom_site_page(db_pool: sqlx::PgPool, page_path: String) -> Result<Option<CustomSitePage>, SomeSortOfError> {
+pub async fn find_custom_site_page(
+    db_pool: sqlx::PgPool,
+    page_path: String,
+) -> Result<Option<CustomSitePage>, SomeSortOfError> {
     let thread = match forum::find_thread(db_pool.clone(), page_path.clone()).await {
-
-       Ok(Some(t)) => t,
-       Ok(None) => return Ok(None),
+        Ok(Some(t)) => t,
+        Ok(None) => return Ok(None),
         Err(e) => {
-           return Err(SomeSortOfError::new(e));
+            return Err(SomeSortOfError::new(e));
         }
     };
 
@@ -37,7 +39,10 @@ pub async fn find_custom_site_page(db_pool: sqlx::PgPool, page_path: String) -> 
             .await
             .map_err(SomeSortOfError::new)?
     };
-    Ok(Some(CustomSitePage { name: thread.name, content }))
+    Ok(Some(CustomSitePage {
+        name: thread.name,
+        content,
+    }))
 }
 pub async fn list_of_site_pages(
     db_pool: sqlx::PgPool,

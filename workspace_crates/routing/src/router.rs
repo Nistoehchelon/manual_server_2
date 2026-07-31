@@ -396,7 +396,7 @@ pub async fn inject_custom_css_if_needed(
         .into_iter()
         .map(|num| format!("{url}{num}"))
         .collect();
-    let injection_html: String = urls
+    let css_stylesheet_linkrels: String = urls
         .iter()
         .map(|href| format!("    <link rel=\"stylesheet\" href=\"{}\">\n", href))
         .collect();
@@ -412,7 +412,7 @@ pub async fn inject_custom_css_if_needed(
         lol_html::RewriteStrSettings::new().append_element_content_handler(lol_html::element!(
             "head",
             |el| {
-                el.append(&injection_html, lol_html::html_content::ContentType::Html);
+                el.append(&css_stylesheet_linkrels, lol_html::html_content::ContentType::Html);
                 Ok(())
             }
         )),

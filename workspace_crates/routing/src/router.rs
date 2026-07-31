@@ -400,11 +400,7 @@ pub async fn inject_custom_css_if_needed(
         .iter()
         .map(|href| format!("    <link rel=\"stylesheet\" href=\"{}\">\n", href))
         .collect();
-    let element_content_handlers = vec![lol_html::element!("head", |el| {
-        // Append the links to the end of the <head> section
-        el.append(&injection_html, lol_html::html_content::ContentType::Html);
-        Ok(())
-    })];
+
     let Some(body) = response_data.body.clone() else {
         return response_data;
     };
@@ -413,10 +409,13 @@ pub async fn inject_custom_css_if_needed(
     };
     let Ok(new) = lol_html::rewrite_str(
         &html_str,
-        lol_html::RewriteStrSettings {
-            element_content_handlers,
-            ..lol_html::RewriteStrSettings::default()
-        },
+        lol_html::RewriteStrSettings::new().append_element_content_handler(lol_html::element!(
+            "head",
+            |el| {
+                el.append(&injection_html, lol_html::html_content::ContentType::Html);
+                Ok(())
+            }
+        )),
     ) else {
         return response_data;
     };

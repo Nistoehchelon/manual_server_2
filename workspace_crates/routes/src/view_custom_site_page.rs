@@ -1,10 +1,11 @@
 use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, CustomPage};
 use http_stuff::http_response::{
-    HttpResponseData, internal_server_error_500, ok_html, redirect_to,
+    HttpResponseData, ok_html, redirect_to,
 };
 
 use routing_structs::RouterData;
+use session::add_session_notification_error;
 
 pub async fn get(
     router_data: RouterData,
@@ -12,48 +13,29 @@ pub async fn get(
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
-    let thread_id = path.clone();
-    let thread = match forum::find_thread(db_pool.clone(), thread_id.clone()).await {
-        Err(e) => {
-            tracing::error!("{:#?}", e);
-            return Ok(internal_server_error_500());
-        }
-        Ok(t) => match t {
-            Some(t) => t,
+    let custom_site_page =
+        match custom_site_pages::find_custom_site_page(db_pool.clone(), path.clone())
+            .await
+            .map_err(InternalAppError::new)?
+        {
+            Some(csp) => csp,
             None => {
-                session::add_session_notification_error(
+                add_session_notification_error(
                     db_pool.clone(),
                     session.id.clone(),
-                    format!("Could not find the requested page `{path}`"),
+                    format!("Page {path} not found."),
                 )
                 .await;
                 return Ok(redirect_to("/".to_string()));
             }
-        },
-    };
-    let content: String = {
-        let thread_page = 1;
-        let limit = 1;
-        let msg_id =
-            forum::get_thread_message_ids(db_pool.clone(), thread_id.clone(), thread_page, limit)
-                .await
-                .map_err(InternalAppError::new)?;
-        let msg_id = msg_id[0].to_string();
-        let msg = forum::get_latest_message_version(db_pool.clone(), msg_id.clone())
-            .await
-            .map_err(InternalAppError::new)?;
-        let msg_content = msg.content;
-        custom_site_pages::replace_variables_with_contents(db_pool.clone(), msg_content.to_string())
-            .await
-            .map_err(InternalAppError::new)?
-    };
+        };
 
     Ok(ok_html(html_templating::render(
         html_template_structs::ViewCustomPageTemplate {
             main_info: router_data.base_template_data,
             page: CustomPage {
-                name: thread.name,
-                content,
+                name: custom_site_page.name,
+                content: custom_site_page.content,
             },
         },
     )))

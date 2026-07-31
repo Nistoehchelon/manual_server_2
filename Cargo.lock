@@ -700,6 +700,7 @@ name = "db_manager"
 version = "0.1.0"
 dependencies = [
  "sqlx",
+ "tracing",
 ]
 
 [[package]]

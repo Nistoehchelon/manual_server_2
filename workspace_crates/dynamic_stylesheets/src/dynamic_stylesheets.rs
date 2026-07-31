@@ -32,13 +32,18 @@ pub async fn get_indices_of_this_page_s_stylesheets(
     let page = page.strip_prefix("/").unwrap_or(page);
     let page = page.to_string();
 
-    let thread = forum::get_thread_by_forum_id_and_title(
+    let thread = match forum::find_thread_by_forum_id_and_title(
         db_pool.clone(),
         "dynamic_stylesheets".to_string(),
         page,
     )
     .await
-    .map_err(SomeSortOfError::new)?;
-    let count = forum::get_count_thread_messages(db_pool.clone(), thread.id).await?;
+    {
+        Ok(Some(t)) => t,
+        _ => return Ok(Vec::new()),
+    };
+    let Ok(count) = forum::get_count_thread_messages(db_pool.clone(), thread.id).await else {
+        return Ok(Vec::new());
+    };
     Ok((0..count).collect())
 }

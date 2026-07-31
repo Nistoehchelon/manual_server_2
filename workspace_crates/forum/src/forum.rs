@@ -162,6 +162,9 @@ pub async fn get_count_thread_messages(
     db_pool: sqlx::PgPool,
     thread_id: String,
 ) -> Result<u64, SomeSortOfError> {
+    let _ = get_thread(db_pool.clone(), thread_id.clone())
+        .await
+        .map_err(SomeSortOfError::new)?;
     let count = sqlx::query_scalar!(
         "SELECT COUNT(primary_key) as count FROM forum_thread_messages WHERE thread_id = $1",
         thread_id

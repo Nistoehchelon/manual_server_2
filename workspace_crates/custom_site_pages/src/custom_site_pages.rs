@@ -6,6 +6,39 @@ use forum::ForumThread;
 pub const FORUM_ID: &str = "custom_site_pages";
 
 pub type SitePage = ForumThread;
+
+pub struct CustomSitePage {
+    pub name: String,
+    pub content: String,
+}
+pub async fn find_custom_site_page(db_pool: sqlx::PgPool, page_path: String) -> Result<Option<CustomSitePage>, SomeSortOfError> {
+    let thread = match forum::find_thread(db_pool.clone(), page_path.clone()).await {
+
+       Ok(Some(t)) => t,
+       Ok(None) => return Ok(None),
+        Err(e) => {
+           return Err(SomeSortOfError::new(e));
+        }
+    };
+
+    let content: String = {
+        let thread_page = 1;
+        let limit = 1;
+        let msg_id =
+            forum::get_thread_message_ids(db_pool.clone(), page_path.clone(), thread_page, limit)
+                .await
+                .map_err(SomeSortOfError::new)?;
+        let msg_id = msg_id[0].to_string();
+        let msg = forum::get_latest_message_version(db_pool.clone(), msg_id.clone())
+            .await
+            .map_err(SomeSortOfError::new)?;
+        let msg_content = msg.content;
+        replace_variables_with_contents(db_pool.clone(), msg_content.to_string())
+            .await
+            .map_err(SomeSortOfError::new)?
+    };
+    Ok(Some(CustomSitePage { name: thread.name, content }))
+}
 pub async fn list_of_site_pages(
     db_pool: sqlx::PgPool,
     _pagination_page: i64,

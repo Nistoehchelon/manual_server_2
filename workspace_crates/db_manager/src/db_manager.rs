@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+use tracing::error;
+
 pub type DbPool = sqlx::pool::Pool<sqlx::Postgres>;
 
 #[derive(Debug)]
@@ -10,7 +12,7 @@ pub struct DbError {
 impl DbError {
     pub fn new<E: Debug>(s: E) -> Self {
         let message = format!("{s:?}");
-        println!("DbError: {}", message.clone());
+        error!("DbError: {}", message.clone());
         Self { message }
     }
 }

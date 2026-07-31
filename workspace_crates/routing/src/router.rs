@@ -205,25 +205,42 @@ pub async fn route(
                     .await
                     .unwrap_or(internal_server_error_500())
             }
-            (_method, path) => {
+            (HttpMethod::Get, "/") | (HttpMethod::Get, "/index") => {
+                routes::index::get(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
+
+            (HttpMethod::Get, path) => {
                 debug!("Path might be a dynamic custom page");
-                // in this route, either the page is a dynamic custom page (uses forum as backbone) or not found.
+                // in this route, either the page is a dynamic custom page or not found.
                 let mut path = path.to_string();
                 path.remove(0); // remove slash
-                if !path.is_empty()
-                    && let Ok(_thread) = forum::get_thread(db_pool.clone(), path.clone()).await
-                {
-                    routes::view_custom_site_page::get(router_data.clone(), path)
-                        .await
-                        .unwrap_or(internal_server_error_500())
-                } else if !path.is_empty() {
-                    routes::not_found::not_found(router_data.clone())
-                        .unwrap_or(internal_server_error_500())
-                } else {
-                    routes::index::get(router_data.clone())
-                        .await
-                        .unwrap_or(internal_server_error_500())
+
+                match path.is_empty() {
+                    true => routes::not_found::not_found(router_data.clone())
+                        .unwrap_or(internal_server_error_500()),
+                    false => {
+                        if let Ok(Some(_page)) =
+                            custom_site_pages::find_custom_site_page(db_pool.clone(), path.clone())
+                                .await
+                        {
+                            routes::view_custom_site_page::get(router_data.clone(), path)
+                                .await
+                                .unwrap_or(internal_server_error_500())
+                        } else {
+                            routes::not_found::not_found(router_data.clone())
+                                .unwrap_or(internal_server_error_500())
+                        }
+                    }
                 }
+            }
+            (m, p) => {
+                debug!(
+                    "User tried accessing path {p} using method {m}, but no routes exist associated with that method and path."
+                );
+                routes::not_found::not_found(router_data.clone())
+                    .unwrap_or(internal_server_error_500())
             }
         }
     };
@@ -353,21 +370,23 @@ pub async fn inject_custom_css_if_needed(
     response_data: HttpResponseData,
 ) -> HttpResponseData {
     let page = request_data.path.clone();
-    let mut needs_injecting = true;
-    let Ok(stylesheet_numbers) = dynamic_stylesheets::get_indices_of_this_page_s_stylesheets(
-        db_pool.clone(),
-        page.clone(),
-    )
-    .await else {
+    let Ok(stylesheet_numbers) =
+        dynamic_stylesheets::get_indices_of_this_page_s_stylesheets(db_pool.clone(), page.clone())
+            .await
+    else {
         return response_data;
     };
     if stylesheet_numbers.is_empty() {
-        needs_injecting = false;
+        debug!(
+            "No css to inject. Page {page} does not have dynamic stylesheets associated with it."
+        );
+        return response_data;
     }
-    if !needs_injecting {
-        debug!("Page {page} does not have dynamic stylesheets associated with it, not engaging the injection process");
-    }
-    debug!("Found {} dynamic stylesheets for this (/{page}) page, injecting as link rel stylesheets", stylesheet_numbers.len());
+
+    debug!(
+        "Found {} dynamic stylesheets for this (/{page}) page, injecting as link rel stylesheets",
+        stylesheet_numbers.len()
+    );
     let url = {
         let prefix = "/dynamic_stylesheet";
         let page = page.clone();

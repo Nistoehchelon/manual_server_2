@@ -5,6 +5,7 @@ use html_templating::html_template_structs::{self};
 use http_stuff::http_response::{self, HttpResponseData, redirect_to};
 use into_vec::into_vec;
 use session::{SessionNotification, add_session_notification};
+use tracing::debug;
 use user::find_user_by_user_id;
 
 use routing_structs::RouterData;
@@ -83,7 +84,7 @@ pub async fn get(
         .await
         .map_err(InternalAppError::new)?;
     }
-    println!("Dumping forum: {:#?}", forum);
+    debug!("Dumping forum: {:#?}", forum);
     let parent_forum: Option<html_template_structs::Forum> = {
         if forum.parent_id == "0" || forum.parent_id == "none" {
             None

@@ -328,7 +328,7 @@ pub async fn generate_response_data(
     .await
     .unwrap_or(internal_server_error_500());
 
-    let response_data = add_elapsed(
+    let response_data = add_execution_time_elapsed_text_just_before_end_of_html_body(
         response_data,
         session.clone(),
         request_start,
@@ -344,8 +344,7 @@ pub async fn generate_response_data(
         nonce,
     );
 
-    // for convenience when submitting a post form to /submit_page style processing.
-    // but maybe I should just do POST submit for example on /create_thread?forum_id=xx rather than /create_thread with hidden fields?
+    // this is to avoid treating other post or errored requests as "previous pages" 
 
     if request_data.method == HttpMethod::Get
         && response_data.status_code.clone() == StatusCode::Code200Ok
@@ -523,7 +522,7 @@ bluetooth=()"
     response_data
 }
 
-pub async fn add_elapsed(
+pub async fn add_execution_time_elapsed_text_just_before_end_of_html_body(
     mut response_data: HttpResponseData,
     Session { id: session_id, .. }: Session,
     request_start: Instant,

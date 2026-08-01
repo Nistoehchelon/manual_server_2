@@ -52,11 +52,12 @@ pub async fn consume_email_otp(
         FROM email_otps
         WHERE code = $1
         FOR UPDATE
-        "#,
+        "#, 
         code
     )
     .fetch_optional(&mut **tx)
     .await?;
+
 
     let otp = match otp {
         Some(otp) => otp,
@@ -72,6 +73,8 @@ pub async fn consume_email_otp(
     if expires_at < Utc::now().timestamp() {
         return Err(ConsumeEmailOtpError::Expired);
     }
+
+    
 
     let pending_user = sqlx::query_as!(
         PendingUser,

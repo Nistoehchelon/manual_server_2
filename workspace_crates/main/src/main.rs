@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use server::{BackgroundSpawnTasks, server_config};
+use server::{ServerBuilder, server_config};
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
@@ -21,14 +21,5 @@ async fn main() -> std::io::Result<()> {
             routing::generate_response_data(request_data, db_pool, server_config, site_config).await
         }
     });
-    server::run(
-        server_config.clone(),
-        app_executable_version::VERSION.to_string(),
-        handler_function,
-        BackgroundSpawnTasks {
-            new_tasks_to_spawn: None,
-            cancellation_token: None,
-        },
-    )
-    .await
+    ServerBuilder::new(server_config.clone(), app_executable_version::VERSION.to_string(), handler_function).run_handler().await
 }

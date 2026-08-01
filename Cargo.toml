@@ -86,7 +86,7 @@ serde_json = "1.0.151"
 humantime-serde = "1.1.1"
 
 indexmap = "2.14.0"
-sqlx = { version = "0.9.0", features = ["migrate", "postgres", "macros", "runtime-tokio", "time", "tls-rustls-aws-lc-rs"] }
+sqlx = { version = "0.9.0", features = ["migrate", "chrono", "postgres", "macros", "runtime-tokio", "tls-rustls-aws-lc-rs"] }
 
 tokio = { version = "1.53.1", features = ["full", "tracing"] }
 

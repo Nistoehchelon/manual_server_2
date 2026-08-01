@@ -1,6 +1,6 @@
 use count_string_length::count_string_length::{count_string_length, valid_string_length};
 use error_structs::PublicError;
-use sqlx::types::time::OffsetDateTime;
+use chrono::{DateTime, Utc};
 
 // TODO: I wanna instead... I think it would make more sense to allow for dynamic setting of this using both .env and in-site db-held variable settings without having to restart the executable. But for simplicity for now let's keep it like this, hard-coded.
 pub const MESSAGES_PER_PAGE: u64 = 15;
@@ -22,7 +22,7 @@ pub struct ForumThreadMessageVersion {
     pub message_id: String,
     pub user_id: String,
     pub content: String,
-    pub created_at: OffsetDateTime,
+    pub created_at: DateTime<Utc>,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 

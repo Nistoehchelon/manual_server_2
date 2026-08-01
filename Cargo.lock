@@ -1041,6 +1041,7 @@ dependencies = [
 name = "forum"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "count_string_length",
  "db_manager",
  "error_structs",
@@ -3123,7 +3124,6 @@ dependencies = [
  "sha2 0.10.9",
  "smallvec",
  "thiserror",
- "time",
  "tokio",
  "tokio-stream",
  "tracing",
@@ -3194,7 +3194,6 @@ dependencies = [
  "sha2 0.11.0",
  "sqlx-core",
  "thiserror",
- "time",
  "tracing",
 ]
 
@@ -3230,7 +3229,6 @@ dependencies = [
  "sqlx-core",
  "stringprep",
  "thiserror",
- "time",
  "tracing",
  "whoami",
 ]
@@ -3256,7 +3254,6 @@ dependencies = [
  "serde",
  "sqlx-core",
  "thiserror",
- "time",
  "tracing",
  "url 2.5.8",
 ]

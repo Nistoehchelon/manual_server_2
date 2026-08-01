@@ -68,7 +68,7 @@ pub async fn consume_email_otp(
         return Err(ConsumeEmailOtpError::AlreadyConsumed);
     }
 
-    let expires_at = otp.created_at.unix_timestamp() + OTP_TTL_SECS;
+    let expires_at = otp.created_at.timestamp() + OTP_TTL_SECS;
 
     if expires_at < Utc::now().timestamp() {
         return Err(ConsumeEmailOtpError::Expired);

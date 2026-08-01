@@ -14,7 +14,7 @@ async fn main() -> std::io::Result<()> {
     let db_pool = sqlx::PgPool::connect(&site_config.database_url)
         .await
         .expect("I expected pool construction to succeed :)");
-    let handler = server::HandlerFn::new(move |request_data, server_config| {
+    let handler_function = server::HandlerFn::new(move |request_data, server_config| {
         let db_pool = db_pool.clone();
         let site_config = site_config.clone();
         async move {
@@ -24,7 +24,7 @@ async fn main() -> std::io::Result<()> {
     server::run(
         server_config.clone(),
         app_executable_version::VERSION.to_string(),
-        handler,
+        handler_function,
         BackgroundSpawnTasks {
             new_tasks_to_spawn: None,
             cancellation_token: None,

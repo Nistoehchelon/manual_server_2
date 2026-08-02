@@ -178,7 +178,6 @@ pub async fn post(
             .await
             .map_err(InternalAppError::new)?;
             tracing::error!("{e:#?}");
-            println!("{e:#?}");
             return Ok(redirect_to("/email_otp".to_string()));
         }
     };

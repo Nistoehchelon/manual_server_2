@@ -12,3 +12,4 @@ id_generator = { workspace = true }
 id_generator_unique_in_db = { workspace = true }
 
 count_string_length = { workspace = true }
+tracing = { workspace = true }

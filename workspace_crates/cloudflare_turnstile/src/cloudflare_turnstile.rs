@@ -1,4 +1,6 @@
 use std::net::IpAddr;
+
+use tracing::{error, info};
 pub async fn validate_turnstile(
     cf_secret_key: String,
     cf_token: String,
@@ -33,7 +35,7 @@ pub async fn validate_turnstile(
         Ok(response) => match response.json::<TurnstileResponse>().await {
             Ok(r) => r,
             Err(err) => {
-                eprintln!("Turnstile JSON parse error: {:?}", err);
+                error!("Turnstile JSON parse error: {:?}", err);
                 TurnstileResponse {
                     success: false,
                     error_codes: Some(vec!["myapperror parse".to_string()]),
@@ -41,7 +43,7 @@ pub async fn validate_turnstile(
             }
         },
         Err(err) => {
-            eprintln!("Turnstile validation error: {:?}", err);
+            error!("Turnstile validation error: {:?}", err);
             TurnstileResponse {
                 success: false,
                 error_codes: Some(vec!["internal-error".to_string()]),
@@ -49,7 +51,7 @@ pub async fn validate_turnstile(
         }
     };
 
-    tracing::info!(
+    info!(
         "Turnstile validation result: {} {:#?}",
         response.success,
         response.error_codes,

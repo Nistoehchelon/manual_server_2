@@ -45,7 +45,7 @@ pub async fn route(
                 site_config.webhook_and_api_secret_path_prefix.clone()
             )) =>
         {
-            tracing::debug!(path);
+            debug!("Entering a webhook_and_api path {path}");
             let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
 
             match parts.as_slice() {
@@ -328,14 +328,6 @@ pub async fn generate_response_data(
     .await
     .unwrap_or(internal_server_error_500());
 
-    let response_data = add_execution_time_elapsed_text_just_before_end_of_html_body(
-        response_data,
-        session.clone(),
-        request_start,
-        db_pool.clone(),
-    )
-    .await;
-
     let response_data = add_some_headers(
         request_data.clone(),
         response_data.clone(),
@@ -344,7 +336,7 @@ pub async fn generate_response_data(
         nonce,
     );
 
-    // this is to avoid treating other post or errored requests as "previous pages" 
+    // this is to avoid treating other post or errored requests as "previous pages"
 
     if request_data.method == HttpMethod::Get
         && response_data.status_code.clone() == StatusCode::Code200Ok
@@ -357,7 +349,17 @@ pub async fn generate_response_data(
         .await;
     }
 
-    inject_custom_css_if_needed(db_pool.clone(), request_data.clone(), response_data.clone()).await
+    let response_data =
+        inject_custom_css_if_needed(db_pool.clone(), request_data.clone(), response_data.clone())
+            .await;
+
+    add_execution_time_elapsed_text_just_before_end_of_html_body(
+        response_data,
+        session.clone(),
+        request_start,
+        db_pool.clone(),
+    )
+    .await
 }
 
 pub async fn inject_custom_css_if_needed(

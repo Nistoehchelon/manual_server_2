@@ -79,7 +79,7 @@ pub async fn call_action(
             invoice::success(db_pool.clone(), payment_id)
                 .await
                 .map_err(InternalAppError::new)?;
-            println!("payment_success webhook success");
+            tracing::info!("payment_success webhook success");
             let resp = ok(
                 "Payment successful\n".to_string().into_bytes(),
                 http_stuff::http_response::ContentType::TextPlain,
@@ -99,7 +99,7 @@ pub async fn call_action(
             webhooks::set_website_fund_xmr(db_pool.clone(), amount)
                 .await
                 .map_err(InternalAppError::new)?;
-            println!("website_fund_xmr webhook success");
+            tracing::info!("website_fund_xmr webhook success");
             let resp = ok(
                 "Set success\n".to_string().into_bytes(),
                 http_stuff::http_response::ContentType::TextPlain,

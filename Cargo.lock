@@ -1048,6 +1048,7 @@ dependencies = [
  "id_generator",
  "id_generator_unique_in_db",
  "sqlx",
+ "tracing",
 ]
 
 [[package]]

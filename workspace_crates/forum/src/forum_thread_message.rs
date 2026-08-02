@@ -1,4 +1,5 @@
 use error_structs::SomeSortOfError;
+use tracing::debug;
 
 use crate::ForumThreadMessage;
 
@@ -35,7 +36,7 @@ pub async fn get_message_page(
             return Err(SomeSortOfError::new("Could not get position"));
         }
     };
-    println!("{}", position);
+    debug!("Message position: {position}");
 
     let page = (position as f64 / msgs_per_page as f64).ceil() as i64;
 

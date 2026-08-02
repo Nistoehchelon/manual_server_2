@@ -17,21 +17,21 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
     .await
     .map_err(InternalAppError::new)?
     {
-        println!("User tried to access GET create_forum but does not have sufficient permissions");
+        tracing::error!("User tried to access GET create_forum but does not have sufficient permissions");
         return Ok(redirect_to("/".to_string()));
     }
     let body_params =
         match parse_body_into_string_form_input_params(rt.http_request_data.body_bytes.clone()) {
             Ok(p) => p,
             Err(e) => {
-                println!("Could not parse body, {}", e);
+                tracing::error!("Could not parse body, {}", e);
                 return Ok(redirect_to("/".to_string()));
             }
         };
     let csrf_token = match body_params.get("csrf_token") {
         Some(t) => t.to_owned(),
         None => {
-            println!("POST: csrf_token not provided");
+            tracing::error!("POST: csrf_token not provided");
             return Ok(redirect_to("/".to_string()));
         }
     };
@@ -50,7 +50,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         match opt {
             Some(id) => id.to_owned(),
             None => {
-                println!("parent_forum_id POST not provided");
+                tracing::error!("parent_forum_id POST not provided");
                 return Ok(redirect_to("/forum".to_string()));
             }
         }
@@ -60,7 +60,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         match opt {
             Some(n) => n.to_owned(),
             None => {
-                println!("name  not provided");
+                tracing::error!("name  not provided");
                 return Ok(redirect_to("/forum".to_string()));
             }
         }
@@ -78,7 +78,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
                 forum::ForumIdSource::Custom(unique_id)
             }
             None => {
-                println!("custom_id not provided");
+                tracing::error!("custom_id not provided");
                 return Ok(redirect_to("/".to_string()));
             }
         }
@@ -121,7 +121,7 @@ pub async fn get(rt: RouterData) -> Result<HttpResponseData, InternalAppError> {
     .await
     .map_err(InternalAppError::new)?
     {
-        println!("User tried to access GET create_forum but does not have sufficient permissions");
+        tracing::error!("User tried to access GET create_forum but does not have sufficient permissions");
         return Ok(redirect_to("/".to_string()));
     }
     let parent_forum_id = {

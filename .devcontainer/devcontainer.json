@@ -2,7 +2,7 @@
   "name": "My Project with Postgres and Rust",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
-    "ghcr.io/devcontainers/features/postgres:1": {
+    "ghcr.io/devcontainers/features/postgresql:1": {
       "version": "17",
       "password": "postgres"
     },

@@ -6,6 +6,9 @@
       "version": "17",
       "password": "postgres"
     },
+    "ghcr.io/rails/devcontainer/features/postgres-client:1": {
+
+    },
     "ghcr.io/devcontainers/features/rust:1": {
       "version": "stable",
       "profile": "default",

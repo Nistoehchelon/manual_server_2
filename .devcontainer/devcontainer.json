@@ -1,0 +1,13 @@
+{
+  "name": "My Project with Postgres",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/postgres:1": {
+      // Pin to 17 to avoid the PostgreSQL 18 data-directory layout issue in Codespaces
+      "version": "17",
+      "password": "postgres" // password for the default superuser
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/setup-db.sh",
+  "forwardPorts": [5432]
+}

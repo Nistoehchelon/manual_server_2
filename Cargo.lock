@@ -457,7 +457,7 @@ dependencies = [
 [[package]]
 name = "config_reader"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
 dependencies = [
  "config",
  "dotenvy",
@@ -646,7 +646,7 @@ dependencies = [
 [[package]]
 name = "cryptocurrencies_stuff"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/cryptocurrencies_stuff.git#b7a12914dafa0e9244c870f72aab7c729e92fb26"
+source = "git+https://github.com/Nistoehchelon/cryptocurrencies_stuff.git#b7a12914dafa0e9244c870f72aab7c729e92fb26"
 dependencies = [
  "bech32",
  "bip32",
@@ -904,7 +904,7 @@ dependencies = [
 [[package]]
 name = "encoding"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
 dependencies = [
  "urlencoding",
 ]
@@ -948,7 +948,7 @@ dependencies = [
 [[package]]
 name = "error_structs"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
 dependencies = [
  "tracing",
 ]
@@ -1394,7 +1394,7 @@ dependencies = [
 [[package]]
 name = "http_stuff"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
 dependencies = [
  "config_reader",
  "encoding",
@@ -2005,7 +2005,7 @@ dependencies = [
 [[package]]
 name = "password_hashing"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/password_hashing.git#8deadc301f33501762a1978e8d4ac4dc28326b49"
+source = "git+https://github.com/Nistoehchelon/password_hashing.git#8deadc301f33501762a1978e8d4ac4dc28326b49"
 dependencies = [
  "argon2",
  "rand 0.10.2",
@@ -2036,7 +2036,7 @@ dependencies = [
 [[package]]
 name = "payment_system_structs"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/payment_system.git#741bccb744fa16978f8ef7aea154df44a397bc14"
+source = "git+https://github.com/Nistoehchelon/payment_system.git#5c0069f90e90dc0e2ded4e0e261e19aacd4ae709"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2900,7 +2900,7 @@ dependencies = [
 [[package]]
 name = "server"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
 dependencies = [
  "config_reader",
  "dotenvy",
@@ -2919,7 +2919,7 @@ dependencies = [
 [[package]]
 name = "server_config"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
 dependencies = [
  "humantime-serde",
  "serde",
@@ -3783,7 +3783,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 [[package]]
 name = "url"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Aeroel/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#3183e39da7f71ebba2736c6345ea33ed6d6b6f57"
 dependencies = [
  "encoding",
  "indexmap",

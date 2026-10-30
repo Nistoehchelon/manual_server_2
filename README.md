@@ -94,12 +94,3 @@ bash push.sh --schema
 ```
 
 
-
-
-
-1. Ah, and the local (for dev) self-signed cert generation/TLS intrusctions is inside local_ssl/README.md
-2. This seems to be about it
-
-
-
-

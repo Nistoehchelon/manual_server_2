@@ -60,24 +60,22 @@ Enter password123
 createdb database123 --owner=user123 --template=template0 --encoding=UTF8
 ```
 
+Sqlx migrations:
+
+```bash
+cargo install sqlx-cli
+sqlx migrate run
+```
+
+
+# If I want to extract/import db schema with data. For pure schema, only sqlx migrations above are used.
 
 cd into manual_server/pgsql_backups
 and use below, without the chmod 600 a warning that prevents script execution occurs:
 WARNING: password file "/home/username/manual_server/pgsql_backups/.pgpass" has group or world access; permissions should be u=rw (0600) or less
 
-
-
-```bash
-cargo run
-```
-
-
-1. Ah, and the local (for dev) self-signed cert generation/TLS intrusctions is inside local_ssl/README.md
-2. This seems to be about it
-
-
-
 Regarding pgsql_backups:
+
 I have two scripts there: push.sh and pull.sh
 When I want to backup contents of db I use (--full backups data and --schema only the empty tables. Both can be used, they are stored separately):
 ```bash
@@ -94,4 +92,14 @@ bash push.sh --full
 ```bash
 bash push.sh --schema
 ```
+
+
+
+
+
+1. Ah, and the local (for dev) self-signed cert generation/TLS intrusctions is inside local_ssl/README.md
+2. This seems to be about it
+
+
+
 

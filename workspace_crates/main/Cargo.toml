@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 tokio = { workspace = true }
+tracing = { workspace = true }
 server = { workspace = true }
 routing = { workspace = true }
 sqlx = { workspace = true }

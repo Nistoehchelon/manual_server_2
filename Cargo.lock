@@ -1877,6 +1877,7 @@ dependencies = [
  "site_config",
  "sqlx",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

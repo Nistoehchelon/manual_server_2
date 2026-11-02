@@ -1,3 +1,4 @@
+# A convenience function that I have used some in the past, but have not used it in ages, so I dunno
 gitacp() {
     if [ $# -eq 0 ]; then
         echo "Usage: gitacp \"commit message\""

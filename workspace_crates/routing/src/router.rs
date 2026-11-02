@@ -455,6 +455,7 @@ pub fn add_some_headers(
 
     // HSTS
     // I guess this will disable sts whenever I run this without ssl, right?..
+    // Actually, I am not sure what is this supposed to do. TODO: Research and remove, if neccesary.
     response_data.headers.insert(
         "Strict-Transport-Security",
         if site_config.using_https {

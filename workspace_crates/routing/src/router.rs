@@ -273,7 +273,6 @@ pub async fn generate_response_data(
     server_config: ServerConfig,
     site_config: site_config::SiteConfig,
 ) -> HttpResponseData {
-    debug!("Path {}", request_data.path);
 
     let nonce = id_generator::generate_random_alphanumeric_id(50).to_string();
     let static_req = static_resources::parse_static_path(&request_data.path);

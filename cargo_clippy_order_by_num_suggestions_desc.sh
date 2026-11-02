@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
 
-# I used this when I was running cargo clippy --fix on 258 warnings. 
-# I suppose if cargo clippy is used in the same way as check, this script
-# is not all that useful.
+# I used this when I was running cargo clippy --fix for the first time on 258 warnings. 
+# I suppose if cargo clippy is used as often as, or instead of, check, this script
+# is not all that useful since all clippy warnings are either disabled or otherwise addressed immediately. 
+# I have not used it ever since that time. Consider removing it?
 
 awk '
 /cargo clippy --fix/ {

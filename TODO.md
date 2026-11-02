@@ -1,18 +1,26 @@
+Most important one currently:
+
+- [ ] Make sure I only set secure cookies. Currently I ask if using_https is set in env. If yes, add secure to the instruction, if no, do not. Several possibilities: 1. Just remember to set using_https to true when downstream/public facing entrypoint uses https. 2. Always set secure cookie/assume https. 3. Accept and inspect X-Forwarded-Proto and base the secure decision on that.
+ 
+
 
 
 - [ ] Email verification
+    Partially done: I am generating otp codes and accepting them, what remains is writing some sort of email sender and interface with external mail sending services or something.
 
 
-- [ ] In general, to make the experience/functionality more comfortable, reduce friction.
+
+- [ ] In general, to make the experience/functionality (I mean, UX) more comfortable, reduce friction.
+     - [ ] Maybe proxy the custom site pages management like edit and view history so they appear to have their own pages for convenience.
+
 
 - [ ] Rework abac for forums a bit:
-I can say: subject user subject_id any object forum object_id 33b23
+I can say: subject: user, subject_id: userid123, object: forum, object_id: 33b23
 so any user will be able to access forum with id 33b23
 That forum might have a parent forum. Users will not have access to it, they won't even see it exists
 Generally, the permissions system can be improved...
 
 
-- [ ] Maybe proxy the custom site pages management like edit and view history so they appear to have their own pages for convenience.
 
 - [ ] Improve logging/tracing
 

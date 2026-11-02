@@ -61,3 +61,6 @@ and install php8.3 pdo pgsql extension (using apt)
 
 The default php (8.4) installation does not seem to have an easy way to install extensions, but all I had to do to get it working with php8.3 was run apt install. I assume I could also just use alternatives to turn 8.3 into just php or whatever.
 
+
+Nginx setup is as normal, except sudo service nginx start/restart/stop instead of systemctl:
+

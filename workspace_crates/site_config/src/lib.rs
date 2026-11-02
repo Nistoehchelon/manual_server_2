@@ -1,5 +1,6 @@
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct SiteConfig {
+    pub static_resources_folder: String,
     pub ip: String,
     pub port: u64,
     pub rust_log_directory_path: String,

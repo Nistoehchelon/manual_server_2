@@ -7,16 +7,16 @@ use tracing::debug;
 
 use error_structs::InternalAppError;
 use http_stuff::{
-    http_request_parsing::{HttpMethod, HttpRequestData},
-    http_response::{
-        self, Charset, ContentType, HttpResponseData, KeepAliveOrClose, SetCookieHeader,
-        StatusCode, internal_server_error_500, redirect_to,
+    http_request_parsing::{HttpMethod, HttpRequestData}, http_response::{
+        self, Charset, ContentType, HttpResponseData, KeepAliveOrClose, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to,
     },
 };
 use session::{self, Session, get_session_by_session_id, set_previous_page_load_time_ms};
 use user::{self, get_user_by_user_id};
 
 use routes;
+
+use crate::static_resources::{self, generate_static_response};
 
 pub async fn route(
     db_pool: sqlx::PgPool,
@@ -273,7 +273,15 @@ pub async fn generate_response_data(
     server_config: ServerConfig,
     site_config: site_config::SiteConfig,
 ) -> HttpResponseData {
+    debug!("Path {}", request_data.path);
+
     let nonce = id_generator::generate_random_alphanumeric_id(50).to_string();
+    let static_req = static_resources::parse_static_path(&request_data.path);
+    if let Some(path) = static_req {
+        let res= generate_static_response(request_data.clone(), site_config.static_resources_folder.clone(), path);
+        let res = add_some_headers(request_data.clone(), res.clone(), server_config.clone(), site_config.clone(), nonce.clone());
+        return res;
+    }
     let request_start = Instant::now();
     let cookies = request_data.cookies.clone();
     let (session, created_new_session) =

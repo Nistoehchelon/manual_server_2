@@ -62,5 +62,27 @@ and install php8.3 pdo pgsql extension (using apt)
 The default php (8.4) installation does not seem to have an easy way to install extensions, but all I had to do to get it working with php8.3 was run apt install. I assume I could also just use alternatives to turn 8.3 into just php or whatever.
 
 
-Nginx setup is as normal, except sudo service nginx start/restart/stop instead of systemctl.
+Nginx setup is as normal, except sudo service nginx start/restart/stop instead of systemctl:
+Taken from https://nginx.org/en/linux_packages.html#Ubuntu
+
+```bash
+sudo apt install curl gnupg2 ca-certificates lsb-release ubuntu-keyring -y
+
+curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
+    | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
+
+gpg --dry-run --quiet --no-keyring --import --import-options import-show /usr/share/keyrings/nginx-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
+https://nginx.org/packages/ubuntu `lsb_release -cs` nginx" \
+    | sudo tee /etc/apt/sources.list.d/nginx.list
+
+echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" \
+    | sudo tee /etc/apt/preferences.d/99nginx
+
+sudo apt update
+sudo apt install nginx
+sudo service nginx start
+
+```
 

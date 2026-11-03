@@ -7,9 +7,15 @@ sudo apt install -y postgresql-common
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
 sudo apt install postgresql-18 -y
 sudo service postgresql start
+```
 
-# enter root in order to be able to run the following two sql commands
+enter root in order to be able to run the following two sql commands
+```bash
 sudo -i
+```
+
+Then enter the sql commands
+```bash
 sudo -u postgres psql -c "CREATE USER user123 WITH PASSWORD 'password123';"
 sudo -u postgres psql -c "CREATE DATABASE database123 OWNER user123;"
 

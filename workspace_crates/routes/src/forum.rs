@@ -1,4 +1,7 @@
-use abac::{CanAccessThisForumInput, can_access_this_forum};
+use abac::{
+    CanAccessThisForumInput, can_access_this_forum,
+    filters::FilterForumListBasedOnWhatUserCanAccess,
+};
 use error_structs::InternalAppError;
 use forum::find_forum_by_id;
 use html_templating::html_template_structs::{self};
@@ -53,11 +56,8 @@ pub async fn get(
     .map_err(InternalAppError::new)?
     {
         println!("User doesn't have permissions to access this forum");
-        return Ok(redirect_to("/".to_string()));
+        return decoy_forum_not_found(db_pool.clone(), session.id.clone(), forum_id.clone()).await;
     }
-    let user_opt = find_user_by_user_id(db_pool.clone(), session.user_id.clone())
-        .await
-        .map_err(InternalAppError::new)?;
 
     let forum_threads = forum::get_forum_threads(db_pool.clone(), forum.id.clone())
         .await
@@ -66,10 +66,22 @@ pub async fn get(
         .await
         .map_err(InternalAppError::new)?;
 
+    let subforums = abac::filters::filter_forum_list_based_on_what_user_can_access(
+        FilterForumListBasedOnWhatUserCanAccess {
+            db_pool: db_pool.clone(),
+            user_id: session.user_id.clone(),
+            forums: subforums.clone(),
+        },
+    )
+    .await;
+
     let title = forum.name.clone();
 
     let mut user_can_create_forum = false;
     let mut user_can_create_thread = false;
+    let user_opt = find_user_by_user_id(db_pool.clone(), session.user_id.clone())
+        .await
+        .map_err(InternalAppError::new)?;
     if user_opt.is_some() {
         user_can_create_thread = abac::can_create_forum_thread(abac::CanCreateThreadInput {
             db_pool: db_pool.clone(),
@@ -111,4 +123,28 @@ pub async fn get(
         forum_threads_pagination: vec![],
     });
     Ok(http_response::ok_html(html))
+}
+async fn decoy_forum_not_found(
+    db_pool: sqlx::PgPool,
+    session_id: String,
+    forum_id: String,
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
+    forum_not_found(db_pool, session_id, forum_id).await
+}
+async fn forum_not_found(
+    db_pool: sqlx::PgPool,
+    session_id: String,
+    forum_id: String,
+) -> Result<HttpResponseData, error_structs::InternalAppError> {
+    add_session_notification(
+        db_pool.clone(),
+        SessionNotification {
+            session_id: session_id.clone(),
+            message: format!("Forum with id {} could not be found", forum_id),
+            notification_type: session::SessionNotificationType::Error,
+        },
+    )
+    .await
+    .map_err(InternalAppError::new)?;
+    Ok(redirect_to("/forum".to_string()))
 }

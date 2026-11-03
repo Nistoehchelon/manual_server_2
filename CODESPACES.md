@@ -65,6 +65,7 @@ Regarding postgres db management (using adminer):
 use the php8.3 executable
 and install php8.3 pdo pgsql extension (using apt)
 ```bash
+sudo apt install php8.3
 sudo apt install php8.3-pgsql 
 ```
 

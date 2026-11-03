@@ -1,5 +1,7 @@
+{% if !main_info.notifications.is_empty() %}
 <div id = "notifications">
 {% for notif in main_info.notifications.iter() %}
     <p class ="{{notif.notification_type}}">{{ notif.message }}</p><br>
 {% endfor %}
 </div>
+{% endif %}

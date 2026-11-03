@@ -38,7 +38,8 @@ textarea {
   min-height: 80px;
 }
 
-.forum_thread_message_content {
+
+.preserve_whitespace_as_is, .forum_thread_message_content {
   white-space: pre-wrap;
 }
 

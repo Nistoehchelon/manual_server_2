@@ -3,5 +3,7 @@
 {% block content%}
 <h1>{{ page.name }}</h1>
 {% include "includes/notifications.html" %}
+<div class = "preserve_whitespace_as_is">
 {{ page.content | safe }}
+</div>
 {% endblock %}

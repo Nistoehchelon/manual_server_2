@@ -17,7 +17,9 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
     .await
     .map_err(InternalAppError::new)?
     {
-        tracing::error!("User tried to access GET create_forum but does not have sufficient permissions");
+        tracing::error!(
+            "User tried to access GET create_forum but does not have sufficient permissions"
+        );
         return Ok(redirect_to("/".to_string()));
     }
     let body_params =
@@ -121,7 +123,9 @@ pub async fn get(rt: RouterData) -> Result<HttpResponseData, InternalAppError> {
     .await
     .map_err(InternalAppError::new)?
     {
-        tracing::error!("User tried to access GET create_forum but does not have sufficient permissions");
+        tracing::error!(
+            "User tried to access GET create_forum but does not have sufficient permissions"
+        );
         return Ok(redirect_to("/".to_string()));
     }
     let parent_forum_id = {

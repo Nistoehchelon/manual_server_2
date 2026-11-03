@@ -53,8 +53,7 @@ pub async fn validate_turnstile(
 
     info!(
         "Turnstile validation result: {} {:#?}",
-        response.success,
-        response.error_codes,
+        response.success, response.error_codes,
     );
     response.success
 }

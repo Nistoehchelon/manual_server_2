@@ -25,5 +25,11 @@ async fn main() -> std::io::Result<()> {
         }
     });
     tracing::debug!("Starting server: Running server handler");
-    ServerBuilder::new(server_config.clone(), app_executable_version::VERSION.to_string(), handler_function).run_handler().await
+    ServerBuilder::new(
+        server_config.clone(),
+        app_executable_version::VERSION.to_string(),
+        handler_function,
+    )
+    .run_handler()
+    .await
 }

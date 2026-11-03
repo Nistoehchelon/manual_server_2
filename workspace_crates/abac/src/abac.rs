@@ -63,7 +63,6 @@ pub async fn user_can_view_app_executable_version(
     Ok(b)
 }
 
-
 pub struct CanAccessThisForumThreadInput {
     pub db_pool: sqlx::PgPool,
     pub user_id: String,

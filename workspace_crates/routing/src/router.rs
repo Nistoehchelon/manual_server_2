@@ -7,8 +7,10 @@ use tracing::debug;
 
 use error_structs::InternalAppError;
 use http_stuff::{
-    http_request_parsing::{HttpMethod, HttpRequestData}, http_response::{
-        self, Charset, ContentType, HttpResponseData, KeepAliveOrClose, SetCookieHeader, StatusCode, internal_server_error_500, redirect_to,
+    http_request_parsing::{HttpMethod, HttpRequestData},
+    http_response::{
+        self, Charset, ContentType, HttpResponseData, KeepAliveOrClose, SetCookieHeader,
+        StatusCode, internal_server_error_500, redirect_to,
     },
 };
 use session::{self, Session, get_session_by_session_id, set_previous_page_load_time_ms};
@@ -273,12 +275,21 @@ pub async fn generate_response_data(
     server_config: ServerConfig,
     site_config: site_config::SiteConfig,
 ) -> HttpResponseData {
-
     let nonce = id_generator::generate_random_alphanumeric_id(50).to_string();
     let static_req = static_resources::parse_static_path(&request_data.path);
     if let Some(path) = static_req {
-        let res= generate_static_response(request_data.clone(), site_config.static_resources_folder.clone(), path);
-        let res = add_some_headers(request_data.clone(), res.clone(), server_config.clone(), site_config.clone(), nonce.clone());
+        let res = generate_static_response(
+            request_data.clone(),
+            site_config.static_resources_folder.clone(),
+            path,
+        );
+        let res = add_some_headers(
+            request_data.clone(),
+            res.clone(),
+            server_config.clone(),
+            site_config.clone(),
+            nonce.clone(),
+        );
         return res;
     }
     let request_start = Instant::now();
@@ -453,19 +464,6 @@ pub fn add_some_headers(
             .insert("connection", KeepAliveOrClose::Close.to_string());
     }
 
-    // HSTS
-    // I guess this will disable sts whenever I run this without ssl, right?..
-    // Actually, I am not sure what is this supposed to do. TODO: Research and remove, if neccesary.
-    response_data.headers.insert(
-        "Strict-Transport-Security",
-        if site_config.using_https {
-            "max-age=99999999; includeSubDomains; preload"
-        } else {
-            "max-age=0"
-        }
-        .to_string(),
-    );
-
     // Other sec headers
 
     response_data
@@ -490,13 +488,15 @@ pub fn add_some_headers(
         .insert("Referrer-Policy", "no-referrer".to_string());
     response_data.headers.insert(
         "Permissions-Policy",
-        "camera=(),\
-microphone=(),\
-geolocation=(),\
-payment=(),\
-usb=(),\
-bluetooth=()"
-            .to_string(),
+        "\
+                camera=(),\
+                microphone=(),\
+                geolocation=(),\
+                payment=(),\
+                usb=(),\
+                bluetooth=()\
+            "
+        .to_string(),
     );
     let mut script_src = String::new();
     let mut frame_src = String::new();

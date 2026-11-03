@@ -1,4 +1,3 @@
-
 use http_stuff::{
     http_request_parsing::{HttpMethod, HttpRequestData},
     http_response::{Charset, ContentType, HttpResponseData, ok, ok_html},
@@ -9,24 +8,29 @@ pub struct StaticResource {
 }
 pub struct StaticResourceParseError;
 impl StaticResource {
-    pub fn as_str(&self) -> &str { &self.inner }
+    pub fn as_str(&self) -> &str {
+        &self.inner
+    }
     pub fn parse(string: String) -> Result<Self, StaticResourceParseError> {
         // I guess I will add to this every time I add a static resource?... Or should I just make it -pull it from the static folder dynammicaly, so I could put stuff in on the fly without recompiling? Or, I could even make this .env based and pass a vec-like string in .env??? I dunno...
-        let existing_resources = ["app.js", "cloudflare_turnstile_button_enable_disable.js", "stylesheet.css", "favicon.ico"];
+        let existing_resources = [
+            "app.js",
+            "cloudflare_turnstile_button_enable_disable.js",
+            "stylesheet.css",
+            "favicon.ico",
+        ];
         if !existing_resources.contains(&string.as_str()) {
             Err(StaticResourceParseError)
         } else {
             Ok(Self { inner: string })
         }
-
     }
 }
 pub fn parse_static_path(path: &str) -> Option<StaticResource> {
-    path.strip_prefix("/static/")
-        .map(|rest| {
-            let r = StaticResource::parse(rest.to_owned());
-            r.ok()
-        })?
+    path.strip_prefix("/static/").map(|rest| {
+        let r = StaticResource::parse(rest.to_owned());
+        r.ok()
+    })?
 }
 
 pub fn generate_static_response(

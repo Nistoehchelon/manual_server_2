@@ -1,3 +1,5 @@
+
+
 # For Windows (from, say, a Linux machine):
 ```bash
 cargo install cargo-xwin
@@ -56,3 +58,5 @@ Step 3. use cargo-ndk to compile:
 cd /workspaces/manual_server_2 # or whatever the repo root is
 cargo ndk build --target=aarch64-linux-android --release # Yay!
 ```
+
+Cargo stores all the resulting executables in the target folder inside the respective target-named subfolders.

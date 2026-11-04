@@ -14,13 +14,16 @@ cargo build --release --target x86_64-unknown-linux-musl
 
 # Android 
 Targets:  aarch64-unknown-linux-musl and aarch64-linux-android
+
 Note: The Android executables must be started by prepending the SSL_CERT_FILE variable, like this:
 
 ```bash
 SSL_CERT_FILE=$PREFIX/etc/tls/cert.pem ./executable
 ```
 
-Otherwise, the first time you go visit, say, the signup page or any page that uses Reqwest to connect to another site (in this case, to Cloudflare Captcha), the whole server will panic with error "No CA certificates were loaded from the system". The SSL_CERT_FILE solves this, though, admittedly, I would much rather prefer to be able to cleanly run the executable like "./executable". Possible better solutions: Embedding all CAs in the executable by using the webpki roots thingie, and I think there are other possibilities as well. I don't know if I wanna use webpki_roots since this might cause vulnerabilities if a CA gets their trust revoked. But I assume this is mainly an issue for client apps rather than server apps, since I can just always run the latest version? Eh, I dunno. 
+Otherwise, the first time you go visit, say, the signup page or any page that uses Reqwest to connect to another site (in this case, to Cloudflare Captcha), the whole server will panic with error "No CA certificates were loaded from the system". The SSL_CERT_FILE solves this, though, admittedly, I would much rather prefer to be able to cleanly run the executable like "./executable". 
+
+Possible better solutions: Embedding all CAs in the executable by using the webpki roots thingie, and I think there are other possibilities as well. I don't know if I wanna use webpki_roots since this might cause vulnerabilities if a CA gets their trust revoked. But I assume this is mainly an issue for client apps rather than server apps, since I can just always run the latest version? Eh, I dunno. 
 
 
 # 1. aarch64-unknown-linux-musl:

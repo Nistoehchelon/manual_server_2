@@ -15,7 +15,7 @@ cargo build --release --target x86_64-unknown-linux-musl
 # Android 
 Targets:  aarch64-unknown-linux-musl and aarch64-linux-android
 
-aarch64-unknown-linux-musl:
+# 1. aarch64-unknown-linux-musl:
 
 Note: https://musl.cc is just a random website I found which seems popular enough so I would assume it is safe... Do your own research, though. 
 
@@ -33,7 +33,8 @@ cd /workspaces/manual_server_2 # or wherever the repo root is
 cargo build --release --target aarch64-unknown-linux-musl # voila
 ```
 
-aarch64-linux-android
+# 2. aarch64-linux-android
+
 Note: Requires setting up the whole Android SDK thingie. So, first, let's do that, then install cargo-ndk for a more comfortable compilation experience and finally run cargo ndk to actually compile the aarch64-linux-android executable.
 
 Steps 1 and 2. Install Android SDK and cargo-sdk as described in [https://github.com/Nistoehchelon/common_setup/blob/main/ANDROID_SDK_INSTALLATION.md](https://github.com/Nistoehchelon/common_setup/blob/main/ANDROID_SDK_INSTALLATION.md)
@@ -41,6 +42,6 @@ Steps 1 and 2. Install Android SDK and cargo-sdk as described in [https://github
 Step 3. use cargo-ndk to compile:
 
 ```bash
-# inside the repo root
+cd /workspaces/manual_server_2 # or whatever the repo root is
 cargo ndk build --target=aarch64-linux-android --release # Yay!
 ```

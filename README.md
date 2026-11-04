@@ -5,7 +5,7 @@
   3. Finally, you should have applied the sqlx migrations
 
 The reason for this is that I am using the sqlx mode that connects to the db at compile time (for schema checking).
-Once all the Postgres conditions are met, you may proceed to the compilation steps, outlined in ABOUT_COMPILATION.md.  
+Once all the Postgres conditions are met, you may proceed to the compilation steps, outlined in [ABOUT_COMPILATION.md](ABOUT_COMPILATION.md).  
 
 
 Sqlx migrations:

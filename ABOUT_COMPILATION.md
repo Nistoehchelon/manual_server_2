@@ -3,6 +3,8 @@
 # For Windows (from, say, a Linux machine):
 ```bash
 cargo install cargo-xwin
+rustup target add x86_64-pc-windows-msvc
+sudo apt update && sudo apt install -y clang lld llvm
 cargo xwin build --target x86_64-pc-windows-msvc --release
 ```
 

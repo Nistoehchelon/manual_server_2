@@ -197,17 +197,34 @@ pub async fn create_email_otp(
     })
 }
 
+use askama::Template;
+
+#[derive(Template)]
+#[template(
+    source = r###"
+    Greetings, {{ destination_name }}! Your email verification code is "{{ otp_code }}" <br> If you have no idea what it is that you're supposedly signing up for, you may safely ignore this email. <br> With utmost insincerity, your one and only God {{ from_name }}
+    "###,
+    ext = "html"
+)]
+struct EmailVerifyTemplate {
+    pub destination_name: String,
+    pub otp_code: String,
+    pub from_name: String,
+}
+
 pub async fn send_email(
     otp_code: String,
     destination_email: String,
     destination_name: String,
     site_config: SiteConfig,
-) {
+) -> anyhow::Result<()> {
     let message_title = "You are hereby ordered to verify your email using this code".to_string();
-    let message_content = format!(
-        "Greetings, {destination_name}! Your email verification code is \"{otp_code}\" <br> If you have no idea what it is that you're supposedly signing up for, you may safely ignore this email. <br> With utmost insincerity, your one and only God {}",
-        site_config.email_otp_from_name
-    );
+    let tpl = EmailVerifyTemplate {
+        destination_name: destination_name.clone(),
+        otp_code,
+        from_name: site_config.email_otp_from_name.clone(),
+    };
+    let message_content = tpl.render()?;
     match email_stuff::send_email(
         EmailSenderConfig {
             enabled_services: vec![
@@ -238,12 +255,14 @@ pub async fn send_email(
             message_content,
         },
     )
-    .await {
+    .await
+    {
         Ok(s) => {
             tracing::debug!("Email sent successfullt: {s:#?}")
-        },
+        }
         Err(e) => {
             tracing::error!("Email sending failed: {e:#?}")
-        },
+        }
     };
+    Ok(())
 }

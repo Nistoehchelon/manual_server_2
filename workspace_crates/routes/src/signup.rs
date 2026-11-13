@@ -217,7 +217,7 @@ pub async fn post(
     )
     .await
     .map_err(InternalAppError::new)?;
-    email_otp::send_email(otp.code, email, username.to_string(), router_data.site_config).await;
+    let _result = email_otp::send_email(otp.code, email, username.to_string(), router_data.site_config).await;
 
     add_session_notification_success(
         db_pool.clone(),

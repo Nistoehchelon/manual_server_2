@@ -13,4 +13,6 @@ email_stuff = { workspace = true }
 site_config = { workspace = true }
 tracing = { workspace = true }
 secrecy = { workspace = true }
+askama = { workspace = true }
+anyhow = { workspace = true }
 

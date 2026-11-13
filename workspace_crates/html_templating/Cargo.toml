@@ -8,5 +8,3 @@ askama = { workspace = true }
 forum = { workspace = true }
 session = { workspace = true }
 pagination = { workspace = true }
-abac = { workspace = true }
-custom_site_pages = { workspace = true }

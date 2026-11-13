@@ -3,12 +3,11 @@ name = "tests"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[dev-dependencies]
 tokio = { workspace = true }
 db_manager = { workspace = true}
-config_reader = { workspace = true }
 site_config = { workspace = true }
 session = { workspace = true }
 id_generator = { workspace = true }
+config_reader = { workspace = true }
 sqlx = { workspace = true }
-forum = { workspace = true }

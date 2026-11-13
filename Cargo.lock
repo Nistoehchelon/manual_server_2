@@ -710,7 +710,6 @@ dependencies = [
  "forum",
  "regex",
  "sqlx",
- "webhooks",
 ]
 
 [[package]]
@@ -1462,9 +1461,7 @@ dependencies = [
 name = "html_templating"
 version = "0.1.0"
 dependencies = [
- "abac",
  "askama",
- "custom_site_pages",
  "forum",
  "pagination",
  "session",
@@ -1740,9 +1737,7 @@ dependencies = [
 name = "id_generator"
 version = "0.1.0"
 dependencies = [
- "error_structs",
  "rand 0.10.3",
- "sqlx",
  "uuid",
 ]
 
@@ -1751,7 +1746,6 @@ name = "id_generator_unique_in_db"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "db_manager",
  "id_generator",
  "sqlx",
 ]
@@ -2290,7 +2284,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "server",
  "sqlx",
  "webhooks",
 ]
@@ -2816,7 +2809,6 @@ dependencies = [
  "id_generator_unique_in_db",
  "into_vec",
  "invoice",
- "lol_html",
  "pagination",
  "password_hashing",
  "payment_system_structs",
@@ -3709,7 +3701,6 @@ version = "0.1.0"
 dependencies = [
  "config_reader",
  "db_manager",
- "forum",
  "id_generator",
  "session",
  "site_config",
@@ -4358,7 +4349,6 @@ dependencies = [
  "cryptocurrencies_stuff",
  "custom_site_variables",
  "error_structs",
- "server_config",
  "sqlx",
  "strum",
 ]

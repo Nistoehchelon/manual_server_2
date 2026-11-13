@@ -65,6 +65,7 @@ encoding = { git = "https://github.com/Nistoehchelon/server_2_only.git" }
 url = { git = "https://github.com/Nistoehchelon/server_2_only.git" }
 error_structs = { git = "https://github.com/Nistoehchelon/server_2_only.git" }
 
+email_stuff = { git = "https://github.com/Nistoehchelon/email_stuff.git" }
 
 # third-party external crates
 # for injecting stylesheet links

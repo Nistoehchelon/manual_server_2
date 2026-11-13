@@ -1,6 +1,13 @@
 use std::fmt;
 
 use chrono::Utc;
+use email_stuff::{
+    AhaSendAPIKey, EmailSenderConfig,
+    EnabledService::{AhaSend, Lettermint, Resend},
+    LetterMintProjectToken,
+};
+use secrecy::SecretString;
+use site_config::SiteConfig;
 use sqlx::{FromRow, Postgres, Transaction};
 
 const OTP_TTL_SECS: i64 = 15 * 60;
@@ -188,4 +195,50 @@ pub async fn create_email_otp(
         primary_key: otp.primary_key,
         code,
     })
+}
+
+pub async fn send_email(
+    otp_code: String,
+    destination_email: String,
+    user_name: String,
+    site_config: SiteConfig,
+) {
+    let message_title = "You are hereby ordered to verify your email using this code".to_string();
+    let message_content = format!(
+        "Greetings, {user_name}! Your email verification code is \"{otp_code}\" <br> If you have no idea what it is that you're supposedly signing up for, you may safely ignore this email. <br> With utmost insincerity, your one and only God {}",
+        site_config.email_otp_from_name
+    );
+    let _sending_result = email_stuff::send_email(
+        EmailSenderConfig {
+            enabled_services: vec![
+                Resend {
+                    api_key: email_stuff::ResendAPIKey(SecretString::from(
+                        site_config.resend_api_key,
+                    )),
+                },
+                AhaSend {
+                    api_key: AhaSendAPIKey(SecretString::from(site_config.ahasend_api_key)),
+                    account_id: email_stuff::AhaSendAccountId(SecretString::from(
+                        site_config.ahasend_account_id,
+                    )),
+                },
+                Lettermint {
+                    project_token: LetterMintProjectToken(SecretString::from(
+                        site_config.lettermint_project_token,
+                    )),
+                },
+            ],
+        },
+        email_stuff::TypicalEmail {
+            from_email_address: site_config.email_otp_from_address,
+            from_name: site_config.email_otp_from_name,
+            to_email_address: destination_email,
+            to_name: user_name,
+            message_title,
+            message_content,
+        },
+    )
+    .await;
+
+    todo!()
 }

@@ -9,3 +9,6 @@ sqlx = { workspace = true }
 chrono = { workspace = true }
 rand = { workspace = true }
 id_generator = { workspace = true }
+email_stuff = { workspace = true }
+site_config = { workspace = true }
+secrecy = "0.10.3"

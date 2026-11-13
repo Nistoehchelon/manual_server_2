@@ -217,6 +217,7 @@ pub async fn post(
     )
     .await
     .map_err(InternalAppError::new)?;
+    
     add_session_notification_success(
         db_pool.clone(),
         session.id.clone(),

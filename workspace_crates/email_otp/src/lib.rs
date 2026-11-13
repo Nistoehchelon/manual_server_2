@@ -202,7 +202,8 @@ use askama::Template;
 #[derive(Template)]
 #[template(
     source = r###"
-    Greetings, {{ destination_name }}! Your email verification code is "{{ otp_code }}" <br> If you have no idea what it is that you're supposedly signing up for, you may safely ignore this email. <br> With utmost insincerity, your one and only God {{ from_name }}
+    <div style = "font-size: 15px;"> <p>Greetings, {{ destination_name }}!</p> 
+    Your email verification code is <span style = "font-size: 25px; user-select: all; font-weight: bold;">"{{ otp_code }}"</span> <br> If you have no idea what it is that you're supposedly signing up for, you may safely ignore this email. <br> With utmost insincerity, your one and only God {{ from_name }}</div>
     "###,
     ext = "html"
 )]

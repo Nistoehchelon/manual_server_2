@@ -5,7 +5,6 @@ use cryptocurrencies_stuff::{
 };
 use sqlx::{Postgres, Transaction};
 
-pub const SUBSCRIPTION_COST_USD: f64 = 1.0;
 
 pub async fn get_subscription_cost_usd(db_pool: sqlx::PgPool) -> anyhow::Result<f64> {
     let mut tx = db_pool.begin().await?;

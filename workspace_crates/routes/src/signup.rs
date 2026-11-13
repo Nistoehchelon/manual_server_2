@@ -207,17 +207,18 @@ pub async fn post(
     )
     .map_err(InternalAppError::new)?;
 
-    email_otp::create_email_otp(
+    let otp = email_otp::create_email_otp(
         db_pool.clone(),
         CreateEmailOtpInput {
-            email,
+            email: email.clone(),
             username: username.to_string(),
             password_hash,
         },
     )
     .await
     .map_err(InternalAppError::new)?;
-    
+    email_otp::send_email(otp.code, email, username.to_string(), router_data.site_config).await;
+
     add_session_notification_success(
         db_pool.clone(),
         session.id.clone(),

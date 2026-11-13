@@ -330,9 +330,9 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "cc"
-version = "1.11.1"
+version = "1.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ff2a8126fff0f8c839080d619675a585e61720bb12d2baceae45769fd66f155"
+checksum = "33ef9e3e8154a45c7a95cff4c1299702106ad94062d7bb85fdc5d3a5afd91d45"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -931,12 +931,13 @@ dependencies = [
  "secrecy",
  "site_config",
  "sqlx",
+ "tracing",
 ]
 
 [[package]]
 name = "email_stuff"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/email_stuff.git#65a2e5319d80ff5230627686ca7fc394b4124951"
+source = "git+https://github.com/Nistoehchelon/email_stuff.git#1a9a85a30e1eacb9ebeb89097c837e707f2ea0d7"
 dependencies = [
  "anyhow",
  "config",
@@ -2917,7 +2918,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3689,10 +3690,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

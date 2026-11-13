@@ -200,15 +200,15 @@ pub async fn create_email_otp(
 pub async fn send_email(
     otp_code: String,
     destination_email: String,
-    user_name: String,
+    destination_name: String,
     site_config: SiteConfig,
 ) {
     let message_title = "You are hereby ordered to verify your email using this code".to_string();
     let message_content = format!(
-        "Greetings, {user_name}! Your email verification code is \"{otp_code}\" <br> If you have no idea what it is that you're supposedly signing up for, you may safely ignore this email. <br> With utmost insincerity, your one and only God {}",
+        "Greetings, {destination_name}! Your email verification code is \"{otp_code}\" <br> If you have no idea what it is that you're supposedly signing up for, you may safely ignore this email. <br> With utmost insincerity, your one and only God {}",
         site_config.email_otp_from_name
     );
-    let _sending_result = email_stuff::send_email(
+    match email_stuff::send_email(
         EmailSenderConfig {
             enabled_services: vec![
                 Resend {
@@ -233,11 +233,17 @@ pub async fn send_email(
             from_email_address: site_config.email_otp_from_address,
             from_name: site_config.email_otp_from_name,
             to_email_address: destination_email,
-            to_name: user_name,
+            to_name: destination_name,
             message_title,
             message_content,
         },
     )
-    .await;
-
+    .await {
+        Ok(s) => {
+            tracing::debug!("Email sent successfullt: {s:#?}")
+        },
+        Err(e) => {
+            tracing::error!("Email sending failed: {e:#?}")
+        },
+    };
 }

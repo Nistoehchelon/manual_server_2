@@ -240,5 +240,4 @@ pub async fn send_email(
     )
     .await;
 
-    todo!()
 }

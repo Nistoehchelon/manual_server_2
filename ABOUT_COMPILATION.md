@@ -11,7 +11,7 @@ cargo xwin build --target x86_64-pc-windows-msvc --release
 # Linux Musl 
 I compiled the normal x86_64-unknown-linux-gnu target executable on a normal machine and tried running it on a machine with older glibc version, it gave the error "glibc v... not found". I then tried the x86_64-unknown-linux-musl target. Result: musl seems to run fine on both the normal and older machine. So, I assume this is one possible reason to use the musl target. 
 ```bash
-sudo apt install musl-tools
+sudo apt install musl-tools -y
 rustup target add x86_64-unknown-linux-musl
 cargo build --release --target x86_64-unknown-linux-musl
 ```

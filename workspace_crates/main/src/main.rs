@@ -1,6 +1,6 @@
 use std::{path::PathBuf, time::Duration};
 
-use server::{ServerBuilder, parse_args::parse_args, server_config};
+use server::{ServerBuilder, server_config};
 use tokio::time::timeout;
 
 #[tokio::main(flavor = "multi_thread")]
@@ -14,7 +14,7 @@ async fn main() -> std::io::Result<()> {
     );
 
     // Doing this before constructing DB pool since I might sometimes want to call --v without setting up any db just to see if the executable can start.
-    if let Ok(args) = parse_args()
+    if let Ok(args) = server::passing_arguments_to_executable::parse_args()
         && args.version
     {
         println!("App version: {}", app_executable_version::VERSION);
@@ -53,5 +53,3 @@ async fn main() -> std::io::Result<()> {
     .run_handler()
     .await
 }
-
-

@@ -168,10 +168,7 @@ pub async fn session_with_specified_id_exists(
     db_pool: sqlx::PgPool,
 ) -> Result<bool, DbError> {
     let result = find_session_by_session_id(session_id.clone(), db_pool).await?;
-    if result.is_some() {
-        return Ok(true);
-    }
-    Ok(false)
+    Ok(result.is_some())
 }
 
 pub async fn find_session_by_session_id(

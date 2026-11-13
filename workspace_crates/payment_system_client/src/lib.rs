@@ -9,11 +9,11 @@ use webhooks::X_API_TOKEN;
 #[allow(clippy::too_many_arguments)]
 pub async fn new_invoice(
     tx: &mut Transaction<'_, Postgres>,
-    invoice_id: String,
+    _invoice_id: String,
     amount_atomic: u64,
     method: payment_system_structs::PaymentMethod,
-    success_callback: String,
-    status_update_callback: String,
+    success_callback_url: String,
+    status_update_callback_url: String,
     cloudflare_bypass_under_attack_check_header_name: String,
     cloudflare_bypass_under_attack_check_header_value: String,
 ) -> Result<PaymentInfo, SomeSortOfError> {
@@ -34,12 +34,11 @@ pub async fn new_invoice(
     );
 
     let payload = NewInvoiceRequest {
-        invoice_id,
         method,
         amount_atomic,
-        success_callback,
-        status_update_callback,
         callback_headers: CallbackHeaders(callback_headers),
+        success_callback_url,
+        status_update_callback_url,
     };
     let client = reqwest::Client::new();
 

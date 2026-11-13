@@ -180,30 +180,25 @@ pub async fn create_invoice(
     payment_status_update_webhook_url: String,
     cloudflare_bypass_under_attack_check_header_name: String,
     cloudflare_bypass_under_attack_check_header_value: String,
-) -> Result<(InvoiceId, PaymentMethod, ServiceData), SomeSortOfError> {
+) -> anyhow::Result<(InvoiceId, PaymentMethod, ServiceData)> {
     let invoice_id_string = id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices)
-        .await
-        .map_err(SomeSortOfError::new)?;
+        .await?;
     let invoice_id = InvoiceId(invoice_id_string.clone());
     sqlx::query!("INSERT INTO invoices (id) VALUES ($1)", invoice_id_string)
         .execute(&mut **tx)
-        .await
-        .map_err(SomeSortOfError::new)?;
+        .await?;
 
     set_invoice_data(tx, invoice_id.clone(), "status", "pending")
-        .await
-        .map_err(SomeSortOfError::new)?;
+        .await?;
     set_invoice_data(tx, invoice_id.clone(), "user_id", &user_id)
-        .await
-        .map_err(SomeSortOfError::new)?;
+        .await?;
     set_invoice_data(
         tx,
         invoice_id.clone(),
         "payment_method",
         &payment_method.to_string(),
     )
-    .await
-    .map_err(SomeSortOfError::new)?;
+    .await?;
 
     let payment_amount_atomic_units = match payment_method.clone() {
         PaymentMethod::XMR { amount } => amount.as_atomic(),
@@ -215,11 +210,10 @@ pub async fn create_invoice(
         "payment_amount_atomic_units",
         &payment_amount_atomic_units.to_string(),
     )
-    .await
-    .map_err(SomeSortOfError::new)?;
+    .await?;
 
     const FIVE_MIN: u64 = 5 * 60;
-    let invoice_expires_at = utc_now().map_err(SomeSortOfError::new)? + FIVE_MIN;
+    let invoice_expires_at = utc_now()? + FIVE_MIN;
     let invoice_expires_at_string: &String = &invoice_expires_at.to_string();
     set_invoice_data(
         tx,
@@ -227,35 +221,30 @@ pub async fn create_invoice(
         "invoice_expires_at",
         invoice_expires_at_string,
     )
-    .await
-    .map_err(SomeSortOfError::new)?;
-    let curr_ts = &utc_now().map_err(SomeSortOfError::new)?.to_string();
+    .await?;
+    let curr_ts = &utc_now()?.to_string();
     set_invoice_data(tx, invoice_id.clone(), "invoice_created_at", curr_ts)
-        .await
-        .map_err(SomeSortOfError::new)?;
+        .await?;
 
     match service {
         ServiceData::Subscription { months, expires_at } => {
             let sub_expires_at = expires_at.to_string();
             set_invoice_data(tx, invoice_id.clone(), "service", "subscription")
-                .await
-                .map_err(SomeSortOfError::new)?;
+                .await?;
             set_invoice_data(
                 tx,
                 invoice_id.clone(),
                 "subscription_months",
                 &months.to_string(),
             )
-            .await
-            .map_err(SomeSortOfError::new)?;
+            .await?;
             set_invoice_data(
                 tx,
                 invoice_id.clone(),
                 "subscription_expires_at",
                 &sub_expires_at,
             )
-            .await
-            .map_err(SomeSortOfError::new)?;
+            .await?;
         }
     }
     let invoice = (invoice_id.clone(), payment_method.clone(), service);
@@ -266,8 +255,7 @@ pub async fn create_invoice(
         payment_amount_atomic_units,
         payment_method
             .to_string()
-            .parse()
-            .map_err(SomeSortOfError::new)?,
+            .parse()?,
         payment_success_webhook_url,
         payment_status_update_webhook_url,
         cloudflare_bypass_under_attack_check_header_name,
@@ -333,7 +321,7 @@ pub async fn set_invoice_data(
     invoice_id: InvoiceId,
     name: &str,
     value: &str,
-) -> Result<(), SomeSortOfError> {
+) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
         INSERT INTO invoice_data (
@@ -355,14 +343,13 @@ pub async fn set_invoice_data(
         value
     )
     .execute(&mut **tx)
-    .await
-    .map_err(SomeSortOfError::new)?;
+    .await?;
 
     Ok(())
 }
 
-pub fn utc_now() -> Result<u64, SomeSortOfError> {
+pub fn utc_now() -> anyhow::Result<u64> {
     let now = chrono::Utc::now().timestamp();
-    let now = u64::try_from(now).map_err(SomeSortOfError::new)?;
+    let now = u64::try_from(now)?;
     Ok(now)
 }

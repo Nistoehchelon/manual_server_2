@@ -7,20 +7,17 @@ use sqlx::{Postgres, Transaction};
 
 pub const SUBSCRIPTION_COST_USD: f64 = 1.0;
 
-pub async fn get_subscription_cost_usd(db_pool: sqlx::PgPool) -> Result<f64, SomeSortOfError> {
-    let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
+pub async fn get_subscription_cost_usd(db_pool: sqlx::PgPool) -> anyhow::Result<f64> {
+    let mut tx = db_pool.begin().await?;
     let Some(s) = custom_site_variables::find_custom_site_variable(
         &mut tx,
         custom_site_variables::CustomSiteVariableName::SubscriptionCostUsd,
     )
-    .await?
-    else {
-        return Err(SomeSortOfError::new(
-            "Didn't find subscription_cost_usd site var",
-        ));
+    .await? else {
+        anyhow::bail!("Could not find subscription_cost_usd");
     };
-    tx.commit().await.map_err(SomeSortOfError::new)?;
-    let cost = s.parse::<f64>().map_err(SomeSortOfError::new)?;
+    tx.commit().await?;
+    let cost = s.parse::<f64>()?;
     Ok(cost)
 }
 

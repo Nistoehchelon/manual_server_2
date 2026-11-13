@@ -45,19 +45,18 @@ pub async fn set_custom_site_variable(
 pub async fn find_custom_site_variable(
     tx: &mut Transaction<'_, Postgres>,
     var_name: CustomSiteVariableName,
-) -> Result<Option<String>, SomeSortOfError> {
+) -> anyhow::Result<Option<String>> {
     let row = sqlx::query!(
         r#"SELECT value FROM custom_site_variables WHERE name = $1"#,
         var_name.to_string()
     )
     .fetch_optional(&mut **tx)
-    .await
-    .map_err(SomeSortOfError::new)?;
+    .await?;
     if let Some(row) = row {
         let val = row.value;
         return Ok(Some(val));
     }
-    Err(SomeSortOfError::new(format!(
+    Err(anyhow::anyhow!(
         "Could not find custom_site_setting {var_name}",
-    )))
+    ))
 }

@@ -76,6 +76,8 @@ chrono = "0.4.45"
 unicode-segmentation = "1.13.3"
 git-version = "0.3.9"
 
+anyhow = "1.0.104"
+
 dotenvy = "0.15.7"
 config = "0.15.27"
 

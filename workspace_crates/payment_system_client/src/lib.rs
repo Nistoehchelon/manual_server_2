@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
+use anyhow::anyhow;
 use custom_site_variables::find_custom_site_variable;
-use error_structs::SomeSortOfError;
 use payment_system_structs::{CallbackHeaders, NewInvoiceRequest, PaymentInfo};
 use sqlx::{Postgres, Transaction};
 use webhooks::X_API_TOKEN;
@@ -16,7 +16,7 @@ pub async fn new_invoice(
     status_update_callback_url: String,
     cloudflare_bypass_under_attack_check_header_name: String,
     cloudflare_bypass_under_attack_check_header_value: String,
-) -> Result<PaymentInfo, SomeSortOfError> {
+) -> anyhow::Result<PaymentInfo> {
     let payment_server_url = get_payment_server_url(tx).await?;
     let path = "new_invoice".to_string();
     let token = get_payment_server_token(tx).await?;
@@ -29,8 +29,7 @@ pub async fn new_invoice(
     callback_headers.insert(
         "x-api-token".to_string(),
         webhooks::get_token(&mut *tx)
-            .await
-            .map_err(SomeSortOfError::new)?,
+            .await?,
     );
 
     let payload = NewInvoiceRequest {
@@ -51,20 +50,18 @@ pub async fn new_invoice(
         )
         .json(&payload)
         .send()
-        .await
-        .map_err(|e| SomeSortOfError::new(e.to_string()))?;
+        .await?;
 
     let payment_info: PaymentInfo = response
         .json()
-        .await
-        .map_err(|e| SomeSortOfError::new(e.to_string()))?;
+        .await?;
 
     Ok(payment_info)
 }
 
 pub async fn get_status_update_callback_url(
     tx: &mut Transaction<'_, Postgres>,
-) -> Result<String, SomeSortOfError> {
+) -> anyhow::Result<String> {
     use custom_site_variables::CustomSiteVariableName;
     let Some(val) = custom_site_variables::find_custom_site_variable(
         tx,
@@ -72,14 +69,14 @@ pub async fn get_status_update_callback_url(
     )
     .await?
     else {
-        return Err(SomeSortOfError::new("..."))?;
+        return Err(anyhow!("..."))?;
     };
     Ok(val)
 }
 
 pub async fn get_payment_server_url(
     tx: &mut Transaction<'_, Postgres>,
-) -> Result<String, SomeSortOfError> {
+) -> anyhow::Result<String> {
     let opt = find_custom_site_variable(
         tx,
         custom_site_variables::CustomSiteVariableName::PaymentServerUrl,
@@ -87,14 +84,14 @@ pub async fn get_payment_server_url(
     .await?;
     match opt {
         Some(u) => Ok(u),
-        None => Err(SomeSortOfError::new(
+        None => Err(anyhow!(
             "Could not find payment_server_url in site vars",
         )),
     }
 }
 pub async fn get_payment_server_token(
     tx: &mut Transaction<'_, Postgres>,
-) -> Result<String, SomeSortOfError> {
+) -> anyhow::Result<String> {
     let opt = find_custom_site_variable(
         tx,
         custom_site_variables::CustomSiteVariableName::PaymentServerToken,
@@ -102,7 +99,7 @@ pub async fn get_payment_server_token(
     .await?;
     match opt {
         Some(u) => Ok(u),
-        None => Err(SomeSortOfError::new(
+        None => Err(anyhow::anyhow!(
             "Could not find payment_server_token in site vars",
         )),
     }

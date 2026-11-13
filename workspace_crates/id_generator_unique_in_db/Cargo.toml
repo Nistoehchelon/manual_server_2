@@ -7,3 +7,4 @@ edition = "2024"
 id_generator = { workspace = true }
 sqlx = { workspace = true }
 db_manager = { workspace = true }
+anyhow = { workspace = true }

@@ -8,3 +8,4 @@ sqlx = { workspace = true }
 custom_site_variables = { workspace = true }
 error_structs = { workspace = true }
 cryptocurrencies_stuff = { workspace = true }
+anyhow = { workspace = true }

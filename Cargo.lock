@@ -706,6 +706,7 @@ dependencies = [
 name = "custom_site_variables"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "error_structs",
  "sqlx",
  "strum",
@@ -987,6 +988,7 @@ dependencies = [
 name = "financial_stuff"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cryptocurrencies_stuff",
  "custom_site_variables",
  "error_structs",
@@ -1613,6 +1615,7 @@ dependencies = [
 name = "id_generator_unique_in_db"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "db_manager",
  "id_generator",
  "sqlx",
@@ -1657,6 +1660,7 @@ version = "0.1.0"
 name = "invoice"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
  "cryptocurrencies_stuff",
  "custom_site_variables",
@@ -2025,6 +2029,7 @@ checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 name = "payment_system_client"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "custom_site_variables",
  "error_structs",
  "payment_system_structs",
@@ -3934,6 +3939,7 @@ dependencies = [
 name = "webhooks"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cryptocurrencies_stuff",
  "custom_site_variables",
  "error_structs",

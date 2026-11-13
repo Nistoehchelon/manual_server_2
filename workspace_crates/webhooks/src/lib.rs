@@ -33,14 +33,11 @@ pub async fn get_webhook_root(
     secret_prefix: String,
 ) -> anyhow::Result<String> {
     use custom_site_variables::CustomSiteVariableName;
-    let Some(website_root) = custom_site_variables::find_custom_site_variable(
+    let website_root = custom_site_variables::get_custom_site_variable(
         tx,
         CustomSiteVariableName::WebsiteRootUrl,
     )
-    .await?
-    else {
-        anyhow::bail!("...");
-    };
+    .await?;
 
     Ok(format!("{website_root}/{secret_prefix}/webhook"))
 }

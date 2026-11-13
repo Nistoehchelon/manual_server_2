@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::anyhow;
-use custom_site_variables::find_custom_site_variable;
+use custom_site_variables::get_custom_site_variable;
 use payment_system_structs::{CallbackHeaders, NewInvoiceRequest, PaymentInfo};
 use sqlx::{Postgres, Transaction};
 use webhooks::X_API_TOKEN;
@@ -28,8 +27,7 @@ pub async fn new_invoice(
     );
     callback_headers.insert(
         "x-api-token".to_string(),
-        webhooks::get_token(&mut *tx)
-            .await?,
+        webhooks::get_token(&mut *tx).await?,
     );
 
     let payload = NewInvoiceRequest {
@@ -52,9 +50,7 @@ pub async fn new_invoice(
         .send()
         .await?;
 
-    let payment_info: PaymentInfo = response
-        .json()
-        .await?;
+    let payment_info: PaymentInfo = response.json().await?;
 
     Ok(payment_info)
 }
@@ -63,44 +59,27 @@ pub async fn get_status_update_callback_url(
     tx: &mut Transaction<'_, Postgres>,
 ) -> anyhow::Result<String> {
     use custom_site_variables::CustomSiteVariableName;
-    let Some(val) = custom_site_variables::find_custom_site_variable(
-        tx,
-        CustomSiteVariableName::WebsiteRootUrl,
-    )
-    .await?
-    else {
-        return Err(anyhow!("..."))?;
-    };
+    let val =
+        custom_site_variables::get_custom_site_variable(tx, CustomSiteVariableName::WebsiteRootUrl)
+            .await?;
     Ok(val)
 }
 
-pub async fn get_payment_server_url(
-    tx: &mut Transaction<'_, Postgres>,
-) -> anyhow::Result<String> {
-    let opt = find_custom_site_variable(
+pub async fn get_payment_server_url(tx: &mut Transaction<'_, Postgres>) -> anyhow::Result<String> {
+    let url = get_custom_site_variable(
         tx,
         custom_site_variables::CustomSiteVariableName::PaymentServerUrl,
     )
     .await?;
-    match opt {
-        Some(u) => Ok(u),
-        None => Err(anyhow!(
-            "Could not find payment_server_url in site vars",
-        )),
-    }
+    Ok(url)
 }
 pub async fn get_payment_server_token(
     tx: &mut Transaction<'_, Postgres>,
 ) -> anyhow::Result<String> {
-    let opt = find_custom_site_variable(
+    let token = get_custom_site_variable(
         tx,
         custom_site_variables::CustomSiteVariableName::PaymentServerToken,
     )
     .await?;
-    match opt {
-        Some(u) => Ok(u),
-        None => Err(anyhow::anyhow!(
-            "Could not find payment_server_token in site vars",
-        )),
-    }
+    Ok(token)
 }

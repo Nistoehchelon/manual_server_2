@@ -210,15 +210,12 @@ pub async fn post_create_invoice(
 
     let method = match service {
         ServiceData::Subscription { months, .. } => {
-            let Some(sub_cost) = custom_site_variables::find_custom_site_variable(
+            let sub_cost = custom_site_variables::get_custom_site_variable(
                 &mut tx,
                 custom_site_variables::CustomSiteVariableName::SubscriptionCostUsd,
             )
             .await
-            .map_err(InternalAppError::new)?
-            else {
-                return Err(InternalAppError::new("No usd cost custom site var set"));
-            };
+            .map_err(InternalAppError::new)?;
             let sub_cost: f64 = sub_cost.parse().map_err(InternalAppError::new)?;
 
             match payment_method.as_str() {

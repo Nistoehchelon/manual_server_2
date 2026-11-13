@@ -1,5 +1,5 @@
 use error_structs::SomeSortOfError;
-use sqlx::{Postgres, Transaction};
+use sqlx::{PgConnection, Postgres, Transaction};
 use strum::{Display, EnumString};
 
 #[derive(Debug, EnumString, Display)]
@@ -42,21 +42,16 @@ pub async fn set_custom_site_variable(
     .map_err(SomeSortOfError::new)?;
     Ok(())
 }
-pub async fn find_custom_site_variable(
-    tx: &mut Transaction<'_, Postgres>,
+pub async fn get_custom_site_variable(
+    tx: &mut PgConnection,
     var_name: CustomSiteVariableName,
-) -> anyhow::Result<Option<String>> {
-    let row = sqlx::query!(
+) -> anyhow::Result<String> {
+    let result = sqlx::query!(
         r#"SELECT value FROM custom_site_variables WHERE name = $1"#,
         var_name.to_string()
     )
-    .fetch_optional(&mut **tx)
-    .await?;
-    if let Some(row) = row {
-        let val = row.value;
-        return Ok(Some(val));
-    }
-    Err(anyhow::anyhow!(
-        "Could not find custom_site_setting {var_name}",
-    ))
+    .fetch_one(&mut *tx)
+    .await?
+    .value;
+    Ok(result)
 }

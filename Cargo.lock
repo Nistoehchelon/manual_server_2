@@ -693,6 +693,7 @@ dependencies = [
 name = "custom_site_pages"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "custom_site_variables",
  "db_manager",
  "error_structs",

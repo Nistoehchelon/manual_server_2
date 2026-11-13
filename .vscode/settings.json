@@ -2,9 +2,9 @@
   "remote.autoForwardPorts": false,
   "editor.wordWrap": "on",
   "rust-analyzer.cargo.extraEnv": {
-    "DATABASE_URL": "postgres://user123:password123@localhost/database123"
+    "DATABASE_URL": "postgres://userms2:passwordms2@localhost/databasems2"
   },
   "rust-analyzer.check.command": "clippy",
   "editor.inlayHints.enabled": "on",
-  "rust-analyzer.cargo.target": "x86_64-unknown-linux-musl"
+  "rust-analyzer.cargo.target": "x86_64-unknown-linux-gnu"
 }

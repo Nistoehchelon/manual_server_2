@@ -312,9 +312,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.20.3"
+version = "3.20.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
+checksum = "87a0cf66fd1eb2fb7b822cb78370d82303750809bc6ba855f3f58e517d3238db"
 
 [[package]]
 name = "byteorder"
@@ -939,11 +939,12 @@ dependencies = [
 [[package]]
 name = "email_stuff"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/email_stuff.git#1a9a85a30e1eacb9ebeb89097c837e707f2ea0d7"
+source = "git+https://github.com/Nistoehchelon/email_stuff.git#08433a1f8630c936e6fff0da153cf56b9e3d3c99"
 dependencies = [
  "anyhow",
  "config",
  "config_reader",
+ "derive_more",
  "dotenvy",
  "encoding",
  "error_structs",
@@ -2086,9 +2087,9 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "1.2.4"
+version = "1.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1788edb87fdc09c7e26304471e2f5be8cdefb1b6930d6e3985fc02ff53bf86ee"
+checksum = "20521a903f02b0a573cd6840e9d0a5a0cc043d361fe924092cd70f8556cc9c4a"
 dependencies = [
  "libc",
  "wasi",

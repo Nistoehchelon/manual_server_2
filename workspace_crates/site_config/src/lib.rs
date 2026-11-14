@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct SiteConfig {
-    pub email_otp_from_address: String,
+    pub email_otp_from_email_username_part: String,
     pub email_otp_from_name: String,
     
 
@@ -9,6 +9,10 @@ pub struct SiteConfig {
     pub ahasend_account_id: String,
     pub lettermint_project_token: String,
     
+    pub resend_sender_fqdn: String,
+    pub ahasend_sender_fqdn: String,
+    pub lettermint_sender_fqdn: String,
+
     pub static_resources_folder: String,
     pub ip: String,
     pub port: u64,

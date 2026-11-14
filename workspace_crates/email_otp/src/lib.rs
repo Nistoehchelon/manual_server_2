@@ -2,11 +2,9 @@ use std::fmt;
 
 use chrono::Utc;
 use email_stuff::{
-    AhaSendAPIKey, EmailSenderConfig,
-    EnabledService::{AhaSend, Lettermint, Resend},
-    LetterMintProjectToken,
+    EmailSenderConfig,
+    EnabledService::{self},
 };
-use secrecy::SecretString;
 use site_config::SiteConfig;
 use sqlx::{FromRow, Postgres, Transaction};
 
@@ -229,31 +227,34 @@ pub async fn send_email(
     match email_stuff::send_email(
         EmailSenderConfig {
             enabled_services: vec![
-                Resend {
-                    api_key: email_stuff::ResendAPIKey(SecretString::from(
-                        site_config.resend_api_key,
-                    )),
-                },
-                AhaSend {
-                    api_key: AhaSendAPIKey(SecretString::from(site_config.ahasend_api_key)),
-                    account_id: email_stuff::AhaSendAccountId(SecretString::from(
-                        site_config.ahasend_account_id,
-                    )),
-                },
-                Lettermint {
-                    project_token: LetterMintProjectToken(SecretString::from(
-                        site_config.lettermint_project_token,
-                    )),
-                },
+                EnabledService::Resend(email_stuff::ResendServiceData {
+                    sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
+                        site_config.resend_sender_fqdn,
+                    ),
+                    api_key: site_config.resend_api_key.into(),
+                }),
+                EnabledService::AhaSend(email_stuff::AhasendServiceData {
+                    sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
+                        site_config.ahasend_sender_fqdn,
+                    ),
+                    api_key: site_config.ahasend_api_key.into(),
+                    account_id: site_config.ahasend_account_id.into(),
+                }),
+                EnabledService::Lettermint(email_stuff::LettermintServiceData {
+                    sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
+                        site_config.lettermint_sender_fqdn,
+                    ),
+                    project_token: site_config.lettermint_project_token.into(),
+                }),
             ],
         },
         email_stuff::TypicalEmail {
-            from_email_address: site_config.email_otp_from_address,
             from_name: site_config.email_otp_from_name,
             to_email_address: destination_email,
             to_name: destination_name,
             message_title,
             message_content,
+            from_email_username_part: site_config.email_otp_from_email_username_part,
         },
     )
     .await

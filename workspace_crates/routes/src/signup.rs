@@ -217,7 +217,22 @@ pub async fn post(
     )
     .await
     .map_err(InternalAppError::new)?;
-    let _result = email_otp::send_email(otp.code, email, username.to_string(), router_data.site_config).await;
+
+    match email_otp::send_email(
+        otp.code,
+        email,
+        username.to_string(),
+        router_data.site_config,
+    )
+    .await
+    {
+        Ok(_) => {
+            tracing::debug!("Email send success");
+        }
+        Err(e) => {
+            tracing::error!("Email send error: {e:#?}");
+        }
+    };
 
     add_session_notification_success(
         db_pool.clone(),

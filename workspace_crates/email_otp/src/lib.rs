@@ -227,12 +227,12 @@ pub async fn send_email(
     match email_stuff::send_email(
         EmailSenderConfig {
             enabled_services: vec![
-                EnabledService::Resend(email_stuff::ResendServiceData {
-                    sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
-                        site_config.resend_sender_fqdn,
-                    ),
-                    api_key: site_config.resend_api_key.into(),
-                }),
+                // EnabledService::Resend(email_stuff::ResendServiceData {
+                //     sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
+                //         site_config.resend_sender_fqdn,
+                //     ),
+                //     api_key: site_config.resend_api_key.into(),
+                // }),
                 EnabledService::AhaSend(email_stuff::AhasendServiceData {
                     sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
                         site_config.ahasend_sender_fqdn,
@@ -240,12 +240,12 @@ pub async fn send_email(
                     api_key: site_config.ahasend_api_key.into(),
                     account_id: site_config.ahasend_account_id.into(),
                 }),
-                EnabledService::Lettermint(email_stuff::LettermintServiceData {
-                    sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
-                        site_config.lettermint_sender_fqdn,
-                    ),
-                    project_token: site_config.lettermint_project_token.into(),
-                }),
+                // EnabledService::Lettermint(email_stuff::LettermintServiceData {
+                //     sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
+                //         site_config.lettermint_sender_fqdn,
+                //     ),
+                //     project_token: site_config.lettermint_project_token.into(),
+                // }),
             ],
         },
         email_stuff::TypicalEmail {

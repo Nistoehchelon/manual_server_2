@@ -939,7 +939,7 @@ dependencies = [
 [[package]]
 name = "email_stuff"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/email_stuff.git#08433a1f8630c936e6fff0da153cf56b9e3d3c99"
+source = "git+https://github.com/Nistoehchelon/email_stuff.git#39782b8a847d1040cf4332095042ec9be1c170a5"
 dependencies = [
  "anyhow",
  "config",

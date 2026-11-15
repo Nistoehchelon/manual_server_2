@@ -9,7 +9,7 @@ use webhooks::X_API_TOKEN;
 pub async fn new_invoice(
     tx: &mut Transaction<'_, Postgres>,
     _invoice_id: String,
-    amount_atomic: u64,
+    amount_atomic: u128,
     method: payment_system_structs::PaymentMethod,
     success_callback_url: String,
     status_update_callback_url: String,

@@ -1,4 +1,4 @@
-use cryptocurrencies_stuff::currencies::{LTCAtomicUnit, XMRAtomicUnit};
+use cryptocurrencies_stuff::currencies::{CurrencyAtomicUnit, LTCAtomicUnit, XMRAtomicUnit};
 use error_structs::SomeSortOfError;
 use id_generator_unique_in_db::Table;
 use payment_system_structs::PaymentId;
@@ -19,8 +19,10 @@ pub async fn get_payment_data(
     let address = get_invoice_data(tx, invoice_id.clone(), "address_from_payment_server").await?;
     let method = get_invoice_data(tx, invoice_id, "method_from_payment_server").await?;
     let amount = match method.as_str() {
-        "monero" => XMRAtomicUnit::from_atomic(amount.parse().map_err(SomeSortOfError::new)?)
-            .to_string_trimmed(),
+        "monero" => XMRAtomicUnit::from_atomic(CurrencyAtomicUnit(
+            amount.parse().map_err(SomeSortOfError::new)?,
+        ))
+        .to_string_trimmed(),
         _ => "unk".to_string(),
     };
     Ok(PaymentData {
@@ -181,17 +183,15 @@ pub async fn create_invoice(
     cloudflare_bypass_under_attack_check_header_name: String,
     cloudflare_bypass_under_attack_check_header_value: String,
 ) -> anyhow::Result<(InvoiceId, PaymentMethod, ServiceData)> {
-    let invoice_id_string = id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices)
-        .await?;
+    let invoice_id_string =
+        id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices).await?;
     let invoice_id = InvoiceId(invoice_id_string.clone());
     sqlx::query!("INSERT INTO invoices (id) VALUES ($1)", invoice_id_string)
         .execute(&mut **tx)
         .await?;
 
-    set_invoice_data(tx, invoice_id.clone(), "status", "pending")
-        .await?;
-    set_invoice_data(tx, invoice_id.clone(), "user_id", &user_id)
-        .await?;
+    set_invoice_data(tx, invoice_id.clone(), "status", "pending").await?;
+    set_invoice_data(tx, invoice_id.clone(), "user_id", &user_id).await?;
     set_invoice_data(
         tx,
         invoice_id.clone(),
@@ -223,14 +223,12 @@ pub async fn create_invoice(
     )
     .await?;
     let curr_ts = &utc_now()?.to_string();
-    set_invoice_data(tx, invoice_id.clone(), "invoice_created_at", curr_ts)
-        .await?;
+    set_invoice_data(tx, invoice_id.clone(), "invoice_created_at", curr_ts).await?;
 
     match service {
         ServiceData::Subscription { months, expires_at } => {
             let sub_expires_at = expires_at.to_string();
-            set_invoice_data(tx, invoice_id.clone(), "service", "subscription")
-                .await?;
+            set_invoice_data(tx, invoice_id.clone(), "service", "subscription").await?;
             set_invoice_data(
                 tx,
                 invoice_id.clone(),
@@ -253,9 +251,7 @@ pub async fn create_invoice(
         tx,
         invoice_id_string,
         payment_amount_atomic_units,
-        payment_method
-            .to_string()
-            .parse()?,
+        payment_method.to_string().parse()?,
         payment_success_webhook_url,
         payment_status_update_webhook_url,
         cloudflare_bypass_under_attack_check_header_name,

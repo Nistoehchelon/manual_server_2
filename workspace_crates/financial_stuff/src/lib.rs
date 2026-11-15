@@ -1,10 +1,9 @@
 use anyhow::anyhow;
 use cryptocurrencies_stuff::{
-    atomic_unit::{AtomicUnit, CryptocurrencyConfig},
+    atomic_unit::{AtomicUnit, CurrencyConfig},
     currencies::{LTC, XMR},
 };
 use sqlx::{Postgres, Transaction};
-
 
 pub async fn get_subscription_cost_usd(db_pool: sqlx::PgPool) -> anyhow::Result<f64> {
     let mut tx = db_pool.begin().await?;
@@ -37,7 +36,7 @@ pub async fn convert_usd_price_to_xmr(db_pool: sqlx::PgPool, price: f64) -> anyh
     Ok(answer)
 }
 
-pub async fn get_by_usd<C: CryptocurrencyConfig>(
+pub async fn get_by_usd<C: CurrencyConfig>(
     tx: &mut Transaction<'_, Postgres>,
     usd: f64,
 ) -> anyhow::Result<AtomicUnit<C>> {
@@ -60,10 +59,13 @@ pub async fn get_by_usd<C: CryptocurrencyConfig>(
             let usd_per_xmr: f64 = usd_per_xmr.parse()?;
             usd_per_xmr
         }
+
         _ => return Err(anyhow!("Unsupported crypto")),
     };
 
-    let atomic = ((usd / coin_price_usd) * C::ATOMIC_PER_UNIT as f64).round() as u64;
+    let atomic = ((usd / coin_price_usd) * C::ATOMIC_UNITS_PER_ONE_WHOLE.0 as f64).round() as u64;
 
-    Ok(AtomicUnit::<C>::from_atomic(atomic))
+    Ok(AtomicUnit::<C>::from_atomic(
+        cryptocurrencies_stuff::currencies::CurrencyAtomicUnit(atomic.into()),
+    ))
 }

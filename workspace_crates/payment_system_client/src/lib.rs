@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use cryptocurrencies_stuff::currencies::CurrencyAtomicUnit;
 use custom_site_variables::get_custom_site_variable;
 use payment_system_structs::{CallbackHeaders, NewInvoiceRequest, PaymentInfo};
 use sqlx::{Postgres, Transaction};
@@ -9,7 +10,7 @@ use webhooks::X_API_TOKEN;
 pub async fn new_invoice(
     tx: &mut Transaction<'_, Postgres>,
     _invoice_id: String,
-    amount_atomic: u128,
+    amount_atomic: CurrencyAtomicUnit,
     method: payment_system_structs::PaymentMethod,
     success_callback_url: String,
     status_update_callback_url: String,

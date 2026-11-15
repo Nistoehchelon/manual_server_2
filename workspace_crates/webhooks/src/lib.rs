@@ -73,7 +73,7 @@ pub async fn set_website_fund_xmr(
     amount: XMRAtomicUnit,
 ) -> Result<(), SomeSortOfError> {
     let amount_visual = amount.to_string_trimmed();
-    let amount_atomic = amount.as_atomic().to_string();
+    let amount_atomic = amount.as_atomic().0.to_string();
     let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
     set_custom_site_variable(
         &mut tx,

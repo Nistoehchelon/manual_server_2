@@ -8,6 +8,7 @@ sqlx = { workspace = true }
 error_structs = { workspace = true }
 payment_system_structs = { workspace = true }
 custom_site_variables = { workspace = true }
+cryptocurrencies_stuff = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true }

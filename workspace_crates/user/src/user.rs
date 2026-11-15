@@ -53,7 +53,7 @@ pub async fn set_user_data(
     user_id: &str,
     data_name: &str,
     data_value: &str,
-) -> Result<(), SomeSortOfError> {
+) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
         INSERT INTO user_data (
@@ -76,7 +76,7 @@ pub async fn set_user_data(
     )
     .execute(&mut **tx)
     .await
-    .map_err(SomeSortOfError::new)?;
+   ?;
 
     Ok(())
 }

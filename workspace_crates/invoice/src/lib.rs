@@ -1,5 +1,4 @@
 use cryptocurrencies_stuff::currencies::{CurrencyAtomicUnit, LTCAtomicUnit, XMRAtomicUnit};
-use error_structs::SomeSortOfError;
 use id_generator_unique_in_db::Table;
 use payment_system_structs::PaymentId;
 use serde::Serialize;
@@ -60,16 +59,16 @@ pub enum ValidService {
     Subscription,
 }
 impl ValidService {
-    pub fn try_from(s: &str) -> Result<Self, SomeSortOfError> {
+    pub fn try_from(s: &str) -> anyhow::Result<Self> {
         match s {
             "subscription" => Ok(Self::Subscription),
-            _ => Err(SomeSortOfError::new("Parse error")),
+            _ => Err(anyhow::anyhow!("Parse error")),
         }
     }
 }
 
-pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> Result<(), SomeSortOfError> {
-    let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
+pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Result<()> {
+    let mut tx = db_pool.begin().await?;
     let invoice_id = sqlx::query!(
         "SELECT invoice_id FROM invoice_data WHERE name = $1 AND value = $2",
         "payment_id_from_payment_server",
@@ -77,41 +76,41 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> Result<(),
     )
     .fetch_one(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?
+    ?
     .invoice_id;
     let invoice_id = InvoiceId(invoice_id);
     let invoice = sqlx::query!("SELECT id FROM invoices WHERE id = $1", invoice_id.0)
         .fetch_optional(&mut *tx)
         .await
-        .map_err(SomeSortOfError::new)?;
+        ?;
     match invoice {
         Some(_) => {}
         None => {
-            return Err(SomeSortOfError::new("Invoice not found"));
+            return Err(anyhow::anyhow!("Invoice not found"));
         }
     }
     let service = get_invoice_data(&mut tx, invoice_id.clone(), "service")
         .await
-        .map_err(SomeSortOfError::new)?;
-    let service = ValidService::try_from(&service).map_err(SomeSortOfError::new)?;
+        ?;
+    let service = ValidService::try_from(&service)?;
     match service {
         ValidService::Subscription => {
             let subscription_expires_at =
                 get_invoice_data(&mut tx, invoice_id.clone(), "subscription_expires_at")
                     .await
-                    .map_err(SomeSortOfError::new)?
+                    ?
                     .parse::<u64>()
-                    .map_err(SomeSortOfError::new)?;
+                    ?;
             let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id")
                 .await
-                .map_err(SomeSortOfError::new)?;
+                ?;
             user::subscription::set_expiry_time(&mut tx, &user_id, subscription_expires_at).await?;
         }
     }
     set_invoice_data(&mut tx, invoice_id, "status", "complete")
         .await
-        .map_err(SomeSortOfError::new)?;
-    tx.commit().await.map_err(SomeSortOfError::new)?;
+        ?;
+    tx.commit().await?;
     Ok(())
 }
 

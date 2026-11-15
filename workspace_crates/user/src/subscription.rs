@@ -30,7 +30,7 @@ pub async fn set_expiry_time(
     tx: &mut Transaction<'_, Postgres>,
     user_id: &str,
     at: u64,
-) -> Result<(), SomeSortOfError> {
+) -> anyhow::Result<()> {
     user::set_user_data(&mut *tx, user_id, SUBSCRIPTION_KEY_NAME, &at.to_string()).await?;
     Ok(())
 }

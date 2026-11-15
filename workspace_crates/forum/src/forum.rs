@@ -321,8 +321,8 @@ pub async fn find_thread_by_forum_id_and_title(
 pub async fn get_latest_message_version(
     db_pool: sqlx::PgPool,
     msg_id: String,
-) -> Result<ForumThreadMessageVersion, SomeSortOfError> {
-    let result = sqlx::query!("SELECT primary_key, id, user_id, content, created_at, message_id FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY created_at DESC LIMIT 1", msg_id).fetch_one(&db_pool).await.map_err(SomeSortOfError::new)?;
+) -> anyhow::Result<ForumThreadMessageVersion> {
+    let result = sqlx::query!("SELECT primary_key, id, user_id, content, created_at, message_id FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY created_at DESC LIMIT 1", msg_id).fetch_one(&db_pool).await?;
     let result = ForumThreadMessageVersion {
         primary_key: result.primary_key,
         id: result.id,
@@ -336,8 +336,8 @@ pub async fn get_latest_message_version(
 pub async fn get_initial_message_version(
     db_pool: sqlx::PgPool,
     msg_id: String,
-) -> Result<ForumThreadMessageVersion, SomeSortOfError> {
-    let result = sqlx::query!("SELECT primary_key, id, user_id, content, created_at, message_id FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY created_at ASC LIMIT 1", msg_id).fetch_one(&db_pool).await.map_err(SomeSortOfError::new)?;
+) -> anyhow::Result<ForumThreadMessageVersion> {
+    let result = sqlx::query!("SELECT primary_key, id, user_id, content, created_at, message_id FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY created_at ASC LIMIT 1", msg_id).fetch_one(&db_pool).await?;
     let result = ForumThreadMessageVersion {
         primary_key: result.primary_key,
         id: result.id,
@@ -387,9 +387,9 @@ pub async fn get_thread_message_ids(
     thread_id: String,
     thread_page: u64,
     limit: u64,
-) -> Result<Vec<String>, SomeSortOfError> {
-    let limit = i64::try_from(limit).map_err(SomeSortOfError::new)?;
-    let thread_page = i64::try_from(thread_page).map_err(SomeSortOfError::new)?;
+) -> anyhow::Result<Vec<String>> {
+    let limit = i64::try_from(limit)?;
+    let thread_page = i64::try_from(thread_page)?;
     let offset = (thread_page - 1) * limit;
     let result = sqlx::query!(
         "SELECT id FROM forum_thread_messages WHERE thread_id = $1 LIMIT $2 OFFSET $3",
@@ -399,7 +399,7 @@ pub async fn get_thread_message_ids(
     )
     .fetch_all(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?;
+    ?;
     let mut vec_string: Vec<String> = vec![];
     for r in result {
         vec_string.push(r.id.clone());

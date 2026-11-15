@@ -1169,6 +1169,7 @@ dependencies = [
 name = "forum"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
  "count_string_length",
  "db_manager",

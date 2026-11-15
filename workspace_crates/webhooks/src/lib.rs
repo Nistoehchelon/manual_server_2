@@ -71,10 +71,10 @@ pub async fn get_token(
 pub async fn set_website_fund_xmr(
     db_pool: sqlx::PgPool,
     amount: XMRAtomicUnit,
-) -> Result<(), SomeSortOfError> {
+) -> anyhow::Result<()> {
     let amount_visual = amount.to_string_trimmed();
     let amount_atomic = amount.as_atomic().0.to_string();
-    let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
+    let mut tx = db_pool.begin().await?;
     set_custom_site_variable(
         &mut tx,
         custom_site_variables::CustomSiteVariableName::WebsiteFundXMRBalanceAtomicUnits,
@@ -87,6 +87,6 @@ pub async fn set_website_fund_xmr(
         amount_visual,
     )
     .await?;
-    tx.commit().await.map_err(SomeSortOfError::new)?;
+    tx.commit().await?;
     Ok(())
 }

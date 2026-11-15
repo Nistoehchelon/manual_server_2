@@ -7,6 +7,7 @@ edition = "2024"
 chrono = { workspace = true }
 db_manager = { workspace = true }
 sqlx = { workspace = true }
+anyhow = { workspace = true }
 error_structs = { workspace = true }
 id_generator = { workspace = true }
 id_generator_unique_in_db = { workspace = true }

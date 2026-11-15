@@ -1,4 +1,3 @@
-use error_structs::SomeSortOfError;
 use sqlx::{PgConnection, Postgres, Transaction};
 use strum::{Display, EnumString};
 
@@ -26,7 +25,7 @@ pub async fn set_custom_site_variable(
     tx: &mut Transaction<'_, Postgres>,
     var_name: CustomSiteVariableName,
     var_value: String,
-) -> Result<(), SomeSortOfError> {
+) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
         INSERT INTO custom_site_variables (name, value)
@@ -38,8 +37,7 @@ pub async fn set_custom_site_variable(
         var_value,
     )
     .execute(&mut **tx)
-    .await
-    .map_err(SomeSortOfError::new)?;
+    .await?;
     Ok(())
 }
 pub async fn get_custom_site_variable(

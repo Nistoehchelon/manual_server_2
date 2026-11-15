@@ -14,13 +14,13 @@ pub struct PaymentData {
 pub async fn get_payment_data(
     tx: &mut Transaction<'_, Postgres>,
     invoice_id: InvoiceId,
-) -> Result<PaymentData, SomeSortOfError> {
+) -> anyhow::Result<PaymentData> {
     let amount = get_invoice_data(tx, invoice_id.clone(), "amount_from_payment_server").await?;
     let address = get_invoice_data(tx, invoice_id.clone(), "address_from_payment_server").await?;
     let method = get_invoice_data(tx, invoice_id, "method_from_payment_server").await?;
     let amount = match method.as_str() {
         "monero" => XMRAtomicUnit::from_atomic(CurrencyAtomicUnit(
-            amount.parse().map_err(SomeSortOfError::new)?,
+            amount.parse()?,
         ))
         .to_string_trimmed(),
         _ => "unk".to_string(),
@@ -164,11 +164,11 @@ impl FromStr for InvoicePaymentStatus {
 pub async fn invoice_status(
     tx: &mut Transaction<'_, Postgres>,
     invoice_id: InvoiceId,
-) -> Result<InvoicePaymentStatus, SomeSortOfError> {
+) -> anyhow::Result<InvoicePaymentStatus> {
     let raw = get_invoice_data(tx, invoice_id, "status").await?;
     let status = raw
         .parse::<InvoicePaymentStatus>()
-        .map_err(SomeSortOfError::new)?;
+       ?;
     Ok(status)
 }
 
@@ -294,7 +294,7 @@ pub async fn get_invoice_data(
     tx: &mut Transaction<'_, Postgres>,
     invoice_id: InvoiceId,
     data_name: &str,
-) -> Result<String, SomeSortOfError> {
+) -> anyhow::Result<String> {
     let row = sqlx::query!(
         r#"
         SELECT value
@@ -307,7 +307,7 @@ pub async fn get_invoice_data(
     )
     .fetch_one(&mut **tx)
     .await
-    .map_err(SomeSortOfError::new)?;
+   ?;
 
     Ok(row.value)
 }

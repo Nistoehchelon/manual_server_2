@@ -232,7 +232,7 @@ pub async fn send_email(
         sender_qualified_domain_name: SenderQualifiedDomain(site_config.resend_sender_fqdn),
         api_key: site_config.resend_api_key.into(),
     }))
-    .lettermint_opt(site_config.resend_sender_enabled.then(|| LettermintServiceData {
+    .lettermint_opt(site_config.lettermint_sender_enabled.then(|| LettermintServiceData {
         sender_qualified_domain_name: SenderQualifiedDomain(site_config.lettermint_sender_fqdn),
         project_token: site_config.lettermint_project_token.into(),
     }))

@@ -5,7 +5,7 @@ pub struct SiteConfig {
     
     pub resend_sender_enabled: bool,
     pub ahasend_sender_enabled: bool,
-    pub lettermint_send_sender_enabled: bool,
+    pub lettermint_sender_enabled: bool,
 
     pub resend_api_key: String,
     pub ahasend_api_key: String,

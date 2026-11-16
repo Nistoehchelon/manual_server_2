@@ -143,7 +143,7 @@ pub async fn create_email_otp(
     let mut tx = pool.begin().await?;
 
     // Generate random 32-character code
-    let code: String = id_generator::generate_random_alphanumeric_id(32);
+    let code: String = id_generator::generate_random_alphanumeric_id(8);
 
     // Create OTP row
     let otp = sqlx::query!(

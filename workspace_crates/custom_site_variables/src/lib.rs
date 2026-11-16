@@ -1,7 +1,13 @@
 use sqlx::{PgConnection, Postgres, Transaction};
-use strum::{Display, EnumString};
+use std::collections::HashMap;
+use strum::IntoEnumIterator;
 
-#[derive(Debug, EnumString, Display)]
+pub struct CustomSiteVariableEntry {
+    pub name: String,
+    pub value: Option<String>,
+}
+
+#[derive(Debug, strum::EnumString, strum::Display, strum::EnumIter)]
 pub enum CustomSiteVariableName {
     #[strum(serialize = "payment_server_url")]
     PaymentServerUrl,
@@ -52,4 +58,24 @@ pub async fn get_custom_site_variable(
     .await?
     .value;
     Ok(result)
+}
+
+pub async fn get_all_custom_site_variables(
+    conn: &mut PgConnection,
+) -> anyhow::Result<Vec<CustomSiteVariableEntry>> {
+    let rows = sqlx::query!("SELECT name, value FROM custom_site_variables")
+        .fetch_all(&mut *conn)
+        .await?;
+
+    let mut map: HashMap<String, String> = rows.into_iter().map(|r| (r.name, r.value)).collect();
+
+    let entries: Vec<CustomSiteVariableEntry> = CustomSiteVariableName::iter()
+        .map(|v| {
+            let name = v.to_string();
+            let value = map.remove(&name);
+            CustomSiteVariableEntry { name, value }
+        })
+        .collect();
+
+    Ok(entries)
 }

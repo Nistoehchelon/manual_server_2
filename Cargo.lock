@@ -1534,6 +1534,7 @@ name = "html_templating"
 version = "0.1.0"
 dependencies = [
  "askama",
+ "custom_site_variables",
  "forum",
  "pagination",
  "session",

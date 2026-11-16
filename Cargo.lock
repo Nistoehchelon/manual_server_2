@@ -453,7 +453,7 @@ dependencies = [
 [[package]]
 name = "config_reader"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/server_2_only.git#122e7ca01aec0b46247060ab42cb31dcefe5d16c"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#0c3b6032eceac5b337f9a37b8563639bfd0ce478"
 dependencies = [
  "config",
  "dotenvy",
@@ -1008,7 +1008,7 @@ dependencies = [
 [[package]]
 name = "encoding"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/server_2_only.git#122e7ca01aec0b46247060ab42cb31dcefe5d16c"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#0c3b6032eceac5b337f9a37b8563639bfd0ce478"
 dependencies = [
  "urlencoding",
 ]
@@ -1057,7 +1057,7 @@ dependencies = [
 [[package]]
 name = "error_structs"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/server_2_only.git#122e7ca01aec0b46247060ab42cb31dcefe5d16c"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#0c3b6032eceac5b337f9a37b8563639bfd0ce478"
 dependencies = [
  "tracing",
 ]
@@ -1575,7 +1575,7 @@ dependencies = [
 [[package]]
 name = "http_stuff"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/server_2_only.git#122e7ca01aec0b46247060ab42cb31dcefe5d16c"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#0c3b6032eceac5b337f9a37b8563639bfd0ce478"
 dependencies = [
  "config_reader",
  "encoding",
@@ -3306,7 +3306,7 @@ dependencies = [
 [[package]]
 name = "server"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/server_2_only.git#122e7ca01aec0b46247060ab42cb31dcefe5d16c"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#0c3b6032eceac5b337f9a37b8563639bfd0ce478"
 dependencies = [
  "config_reader",
  "dotenvy",
@@ -3325,7 +3325,7 @@ dependencies = [
 [[package]]
 name = "server_config"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/server_2_only.git#122e7ca01aec0b46247060ab42cb31dcefe5d16c"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#0c3b6032eceac5b337f9a37b8563639bfd0ce478"
 dependencies = [
  "humantime-serde",
  "serde",
@@ -4285,7 +4285,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 [[package]]
 name = "url"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/server_2_only.git#122e7ca01aec0b46247060ab42cb31dcefe5d16c"
+source = "git+https://github.com/Nistoehchelon/server_2_only.git#0c3b6032eceac5b337f9a37b8563639bfd0ce478"
 dependencies = [
  "encoding",
  "indexmap",

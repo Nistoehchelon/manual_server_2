@@ -43,7 +43,7 @@ pub async fn validate_turnstile(
             }
         },
         Err(err) => {
-            error!("Turnstile validation error: {:?}", err);
+            tracing::debug!("Turnstile validation error: {:?}", err);
             TurnstileResponse {
                 success: false,
                 error_codes: Some(vec!["internal-error".to_string()]),
@@ -51,7 +51,7 @@ pub async fn validate_turnstile(
         }
     };
 
-    info!(
+    tracing::debug!(
         "Turnstile validation result: {} {:#?}",
         response.success, response.error_codes,
     );

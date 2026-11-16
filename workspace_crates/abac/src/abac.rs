@@ -292,3 +292,11 @@ pub async fn can_manage_site_pages(
     .await?;
     Ok(b)
 }
+
+pub async fn can_edit_site_variables(db_pool: &sqlx::PgConnection, user_id: String) -> anyhow::Result<bool> {
+    todo!()
+}
+
+pub async fn can_view_site_variables(db_pool: &sqlx::PgConnection, user_id: String) -> anyhow::Result<bool> {
+    todo!()
+}

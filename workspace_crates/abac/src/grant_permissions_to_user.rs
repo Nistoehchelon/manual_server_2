@@ -5,6 +5,8 @@ pub async fn add_admin_permissions_to_user(db_pool: sqlx::PgPool, user_id: Strin
         "create_forum",
         "view_app_executable_version",
         "manage_custom_page_stylesheets",
+        "edit_site_variables",
+        "view_site_variables",
     ];
     for perm in admin_perms {
         let perm = perm.to_string();

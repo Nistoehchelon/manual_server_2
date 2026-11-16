@@ -6,6 +6,7 @@ version = 4
 name = "abac"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "custom_site_pages",
  "db_manager",
  "dynamic_stylesheets",
@@ -974,7 +975,7 @@ dependencies = [
 [[package]]
 name = "email_stuff"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/email_stuff.git#cf7a7d59d95f6412aac0a8ad9d240a7887a24a86"
+source = "git+https://github.com/Nistoehchelon/email_stuff.git#aeb4573e051122434c2d60451ab28b588ad6155e"
 dependencies = [
  "anyhow",
  "config",

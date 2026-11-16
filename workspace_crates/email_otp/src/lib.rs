@@ -1,10 +1,8 @@
 use std::fmt;
 
 use chrono::Utc;
-use email_stuff::{
-    EmailSenderConfig,
-    EnabledService::{self},
-};
+use email_stuff::{AhasendServiceData, EmailSenderConfigBuilder, LettermintServiceData, ResendServiceData, SenderQualifiedDomain}
+;
 use site_config::SiteConfig;
 use sqlx::{FromRow, Postgres, Transaction};
 
@@ -224,30 +222,23 @@ pub async fn send_email(
         from_name: site_config.email_otp_from_name.clone(),
     };
     let message_content = tpl.render()?;
+    let email_sender_config = EmailSenderConfigBuilder::new()
+    .ahasend_opt(site_config.ahasend_sender_enabled.then(|| AhasendServiceData {
+        sender_qualified_domain_name: SenderQualifiedDomain(site_config.ahasend_sender_fqdn),
+        api_key: site_config.ahasend_api_key.into(),
+        account_id: site_config.ahasend_account_id.into(),
+    }))
+    .resend_opt(site_config.resend_sender_enabled.then(|| ResendServiceData {
+        sender_qualified_domain_name: SenderQualifiedDomain(site_config.resend_sender_fqdn),
+        api_key: site_config.resend_api_key.into(),
+    }))
+    .lettermint_opt(site_config.resend_sender_enabled.then(|| LettermintServiceData {
+        sender_qualified_domain_name: SenderQualifiedDomain(site_config.lettermint_sender_fqdn),
+        project_token: site_config.lettermint_project_token.into(),
+    }))
+    .build()?;   
     match email_stuff::send_email(
-        EmailSenderConfig {
-            enabled_services: vec![
-                // EnabledService::Resend(email_stuff::ResendServiceData {
-                //     sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
-                //         site_config.resend_sender_fqdn,
-                //     ),
-                //     api_key: site_config.resend_api_key.into(),
-                // }),
-                EnabledService::AhaSend(email_stuff::AhasendServiceData {
-                    sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
-                        site_config.ahasend_sender_fqdn,
-                    ),
-                    api_key: site_config.ahasend_api_key.into(),
-                    account_id: site_config.ahasend_account_id.into(),
-                }),
-                // EnabledService::Lettermint(email_stuff::LettermintServiceData {
-                //     sender_qualified_domain_name: email_stuff::SenderQualifiedDomain(
-                //         site_config.lettermint_sender_fqdn,
-                //     ),
-                //     project_token: site_config.lettermint_project_token.into(),
-                // }),
-            ],
-        },
+        email_sender_config,
         email_stuff::TypicalEmail {
             from_name: site_config.email_otp_from_name,
             to_email_address: destination_email,
@@ -260,7 +251,7 @@ pub async fn send_email(
     .await
     {
         Ok(s) => {
-            tracing::debug!("Email sent successfullt: {s:#?}")
+            tracing::debug!("Email sent successfully: {s:#?}")
         }
         Err(e) => {
             tracing::error!("Email sending failed: {e:#?}")

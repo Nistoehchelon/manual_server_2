@@ -19,6 +19,8 @@ pub enum CustomSiteVariableName {
     USDPerLTC,
     #[strum(serialize = "usd_per_xmr")]
     USDPerXMR,
+    #[strum(serialize = "usd_per_xno")]
+    USDPerXNO,
     #[strum(serialize = "website_fund_xmr_balance_atomic_units")]
     WebsiteFundXMRBalanceAtomicUnits,
     #[strum(serialize = "website_fund_xmr_balance_visual")]

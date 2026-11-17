@@ -1,7 +1,6 @@
 use anyhow::anyhow;
 use cryptocurrencies_stuff::{
-    atomic_unit::{AtomicUnit, CurrencyConfig},
-    currencies::{LTC, XMR},
+    atomic_unit::{AtomicUnit, CurrencyConfig}, currencies::{LTC, XMR, XNO},
 };
 use sqlx::{Postgres, Transaction};
 
@@ -35,6 +34,15 @@ pub async fn convert_usd_price_to_xmr(db_pool: sqlx::PgPool, price: f64) -> anyh
     tx.commit().await?;
     Ok(answer)
 }
+pub async fn convert_usd_price_to_xno(db_pool: sqlx::PgPool, price: f64) -> anyhow::Result<f64> {
+    let mut tx = db_pool.begin().await?;
+    let answer = get_by_usd::<XNO>(&mut tx, price)
+        .await?
+        .to_string_trimmed()
+        .parse::<f64>()?;
+    tx.commit().await?;
+    Ok(answer)
+}
 
 pub async fn get_by_usd<C: CurrencyConfig>(
     tx: &mut Transaction<'_, Postgres>,
@@ -58,6 +66,15 @@ pub async fn get_by_usd<C: CurrencyConfig>(
             .await?;
             let usd_per_xmr: f64 = usd_per_xmr.parse()?;
             usd_per_xmr
+        }
+        "XNO" => {
+            let usd_per_xno = custom_site_variables::get_custom_site_variable(
+                tx,
+                custom_site_variables::CustomSiteVariableName::USDPerXNO,
+            )
+            .await?;
+            let usd_per_xno: f64 = usd_per_xno.parse()?;
+            usd_per_xno
         }
 
         _ => return Err(anyhow!("Unsupported crypto")),

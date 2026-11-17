@@ -11,8 +11,12 @@
 Subscription
 {% endblock %}
 {% block content%}
-<div>Cost per month: <span id="usd_cost_per_month">{{ usd_cost }}</span> USD/<span id="xmr_cost_per_month">{{ xmr_cost
-        }}</span> XMR/<span id="ltc_cost_per_month">{{ ltc_cost }} LTC</span></div>
+<div>Cost per month: <span id="usd_cost_per_month">{{ usd_cost }}</span> USD/
+    <span id="xmr_cost_per_month">{{ xmr_cost
+        }}</span> XMR/
+        <span id="ltc_cost_per_month">{{ ltc_cost }} LTC</span>
+        <span id="xno_cost_per_month">{{ xno_cost }} XNO</span>
+    </div>
 <div>You may subscribe up to 12 months at a time.</div>
 <p>Choose your desired subscription duration and payment method.</p>
 <form id="subscription_form" method="post" action="/invoice/create_invoice">
@@ -35,6 +39,10 @@ Subscription
 
         <div><input type="radio" id="xmr" name="payment_method" value="monero">
             <label for="xmr">XMR</label>
+        </div>
+
+        <div><input type="radio" id="xno" name="payment_method" value="nano">
+            <label for="xno">XNO</label>
         </div>
 
 
@@ -61,6 +69,7 @@ Subscription
         const usdPerMonth = parseFloat(document.getElementById("usd_cost_per_month").innerText);
         const xmrPerMonth = parseFloat(document.getElementById("xmr_cost_per_month").innerText);
         const ltcPerMonth = parseFloat(document.getElementById("ltc_cost_per_month").innerText);
+        const xnoPerMonth = parseFloat(document.getElementById("xno_cost_per_month").innerText);
 
         const submitButton = document.querySelector("#subscription_form button");
         const totalDisplay = document.getElementById("total_display");
@@ -107,6 +116,7 @@ Subscription
             const totalUsd = usdPerMonth * months;
             const totalXmr = xmrPerMonth * months;
             const totalLtc = ltcPerMonth * months;
+            const totalXno = xnoPerMonth * months;
 
             let paymentCurrencyString = "";
             let paymentAmountString = "";
@@ -116,6 +126,9 @@ Subscription
             } else if (method === "monero") {
                 paymentCurrencyString = "XMR";
                 paymentAmountString = `${totalXmr.toFixed(8)}`;
+            }else if (method === "nano") {
+                paymentCurrencyString = "XNO";
+                paymentAmountString = `${totalXno.toFixed(8)}`;
             }
 
             const monthOrMonths = months === 1 ? "month" : "months";

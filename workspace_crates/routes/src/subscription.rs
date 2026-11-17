@@ -43,12 +43,16 @@ pub async fn get(
     let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), usd_cost)
         .await
         .map_err(InternalAppError::new)?;
+    let xno_cost = financial_stuff::convert_usd_price_to_xno(db_pool.clone(), usd_cost)
+        .await
+        .map_err(InternalAppError::new)?;
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         csrf_token,
         usd_cost.to_string(),
         xmr_cost.to_string(),
         ltc_cost.to_string(),
+        xno_cost.to_string()
     )))
 }
 
@@ -58,6 +62,7 @@ fn get_html(
     usd_cost: String,
     xmr_cost: String,
     ltc_cost: String,
+    xno_cost: String,
 ) -> String {
     let sub_template = SubscriptionTemplate {
         csrf_token,
@@ -65,6 +70,7 @@ fn get_html(
         usd_cost,
         xmr_cost,
         ltc_cost,
+        xno_cost,
     };
     html_templating::render(sub_template)
 }

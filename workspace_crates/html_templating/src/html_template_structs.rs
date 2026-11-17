@@ -152,6 +152,7 @@ pub struct SubscriptionTemplate {
     pub usd_cost: String,
     pub xmr_cost: String,
     pub ltc_cost: String,
+    pub xno_cost: String,
 }
 
 #[derive(Template)]

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = { workspace = true }
 financial_stuff = { workspace = true }
 custom_site_variables = { workspace = true }
 invoice = { workspace = true }
@@ -39,3 +40,4 @@ serde_json = { workspace = true }
 reqwest = { workspace = true }
 routing_structs = { workspace = true }
 payment_system_structs = { workspace = true }
+serde_urlencoded = "0.7.1"

@@ -60,6 +60,51 @@ pub async fn get_custom_site_variable(
     Ok(result)
 }
 
+pub async fn find_custom_site_var(
+    tx: &mut PgConnection,
+    var_name: CustomSiteVariableName,
+) -> anyhow::Result<Option<String>> {
+    let row = sqlx::query!(
+        r#"SELECT value FROM custom_site_variables WHERE name = $1"#,
+        var_name.to_string(),
+    )
+    .fetch_optional(&mut *tx)
+    .await?;
+    Ok(row.map(|r| r.value))
+}
+pub async fn save_custom_site_variables_from_form(
+    tx: &mut Transaction<'_, Postgres>,
+    form: &HashMap<String, String>,
+) -> anyhow::Result<()> {
+    for variant in CustomSiteVariableName::iter() {
+        let name = variant.to_string();
+
+        match form.get(&name).map(String::as_str) {
+            // Non-empty → upsert
+            Some(v) if !v.is_empty() => {
+                sqlx::query!(
+                    r#"
+                    INSERT INTO custom_site_variables (name, value)
+                    VALUES ($1, $2)
+                    ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value
+                    "#,
+                    name,
+                    v,
+                )
+                .execute(&mut **tx)
+                .await?;
+            }
+            // Missing or empty → "not set" → remove the row
+            _ => {
+                sqlx::query!("DELETE FROM custom_site_variables WHERE name = $1", name,)
+                    .execute(&mut **tx)
+                    .await?;
+            }
+        }
+    }
+    Ok(())
+}
+
 pub async fn get_all_custom_site_variables(
     conn: &mut PgConnection,
 ) -> anyhow::Result<Vec<CustomSiteVariableEntry>> {

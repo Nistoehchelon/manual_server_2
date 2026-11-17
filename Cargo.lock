@@ -2915,6 +2915,7 @@ name = "routes"
 version = "0.1.0"
 dependencies = [
  "abac",
+ "anyhow",
  "app_executable_version",
  "cloudflare_turnstile",
  "config_reader",
@@ -2941,6 +2942,7 @@ dependencies = [
  "routing_structs",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "session",
  "sqlx",
  "tokio",

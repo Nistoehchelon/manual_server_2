@@ -1,5 +1,5 @@
 use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
-use cryptocurrencies_stuff::currencies::{LTC, XMR};
+use cryptocurrencies_stuff::currencies::{LTC, XMR, XNO};
 use error_structs::InternalAppError;
 use financial_stuff::get_by_usd;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
@@ -235,6 +235,12 @@ pub async fn post_create_invoice(
                         .await
                         .map_err(InternalAppError::new)?,
                 },
+                "nano" => PaymentMethod::XNO {
+                    amount: get_by_usd::<XNO>(&mut tx, sub_cost)
+                        .await
+                        .map_err(InternalAppError::new)?,
+                },
+
                 _ => {
                     tracing::error!("Invalid invoice payment method");
                     return Ok(redirect_to("/".to_string()));

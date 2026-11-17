@@ -1,4 +1,4 @@
-use cryptocurrencies_stuff::currencies::{CurrencyAtomicUnit, LTCAtomicUnit, XMRAtomicUnit};
+use cryptocurrencies_stuff::currencies::{CurrencyAtomicUnit, LTCAtomicUnit, XMRAtomicUnit, XNOAtomicUnit};
 use id_generator_unique_in_db::Table;
 use payment_system_structs::PaymentId;
 use serde::Serialize;
@@ -40,6 +40,7 @@ pub enum ServiceData {
 pub enum PaymentMethod {
     XMR { amount: XMRAtomicUnit },
     LTC { amount: LTCAtomicUnit },
+    XNO { amount: XNOAtomicUnit },
 }
 
 impl std::fmt::Display for PaymentMethod {
@@ -47,6 +48,7 @@ impl std::fmt::Display for PaymentMethod {
         let s = match self {
             PaymentMethod::XMR { .. } => "monero",
             PaymentMethod::LTC { .. } => "litecoin",
+            PaymentMethod::XNO {.. } => "nano",
         };
         write!(f, "{}", s)
     }
@@ -202,6 +204,7 @@ pub async fn create_invoice(
     let payment_amount_atomic_units = match payment_method.clone() {
         PaymentMethod::XMR { amount } => amount.as_atomic(),
         PaymentMethod::LTC { amount } => amount.as_atomic(),
+        PaymentMethod::XNO { amount } => amount.as_atomic(),
     };
     set_invoice_data(
         tx,

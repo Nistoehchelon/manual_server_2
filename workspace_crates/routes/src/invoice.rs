@@ -217,15 +217,17 @@ pub async fn post_create_invoice(
             .await
             .map_err(InternalAppError::new)?;
             let sub_cost: f64 = sub_cost.parse().map_err(InternalAppError::new)?;
+            let sub_cost = (sub_cost * (months as f64)).to_string();
+            let sub_cost = &sub_cost.as_str();
 
             match payment_method.as_str() {
                 "litecoin" => PaymentMethod::LTC {
-                    amount: get_by_usd::<LTC>(&mut tx, sub_cost * (months as f64))
+                    amount: get_by_usd::<LTC>(&mut tx, sub_cost)
                         .await
                         .map_err(InternalAppError::new)?,
                 },
                 "monero" => PaymentMethod::XMR {
-                    amount: get_by_usd::<XMR>(&mut tx, sub_cost * (months as f64))
+                    amount: get_by_usd::<XMR>(&mut tx, sub_cost)
                         .await
                         .map_err(InternalAppError::new)?,
                 },

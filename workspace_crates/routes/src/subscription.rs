@@ -37,22 +37,22 @@ pub async fn get(
     let usd_cost = financial_stuff::get_subscription_cost_usd(db_pool.clone())
         .await
         .map_err(InternalAppError::new)?;
-    let xmr_cost = financial_stuff::convert_usd_price_to_xmr(db_pool.clone(), usd_cost)
+    let xmr_cost = financial_stuff::convert_usd_price_to_xmr(db_pool.clone(), &usd_cost)
         .await
         .map_err(InternalAppError::new)?;
-    let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), usd_cost)
+    let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), &usd_cost)
         .await
         .map_err(InternalAppError::new)?;
-    let xno_cost = financial_stuff::convert_usd_price_to_xno(db_pool.clone(), usd_cost)
+    let xno_cost = financial_stuff::convert_usd_price_to_xno(db_pool.clone(), &usd_cost)
         .await
         .map_err(InternalAppError::new)?;
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         csrf_token,
         usd_cost.to_string(),
-        xmr_cost.to_string(),
-        ltc_cost.to_string(),
-        xno_cost.to_string()
+        xmr_cost.to_string_trimmed(),
+        ltc_cost.to_string_trimmed(),
+        xno_cost.to_string_trimmed()
     )))
 }
 

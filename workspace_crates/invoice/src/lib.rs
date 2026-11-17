@@ -1,4 +1,6 @@
-use cryptocurrencies_stuff::currencies::{CurrencyAtomicUnit, LTCAtomicUnit, XMRAtomicUnit, XNOAtomicUnit};
+use cryptocurrencies_stuff::currencies::{
+    CurrencyAtomicUnit, LTCAtomicUnit, XMRAtomicUnit, XNOAtomicUnit,
+};
 use id_generator_unique_in_db::Table;
 use payment_system_structs::PaymentId;
 use serde::Serialize;
@@ -18,10 +20,15 @@ pub async fn get_payment_data(
     let address = get_invoice_data(tx, invoice_id.clone(), "address_from_payment_server").await?;
     let method = get_invoice_data(tx, invoice_id, "method_from_payment_server").await?;
     let amount = match method.as_str() {
-        "monero" => XMRAtomicUnit::from_atomic(CurrencyAtomicUnit(
-            amount.parse()?,
-        ))
-        .to_string_trimmed(),
+        "monero" => {
+            XMRAtomicUnit::from_atomic(CurrencyAtomicUnit(amount.parse()?)).to_string_trimmed()
+        }
+        "litecoin" => {
+            LTCAtomicUnit::from_atomic(CurrencyAtomicUnit(amount.parse()?)).to_string_trimmed()
+        }
+        "nano" => {
+            XNOAtomicUnit::from_atomic(CurrencyAtomicUnit(amount.parse()?)).to_string_trimmed()
+        }
         _ => "unk".to_string(),
     };
     Ok(PaymentData {
@@ -48,7 +55,7 @@ impl std::fmt::Display for PaymentMethod {
         let s = match self {
             PaymentMethod::XMR { .. } => "monero",
             PaymentMethod::LTC { .. } => "litecoin",
-            PaymentMethod::XNO {.. } => "nano",
+            PaymentMethod::XNO { .. } => "nano",
         };
         write!(f, "{}", s)
     }
@@ -77,41 +84,31 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
         payment_id.to_string()
     )
     .fetch_one(&db_pool)
-    .await
-    ?
+    .await?
     .invoice_id;
     let invoice_id = InvoiceId(invoice_id);
     let invoice = sqlx::query!("SELECT id FROM invoices WHERE id = $1", invoice_id.0)
         .fetch_optional(&mut *tx)
-        .await
-        ?;
+        .await?;
     match invoice {
         Some(_) => {}
         None => {
             return Err(anyhow::anyhow!("Invoice not found"));
         }
     }
-    let service = get_invoice_data(&mut tx, invoice_id.clone(), "service")
-        .await
-        ?;
+    let service = get_invoice_data(&mut tx, invoice_id.clone(), "service").await?;
     let service = ValidService::try_from(&service)?;
     match service {
         ValidService::Subscription => {
             let subscription_expires_at =
                 get_invoice_data(&mut tx, invoice_id.clone(), "subscription_expires_at")
-                    .await
-                    ?
-                    .parse::<u64>()
-                    ?;
-            let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id")
-                .await
-                ?;
+                    .await?
+                    .parse::<u64>()?;
+            let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id").await?;
             user::subscription::set_expiry_time(&mut tx, &user_id, subscription_expires_at).await?;
         }
     }
-    set_invoice_data(&mut tx, invoice_id, "status", "complete")
-        .await
-        ?;
+    set_invoice_data(&mut tx, invoice_id, "status", "complete").await?;
     tx.commit().await?;
     Ok(())
 }
@@ -167,9 +164,7 @@ pub async fn invoice_status(
     invoice_id: InvoiceId,
 ) -> anyhow::Result<InvoicePaymentStatus> {
     let raw = get_invoice_data(tx, invoice_id, "status").await?;
-    let status = raw
-        .parse::<InvoicePaymentStatus>()
-       ?;
+    let status = raw.parse::<InvoicePaymentStatus>()?;
     Ok(status)
 }
 
@@ -308,8 +303,7 @@ pub async fn get_invoice_data(
         data_name
     )
     .fetch_one(&mut **tx)
-    .await
-   ?;
+    .await?;
 
     Ok(row.value)
 }

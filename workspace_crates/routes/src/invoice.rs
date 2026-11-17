@@ -194,6 +194,10 @@ pub async fn post_create_invoice(
                 tracing::error!("Invalid invoice Subscription months field");
                 return Ok(redirect_to("/".to_string()));
             };
+            if months == 0 {
+                tracing::error!("Invalid months {months}");
+                return Ok(redirect_to("/".to_string()));
+            }
             ServiceData::Subscription {
                 months,
                 expires_at: {

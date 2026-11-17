@@ -2,9 +2,9 @@
 
 {% block content%}
 {% include "includes/notifications.html" %}
-<form action="/create_forum" method="POST">
+<form action="/manage_custom_site_variables" method="POST">
     {% for var in variables %}
-    <input type = "text" name = "{{ var.name }}" value = "{{ var.value.as_deref().unwrap_or("[not set]")}}">
+    {{ var.name }}: <input type = "text" name = "{{ var.name }}" value = "{{ var.value.as_deref().unwrap_or("[not set]")}}">
     {% endfor %}
     <input type="hidden" name="csrf_token" value="{{csrf_token}}">
     <button>Submit</button>

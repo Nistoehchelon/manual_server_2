@@ -17,7 +17,7 @@ pub async fn generate_unique_id_for(
 ) -> anyhow::Result<String> {
     let max_iterations = 20;
     for _ in 0..max_iterations {
-        let id = id_generator::generate_random_alphanumeric_id(32);
+        let id = id_generator::generate_random_alphanumeric_id(10);
 
         let exists = match for_table {
             Table::Users => {

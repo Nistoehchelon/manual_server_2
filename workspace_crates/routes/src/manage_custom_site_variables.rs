@@ -9,18 +9,13 @@ pub async fn get(
 ) -> Result<HttpResponseData, error_structs::InternalAppError> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
-    if !session.logged_in
-        || !abac::can_manage_site_pages(CanManageSitePagesInput {
-            db_pool: db_pool.clone(),
-            user_id: {
-                let u = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone())
-                    .await
-                    .map_err(InternalAppError::new)?;
-                u.id
-            },
-        })
+    let usr_resl = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
-        .map_err(InternalAppError::new)?
+        .map_err(InternalAppError::new)?;
+    if !session.logged_in
+        || !abac::can_edit_site_variables(&db_pool, usr_resl.id)        
+            .await
+            .map_err(InternalAppError::new)?
     {
         session::add_session_notification_error(
             db_pool.clone(),

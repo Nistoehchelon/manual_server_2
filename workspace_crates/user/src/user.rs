@@ -8,19 +8,18 @@ use crate::{ValidatedUsername, user_structs_and_so_on::User};
 pub async fn get_user_by_user_id(
     db_pool: sqlx::PgPool,
     user_id: String,
-) -> Result<User, error_structs::ExpectedToGetButFailed> {
+) -> anyhow::Result<User> {
     match find_user_by_user_id(db_pool, user_id)
-        .await
-        .map_err(ExpectedToGetButFailed::new)?
+        .await?
     {
         Some(u) => Ok(u),
-        None => Err(ExpectedToGetButFailed::new("")),
+        None => Err(anyhow::anyhow!("Could not get user")),
     }
 }
 pub async fn find_user_by_user_id(
     db_pool: sqlx::PgPool,
     user_id: String,
-) -> Result<Option<User>, DbError> {
+) -> anyhow::Result<Option<User>> {
     let user_opt = storage_specific_get_user_by_user_id(user_id, db_pool).await?;
     Ok(user_opt)
 }
@@ -259,7 +258,7 @@ async fn storage_specific_add_user(
 async fn storage_specific_get_user_by_user_id(
     user_id: String,
     db_pool: sqlx::PgPool,
-) -> Result<Option<User>, db_manager::DbError> {
+) -> anyhow::Result<Option<User>> {
     match sqlx::query_as!(
         User,
         r#"SELECT primary_key, id, username, password_hash FROM users WHERE id = $1"#,
@@ -269,6 +268,6 @@ async fn storage_specific_get_user_by_user_id(
     .await
     {
         Ok(opt) => Ok(opt),
-        Err(e) => Err(DbError::new(e)),
+        Err(e) => Err(anyhow::anyhow!("{e:#?}")),
     }
 }

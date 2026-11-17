@@ -166,7 +166,7 @@ pub async fn read_and_delete_session_notifications(
 pub async fn session_with_specified_id_exists(
     session_id: String,
     db_pool: sqlx::PgPool,
-) -> Result<bool, DbError> {
+) -> anyhow::Result<bool> {
     let result = find_session_by_session_id(session_id.clone(), db_pool).await?;
     Ok(result.is_some())
 }
@@ -174,19 +174,19 @@ pub async fn session_with_specified_id_exists(
 pub async fn find_session_by_session_id(
     session_id: String,
     db_pool: sqlx::PgPool,
-) -> Result<Option<Session>, DbError> {
+) -> anyhow::Result<Option<Session>> {
     let sess = storage_specific_get_session_by_session_id(db_pool, session_id).await?;
     Ok(sess)
 }
 pub async fn get_session_by_session_id(
     session_id: String,
     db_pool: sqlx::PgPool,
-) -> Result<Result<Session, error_structs::ExpectedToGetButFailed>, DbError> {
+) -> anyhow::Result<Session> {
     let sess_opt = find_session_by_session_id(session_id, db_pool).await?;
     if let Some(sess) = sess_opt {
-        return Ok(Ok(sess));
+        return Ok(sess);
     }
-    Ok(Err(error_structs::ExpectedToGetButFailed::new("")))
+    Err(anyhow::anyhow!("Could not get session"))
 }
 
 pub fn generate_session_id() -> String {
@@ -289,20 +289,14 @@ async fn storage_specific_add_session(
 async fn storage_specific_get_session_by_session_id(
     db_pool: sqlx::PgPool,
     session_id: String,
-) -> Result<Option<Session>, db_manager::DbError> {
-    let retrieved = match sqlx::query_as!(
+) -> anyhow::Result<Option<Session>> {
+    let retrieved = sqlx::query_as!(
         Session,
         r#"SELECT id, user_id as user_id, logged_in, previous_get_page, previous_page_load_time_ms FROM sessions WHERE id = $1"#,
         session_id
     )
     .fetch_optional(&db_pool)
-    .await
-    {
-        Ok(opt) => opt,
-        Err(e) => {
-            return Err(DbError::new(e));
-        }
-    };
+    .await?;
 
     Ok(retrieved)
 }

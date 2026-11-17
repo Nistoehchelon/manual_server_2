@@ -212,7 +212,11 @@ pub async fn route(
                     .await
                     .unwrap_or(internal_server_error_500())
             }
-
+             (HttpMethod::Get, "/manage_custom_site_variables") => {
+                routes::manage_custom_site_variables::get(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
             (HttpMethod::Get, path) => {
                 debug!("Path might be a dynamic custom page");
                 // in this route, either the page is a dynamic custom page or not found.
@@ -539,13 +543,9 @@ pub async fn add_execution_time_elapsed_text_just_before_end_of_html_body(
     db_pool: sqlx::PgPool,
 ) -> HttpResponseData {
     let session_data = match get_session_by_session_id(session_id.clone(), db_pool.clone()).await {
-        Ok(Ok(session_data)) => session_data,
-        Ok(Err(e)) => {
-            dbg!("Could not get session, returning as is", e);
-            return response_data;
-        }
-        Err(_e) => {
-            dbg!("Could not get session, returning as is", _e);
+        Ok(session_data) => session_data,
+        Err(e) => {
+            tracing::error!("Could not get session, returning as is {e:#?}");
             return response_data;
         }
     };

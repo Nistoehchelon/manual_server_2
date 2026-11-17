@@ -17,6 +17,7 @@ pub mod invoice;
 pub mod login;
 pub mod logout;
 pub mod manage_custom_site_pages;
+pub mod manage_custom_site_variables;
 pub mod not_found;
 pub mod signup;
 pub mod subscription;

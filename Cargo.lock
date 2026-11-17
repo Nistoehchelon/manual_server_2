@@ -3345,6 +3345,7 @@ dependencies = [
 name = "session"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "db_manager",
  "error_structs",
  "id_generator",

@@ -78,10 +78,10 @@ pub async fn save_custom_site_variables_from_form(
 ) -> anyhow::Result<()> {
     for variant in CustomSiteVariableName::iter() {
         let name = variant.to_string();
-
+        const NOT_SET_PLACEHOLDER: &str = "NOT_SET_PLACEHOLDER";
         match form.get(&name).map(String::as_str) {
             // Non-empty → upsert
-            Some(v) if !v.is_empty() => {
+            Some(v) if !v.is_empty() && v != NOT_SET_PLACEHOLDER => {
                 sqlx::query!(
                     r#"
                     INSERT INTO custom_site_variables (name, value)

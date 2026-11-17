@@ -217,6 +217,11 @@ pub async fn route(
                     .await
                     .unwrap_or(internal_server_error_500())
             }
+             (HttpMethod::Post, "/manage_custom_site_variables") => {
+                routes::manage_custom_site_variables::post(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
             (HttpMethod::Get, path) => {
                 debug!("Path might be a dynamic custom page");
                 // in this route, either the page is a dynamic custom page or not found.

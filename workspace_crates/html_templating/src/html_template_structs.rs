@@ -1,6 +1,7 @@
 use askama::Template;
 use pagination::PaginationElement;
 
+
 pub struct User {
     pub username: String,
 }

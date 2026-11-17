@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use tracing::{error, info};
+use tracing::error;
 pub async fn validate_turnstile(
     cf_secret_key: String,
     cf_token: String,

@@ -1,5 +1,5 @@
 use db_manager::{DbError, DbSuccess};
-use error_structs::{ExpectedToGetButFailed, PublicError, SomeSortOfError};
+use error_structs::{PublicError, SomeSortOfError};
 use password_hashing::PasswordHasherConfig;
 use sqlx::{Postgres, Transaction};
 

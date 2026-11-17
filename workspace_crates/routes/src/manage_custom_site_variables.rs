@@ -1,9 +1,8 @@
 use abac::CanManageSitePagesInput;
+use custom_site_variables::get_all_custom_site_variables;
 use error_structs::InternalAppError;
-use html_templating::html_template_structs;
-use http_stuff::http_response::{HttpResponseData, redirect_to};
+use http_stuff::http_response::{self, HttpResponseData, redirect_to};
 use routing_structs::RouterData;
-
 
 pub async fn get(
     router_data: RouterData,
@@ -32,7 +31,22 @@ pub async fn get(
         return Ok(redirect_to("/".to_string()));
     }
 
-   todo!(
+    let mut conn = db_pool.acquire().await.map_err(InternalAppError::new)?;
+    let vars = get_all_custom_site_variables(&mut conn)
+        .await
+        .map_err(InternalAppError::new)?;
+    let tpl = html_templating::custom_site_variables::EditCustomSiteVariablesTemplate {
+        main_info: router_data.base_template_data.clone(),
+        variables: vars,
+        csrf_token: csrf_stuff::get_or_create_token(
+            db_pool.clone(),
+            router_data.session.id,
+            csrf_stuff::DesignatedPurpose::Normal,
+        )
+        .await
+        .map_err(InternalAppError::new)?,
+    };
+    let html = html_templating::render(tpl);
 
-   )
+    Ok(http_response::ok_html(html))
 }

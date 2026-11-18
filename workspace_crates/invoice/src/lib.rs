@@ -286,7 +286,8 @@ pub async fn create_invoice(
                 &sub_expires_at,
             )
             .await?;
-        }
+        },
+        _=> {}
     }
     let invoice = (invoice_id.clone(), payment_method.clone(), service);
 

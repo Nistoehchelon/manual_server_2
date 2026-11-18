@@ -131,7 +131,7 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
     let reference_currency = "USD";
     let reference_currency_total_amount = "18.0";
     let reference_currency_per_currency = format!("60000 {reference_currency}");
-    let invoice_html = format!(
+    let _invoice_html = format!(
         r###"
     <div>
         Receipt id: {receipt_id}<br>

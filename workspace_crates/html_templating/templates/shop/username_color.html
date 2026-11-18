@@ -1,0 +1,151 @@
+{% extends "template_base.html" %}
+
+{% block head %}
+{% if main_info.cloudflare_turnstile_enabled %}
+{% include "includes/script_cloudflare_turnstile.html" %}
+{% endif %}
+{% endblock %}
+
+{% block title %}
+Username color
+{% endblock %}
+
+
+{% block content %}
+<div>Cost per month:
+    <span id="usd_cost_per_month">{{ usd_cost }}</span> USD /
+    <span id="xmr_cost_per_month">{{ xmr_cost }}</span> XMR /
+    <span id="ltc_cost_per_month">{{ ltc_cost }}</span> LTC /
+    <span id="xno_cost_per_month">{{ xno_cost }}</span> XNO
+</div>
+<div>You may pick the duration of up to 12 months at a time. You may modify the color at any time in settings. </div>
+<p>Choose your desired duration.</p>
+
+<form id="username_color_form" method="post" action="/add_to_cart">
+    <input type="hidden" name="service" value="username_color">
+    <label for="color_code">Color code: </label>
+    <input type="text" id="color_code" name="color_code" placeholder="Example for purple: #800080" min="1" max="12"
+        step="1" required>
+    <label for="months">Duration: </label>
+    <input type="number" id="months" name="months" placeholder="In months..." min="1" max="12" step="1" required>
+
+    <div id="months_error" class="error"></div>
+
+    <div id="total_display"></div>
+
+    <button>
+        Add to cart
+    </button>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+</form>
+<script nonce="{{ main_info.nonce }}">
+    (function () {
+        const DECIMALS = {
+            USD: 2,
+            LTC: 8,
+            XMR: 12,
+            XNO: 30
+        };
+
+        // Parses a decimal string into an exact BigInt scaled by 10^decimals
+        function parseDecimalToBigInt(str, decimals) {
+            const clean = str.trim();
+            if (!clean) return 0n;
+            const [wholePart = "0", fracPart = ""] = clean.split(".");
+            const paddedFrac = fracPart.slice(0, decimals).padEnd(decimals, "0");
+            return BigInt(wholePart) * (10n ** BigInt(decimals)) + BigInt(paddedFrac || "0");
+        }
+
+        // Formats a scaled BigInt back to a decimal string (trims trailing fractional zeros for crypto, keeps 2 for USD)
+        function formatBigIntDecimal(value, decimals, trimTrailingZeros = true) {
+            const scale = 10n ** BigInt(decimals);
+            const whole = value / scale;
+            const frac = value % scale;
+
+            if (decimals === 0 || (trimTrailingZeros && frac === 0n)) {
+                return whole.toString();
+            }
+
+            let fracStr = frac.toString().padStart(decimals, "0");
+            if (trimTrailingZeros) {
+                fracStr = fracStr.replace(/0+$/, "");
+            }
+            return `${whole.toString()}.${fracStr}`;
+        }
+
+        const monthsInput = document.getElementById("months");
+        const USDPerMonth = parseDecimalToBigInt(document.getElementById("usd_cost_per_month").innerText, DECIMALS.USD);
+        const XMRPerMonth = parseDecimalToBigInt(document.getElementById("xmr_cost_per_month").innerText, DECIMALS.XMR);
+        const LTCPerMonth = parseDecimalToBigInt(document.getElementById("ltc_cost_per_month").innerText, DECIMALS.LTC);
+        const XNOPerMonth = parseDecimalToBigInt(document.getElementById("xno_cost_per_month").innerText, DECIMALS.XNO);
+
+        const submitButton = document.querySelector("#username_color_form button");
+        const totalDisplay = document.getElementById("total_display");
+        const monthsError = document.getElementById("months_error");
+        let monthsValid = false;
+
+        function validateMonths(months) {
+            if (!Number.isInteger(months) || months === 0) {
+                monthsError.innerText = "";
+                submitButton.disabled = true;
+                return false;
+            }
+            if (!Number.isInteger(months) || months < 1 || months > 12) {
+                monthsError.innerText = "Subscription duration must be between 1 and 12 months.";
+                submitButton.disabled = true;
+                return false;
+            }
+
+            monthsError.innerText = "";
+            return true;
+        }
+
+
+        function updateTotal() {
+            const months = parseInt(monthsInput.value || "0", 10);
+            monthsValid = validateMonths(months);
+            if (!monthsValid) {
+                totalDisplay.innerText = "";
+                return;
+            }
+
+            const monthsBig = BigInt(months);
+
+            const totalUsd = USDPerMonth * monthsBig;
+            const totalUsdString = formatBigIntDecimal(totalUsd, DECIMALS.USD, false);
+
+            const LTCPaymentCurrencyString = "LTC";
+            const LTCPaymentAmountString = formatBigIntDecimal(LTCPerMonth * monthsBig, DECIMALS.LTC, true);
+
+            const XMRPaymentCurrencyString = "XMR";
+            const XMRPaymentAmountString = formatBigIntDecimal(XMRPerMonth * monthsBig, DECIMALS.XMR, true);
+
+            const XNOPaymentCurrencyString = "XNO";
+            const XNOPaymentAmountString = formatBigIntDecimal(XNOPerMonth * monthsBig, DECIMALS.XNO, true);
+
+
+            const monthOrMonths = months === 1 ? "month" : "months";
+            totalDisplay.innerText =
+                `Total: ${months} ${monthOrMonths} for ≈ ${LTCPaymentAmountString} ${LTCPaymentCurrencyString} / ${XMRPaymentAmountString} ${XMRPaymentCurrencyString} / ${XNOPaymentAmountString} ${XNOPaymentCurrencyString} (≈ ${totalUsdString} USD)`;
+        }
+
+        monthsInput.addEventListener("input", updateTotal);
+        updateTotal();
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'disabled') {
+                    const isEnabled = !submitButton.disabled;
+                    if (isEnabled && !monthsValid) {
+                        submitButton.disabled = true;
+                    }
+                }
+            });
+        });
+
+        observer.observe(submitButton, {
+            attributes: true
+        });
+    })();
+</script>
+{% endblock %}

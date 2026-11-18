@@ -41,6 +41,7 @@ pub async fn get_payment_data(
 #[derive(Clone, Debug)]
 pub enum ServiceData {
     Subscription { months: u64, expires_at: u64 },
+    UsernameColor { color_code: String, expires_at: u64 },
 }
 
 #[derive(Clone, Debug)]

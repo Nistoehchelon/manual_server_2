@@ -108,8 +108,53 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
             user::subscription::set_expiry_time(&mut tx, &user_id, subscription_expires_at).await?;
         }
     }
+
     set_invoice_data(&mut tx, invoice_id, "status", "complete").await?;
     tx.commit().await?;
+    let receipt_id = "32mem2em2mdmq";
+    let seller_name = "Mberg";
+    let seller_user_id = "dmsodqp";
+    let buyer = "bob321";
+    let buyer_user_id = "m12emq";
+    let seller_pubkey_url = "website.com/my_pubkey.pem";
+    let base64_qr = ""; // stores link to website.com/receipt?receipt_id=
+    let datetime = "4th Jan 2199 12:32 UTC-0";
+    let items = r###"
+    1. Subscription for 6 months, effective from approximately the datetime of this receipt, Cost: 0.0001 XNO (6 USD)<br>
+    2. Colored username (blue) for 6 months, effective from approximately the datetime of this receipt: 0.0002 XNO (12 USD)<br>
+    "###;
+    // generate invoice
+    let currency = "XNO";
+    let seller_website = "website.com"; 
+    let on_chain_transaction_id = "nano_tx_id";
+    let currency_total_amount = "0.0003";
+    let reference_currency = "USD";
+    let reference_currency_total_amount = "18.0";
+    let reference_currency_per_currency = format!("60000 {reference_currency}");
+    let invoice_html = format!(
+        r###"
+    <div>
+        Receipt id: {receipt_id}<br>
+        Link to this receipt (accessible only if you're logged in): <img src="data:image/png;base64,{base64_qr}"<br>
+        Date and time: {datetime}<br>
+        Buyer: name {buyer}, buyer_user_id: {buyer_user_id}<br>
+        Seller: name: {seller_name}, seller_user_id: {seller_user_id}, at {seller_website}<br>
+        Seller pubkey location url: {seller_pubkey_url}<br>
+        Seller receipt cryptographic signature: [the signature, as well as a guide on how to verify the signature, are available inside the receipt zip file in files receipt.signature and SIGNATURE_VERIFICATION_GUIDE.md, respectively]<br>
+       
+        Currency name: {currency}<br>
+        Currency total: {currency_total_amount} {currency}<br>
+        Reference currency name: {reference_currency}<br>
+        Reference currency total amount: {reference_currency_total_amount} {reference_currency}<br>
+        Reference currency per currency rate ({reference_currency} / {currency}) rate (approximate, according to the typical exchange rates available at datetime of this receipt) : {reference_currency_per_currency},
+        Currency ({currency}) on chain transaction id: {on_chain_transaction_id}<br>
+        Items purchased:<br>
+        {items}<br>
+
+    </div>
+    "###,
+    );
+
     Ok(())
 }
 

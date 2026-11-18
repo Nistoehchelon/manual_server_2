@@ -1,14 +1,14 @@
-
+use crate::permissions::Permission;
 
 pub async fn add_admin_permissions_to_user(db_pool: sqlx::PgPool, user_id: String) -> () {
     let admin_perms = vec![
-        "set_custom_thread_id_when_creating_it",
-        "manage_custom_site_pages",
-        "create_forum",
-        "view_app_executable_version",
-        "manage_custom_page_stylesheets",
-        "can_edit_site_variables",
-        "can_view_site_variables",
+        Permission::SetCustomThreadIdWhenCreatingIt,
+        Permission::ManageCustomSitePages,
+        Permission::ManageCustomPageStylesheets,
+        Permission::CanCreateForum,
+        Permission::ViewAppExecutableVersion,
+        Permission::CanEditSiteVariables,
+        Permission::CanViewSiteVariables,
     ];
     for perm in admin_perms {
         let perm = perm.to_string();

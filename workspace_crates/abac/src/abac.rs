@@ -3,6 +3,8 @@ use session::get_session_by_session_id;
 use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;
 
+use crate::permissions::Permission;
+
 pub async fn user_can_view_invoice(
     db_pool: sqlx::PgPool,
     user_id: String,
@@ -34,13 +36,13 @@ pub async fn get_bool_subject_subject_id_permission_name(
     db_pool: sqlx::PgPool,
     subject: &str,
     subject_id: &str,
-    permission_name: &str,
+    permission: Permission,
 ) -> anyhow::Result<bool> {
     let check = sqlx::query!(
         "SELECT name FROM access_attributes WHERE subject = $1 AND subject_id = $2 AND name = $3",
         subject,
         subject_id,
-        permission_name
+        permission.to_string(),
     )
     .fetch_optional(&db_pool)
     .await?
@@ -55,7 +57,7 @@ pub async fn user_can_view_app_executable_version(
         input.db_pool.clone(),
         "user",
         input.user_id.as_str(),
-        "view_app_executable_version",
+        Permission::ViewAppExecutableVersion,
     )
     .await
     .map_err(SomeSortOfError::new)?;
@@ -134,11 +136,8 @@ pub struct CanSetCustomThreadIdWhenCreatingItInput {
 pub async fn can_set_custom_thread_id_when_creating_it(
     CanSetCustomThreadIdWhenCreatingItInput { db_pool, session }: CanSetCustomThreadIdWhenCreatingItInput,
 ) -> anyhow::Result<bool> {
-    let session = get_session_by_session_id(session.id.clone(), db_pool.clone())
-        .await?;
-    let user = match get_user_by_user_id(db_pool.clone(), session.user_id.clone())
-        .await
-    {
+    let session = get_session_by_session_id(session.id.clone(), db_pool.clone()).await?;
+    let user = match get_user_by_user_id(db_pool.clone(), session.user_id.clone()).await {
         Ok(u) => u,
         Err(_) => {
             return Ok(false);
@@ -149,7 +148,7 @@ pub async fn can_set_custom_thread_id_when_creating_it(
         db_pool.clone(),
         "user",
         user_id.as_str(),
-        "set_custom_thread_id_when_creating_it",
+        Permission::SetCustomThreadIdWhenCreatingIt,
     )
     .await?;
     Ok(b)
@@ -171,11 +170,8 @@ pub async fn can_create_forum(
         session_id,
     }: CanCreateForumInput,
 ) -> anyhow::Result<bool> {
-    let session = get_session_by_session_id(session_id, db_pool.clone())
-        .await?;
-    let user = match get_user_by_user_id(db_pool.clone(), session.user_id.clone())
-        .await
-    {
+    let session = get_session_by_session_id(session_id, db_pool.clone()).await?;
+    let user = match get_user_by_user_id(db_pool.clone(), session.user_id.clone()).await {
         Ok(u) => u,
         Err(_) => {
             return Ok(false);
@@ -187,7 +183,7 @@ pub async fn can_create_forum(
         db_pool.clone(),
         "user",
         user_id.as_str(),
-        "superuser",
+        Permission::Superuser,
     )
     .await?;
     if is_superuser {
@@ -198,7 +194,7 @@ pub async fn can_create_forum(
         db_pool.clone(),
         "user",
         user_id.as_str(),
-        "create_forum",
+        Permission::CanCreateForum,
     )
     .await?;
     Ok(b)
@@ -218,11 +214,8 @@ pub async fn can_create_forum_thread(
         session_id,
     }: CanCreateThreadInput,
 ) -> anyhow::Result<bool> {
-    let session =  get_session_by_session_id(session_id, db_pool.clone())
-        .await?;
-    let user = match get_user_by_user_id(db_pool.clone(), session.user_id.clone())
-        .await
-    {
+    let session = get_session_by_session_id(session_id, db_pool.clone()).await?;
+    let user = match get_user_by_user_id(db_pool.clone(), session.user_id.clone()).await {
         Ok(u) => u,
         Err(_) => {
             return Ok(false);
@@ -234,7 +227,7 @@ pub async fn can_create_forum_thread(
         db_pool.clone(),
         "user",
         user_id.as_str(),
-        "superuser",
+        Permission::Superuser,
     )
     .await?;
     if is_superuser {
@@ -245,7 +238,7 @@ pub async fn can_create_forum_thread(
         db_pool.clone(),
         "user",
         user_id.as_str(),
-        "create_thread",
+        Permission::CanCreateThread,
     )
     .await?;
     Ok(b)
@@ -254,9 +247,7 @@ pub async fn can_create_forum_thread(
 pub async fn can_manage_site_pages(
     CanManageSitePagesInput { db_pool, user_id }: CanManageSitePagesInput,
 ) -> anyhow::Result<bool> {
-    let user = match get_user_by_user_id(db_pool.clone(), user_id.clone())
-        .await
-    {
+    let user = match get_user_by_user_id(db_pool.clone(), user_id.clone()).await {
         Ok(u) => u,
         Err(_) => {
             return Ok(false);
@@ -267,7 +258,7 @@ pub async fn can_manage_site_pages(
         db_pool.clone(),
         "user",
         user_id.as_str(),
-        "manage_custom_site_pages",
+        Permission::ManageCustomSitePages,
     )
     .await?;
     Ok(b)
@@ -281,7 +272,7 @@ pub async fn can_edit_site_variables(
         db_pool.clone(),
         "user",
         user_id.as_str(),
-        "can_edit_site_variables",
+        Permission::CanEditSiteVariables,
     )
     .await?;
     Ok(b)
@@ -295,7 +286,7 @@ pub async fn can_view_site_variables(
         db_pool.clone(),
         "user",
         user_id.as_str(),
-        "can_view_site_variables",
+        Permission::CanViewSiteVariables,
     )
     .await?;
     Ok(b)

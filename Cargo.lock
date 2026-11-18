@@ -17,6 +17,7 @@ dependencies = [
  "session",
  "session_structs_and_so_on",
  "sqlx",
+ "strum",
  "user",
 ]
 

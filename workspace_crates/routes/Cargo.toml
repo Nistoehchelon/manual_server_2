@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+site_config = { workspace = true }
+auth_system_structs = { workspace = true }
 anyhow = { workspace = true }
 financial_stuff = { workspace = true }
 custom_site_variables = { workspace = true }

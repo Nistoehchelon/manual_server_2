@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 password_hashing = { workspace = true }
 serde = { workspace = true }
+auth_system_structs = { workspace = true }

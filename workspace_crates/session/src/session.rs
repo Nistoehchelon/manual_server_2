@@ -51,7 +51,7 @@ pub async fn edit_session(
     db_pool: sqlx::PgPool,
     session_id: String,
     modified_session: Session,
-) -> Result<DbSuccess, DbError> {
+) -> anyhow::Result<DbSuccess> {
     storage_specific_edit_session(db_pool, session_id, modified_session).await
 }
 
@@ -358,8 +358,8 @@ async fn storage_specific_edit_session(
     db_pool: sqlx::PgPool,
     session_id: String,
     modified_session: Session,
-) -> Result<DbSuccess, DbError> {
-    let rows_modified = match sqlx::query!(
+) -> anyhow::Result<DbSuccess> {
+    let rows_modified = sqlx::query!(
         r#"UPDATE public.sessions SET user_id = $1, logged_in = $2, id = $3, previous_get_page = $4 WHERE id = $5"#,
         modified_session.user_id,
         modified_session.logged_in,
@@ -368,20 +368,14 @@ async fn storage_specific_edit_session(
         session_id,
     )
     .execute(&db_pool)
-    .await
-    {
-        Ok(rm) => rm.rows_affected(),
-        Err(e) => {
-            return Err(DbError::new(e));
-        }
-    };
+    .await?.rows_affected();
 
     if rows_modified != 0 {
         return Ok(DbSuccess {
             message: "Success".to_string(),
         });
     }
-    Err(DbError::new("No rows modified"))
+    Err(anyhow::anyhow!("No rows modified"))
 }
 
 async fn storage_specific_add_session_notification(

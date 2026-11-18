@@ -1,8 +1,14 @@
+use auth_system_structs::{AuthServerAPIToken, AuthServerSecretPrefix, AuthServerUrl};
+
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct SiteConfig {
+    pub auth_server_url: AuthServerUrl,
+    pub auth_server_secret_prefix: AuthServerSecretPrefix,
+    pub auth_server_token: AuthServerAPIToken,
+
     pub email_otp_from_email_username_part: String,
     pub email_otp_from_name: String,
-    
+
     pub resend_sender_enabled: bool,
     pub ahasend_sender_enabled: bool,
     pub lettermint_sender_enabled: bool,
@@ -11,7 +17,7 @@ pub struct SiteConfig {
     pub ahasend_api_key: String,
     pub ahasend_account_id: String,
     pub lettermint_project_token: String,
-    
+
     pub resend_sender_fqdn: String,
     pub ahasend_sender_fqdn: String,
     pub lettermint_sender_fqdn: String,

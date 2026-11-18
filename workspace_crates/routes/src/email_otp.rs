@@ -199,22 +199,9 @@ pub async fn post(
 
     match user_creation_result {
         Ok(user) => {
-            let mut modified_session = session.clone();
-            modified_session.logged_in = true;
-            modified_session.user_id = user.id.clone();
-            edit_session(db_pool.clone(), session.id.clone(), modified_session)
+            user_creation_success(&session, &db_pool, site_config, &mut tx, email, user)
                 .await
                 .map_err(InternalAppError::new)?;
-            add_session_notification_success(
-                db_pool.clone(),
-                session.id.clone(),
-                "Congratulations! You have been successfully registered.".to_string(),
-            )
-            .await;
-            user::set_user_data(&mut tx, &user.id, "email", email.as_str())
-                .await
-                .map_err(InternalAppError::new)?;
-            tracing::info!("User with id {} was registered.", user.id.clone());
         }
         Err(e) => {
             add_session_notification(
@@ -232,4 +219,50 @@ pub async fn post(
     }
     tx.commit().await.map_err(InternalAppError::new)?;
     Ok(redirect_to("/".to_string()))
+}
+
+#[tracing::instrument(skip_all)]
+async fn user_creation_success(
+    session: &session::Session,
+    db_pool: &sqlx::Pool<sqlx::Postgres>,
+    site_config: site_config::SiteConfig,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    email: String,
+    user: user::User,
+) -> anyhow::Result<()> {
+    let mut modified_session = session.clone();
+    modified_session.logged_in = true;
+    modified_session.user_id = user.id.clone();
+    edit_session(db_pool.clone(), session.id.clone(), modified_session).await?;
+    add_session_notification_success(
+        db_pool.clone(),
+        session.id.clone(),
+        "Congratulations! You have been successfully registered.".to_string(),
+    )
+    .await;
+    user::set_user_data(tx, &user.id, "email", email.as_str()).await?;
+    tracing::info!("User with id {} was registered.", user.id.clone());
+    tracing::info!("Sending data over to the auth server");
+    let auth_req = auth_system_structs::internal_api::AddOrUpdateUserRequest {
+        user_id: user.id.clone(),
+        username: user.username.clone(),
+        password_hash: user.password_hash.clone(),
+        subscription_expires_at_timestamp: 0,
+    };
+    match auth_system_structs::internal_api::send_add_or_update_user_request(
+        site_config.auth_server_url.clone(),
+        site_config.auth_server_secret_prefix,
+        site_config.auth_server_token,
+        auth_req,
+    )
+    .await
+    {
+        Ok(s) => {
+            tracing::debug!("auth server success: {s:#?}");
+        }
+        Err(e) => {
+            tracing::debug!("auth server error: {e:#?}");
+        }
+    }
+    Ok(())
 }

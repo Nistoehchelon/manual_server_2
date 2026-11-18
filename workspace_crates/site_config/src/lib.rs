@@ -13,14 +13,14 @@ pub struct SiteConfig {
     pub ahasend_sender_enabled: bool,
     pub lettermint_sender_enabled: bool,
 
-    pub resend_api_key: String,
-    pub ahasend_api_key: String,
-    pub ahasend_account_id: String,
-    pub lettermint_project_token: String,
+    pub resend_api_key: email_stuff::ResendAPIKey,
+    pub ahasend_api_key: email_stuff::AhaSendAPIKey,
+    pub ahasend_account_id: email_stuff::AhaSendAccountId,
+    pub lettermint_project_token: email_stuff::LetterMintProjectToken,
 
-    pub resend_sender_fqdn: String,
-    pub ahasend_sender_fqdn: String,
-    pub lettermint_sender_fqdn: String,
+    pub resend_sender_fqdn: email_stuff::SenderQualifiedDomain,
+    pub ahasend_sender_fqdn: email_stuff::SenderQualifiedDomain,
+    pub lettermint_sender_fqdn: email_stuff::SenderQualifiedDomain,
 
     pub static_resources_folder: String,
     pub ip: String,

@@ -7,3 +7,4 @@ edition = "2024"
 password_hashing = { workspace = true }
 serde = { workspace = true }
 auth_system_structs = { workspace = true }
+email_stuff = { workspace = true }

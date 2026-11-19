@@ -68,7 +68,37 @@ pub async fn clear_cart(
     Ok(redirect_to("/shop/cart".to_owned()))
 }
 
-
+pub async fn delete_cart_item(
+    router_data: RouterData,
+) -> anyhow::Result<http_stuff::http_response::HttpResponseData> {
+    let item_id = router_data
+        .http_request_data
+        .path
+        .strip_prefix("/shop/cart/delete_item/")
+        .ok_or_else(|| anyhow::anyhow!("Could not extract item_id from path"))?;
+    let result = sqlx::query!("DELETE FROM shopping_cart_items WHERE id = $1", item_id)
+        .execute(&router_data.db_pool)
+        .await?;
+    match result.rows_affected() {
+        0 => {
+            add_session_notification_error(
+                router_data.db_pool.clone(),
+                router_data.session.id.clone(),
+                "Could not find the item".to_owned(),
+            )
+            .await;
+        }
+        _ => {
+            add_session_notification_success(
+                router_data.db_pool.clone(),
+                router_data.session.id.clone(),
+                "Item removed successfully".to_owned(),
+            )
+            .await;
+        }
+    }
+    Ok(redirect_to("/shop/cart".to_owned()))
+}
 pub async fn view_cart(
     router_data: RouterData,
 ) -> anyhow::Result<http_stuff::http_response::HttpResponseData> {

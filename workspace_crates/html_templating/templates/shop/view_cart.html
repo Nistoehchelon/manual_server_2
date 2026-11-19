@@ -1,31 +1,34 @@
 {% extends "template_base.html" %}
 
 {% block title %}
-Shopping cart 
+Shopping cart
 {% endblock %}
 
 {% block content %}
 <div class="cart">
   {% if cart.items.is_empty() %}
-    <p>Your shopping cart is empty. <a href="/shop">Go to shop</a></p>
+  <p>Your shopping cart is empty. <a href="/shop">Go to shop</a></p>
   {% else %}
-  <h1>Items within your cart</h1> [ <a href="/shop/cart/clear">Clear your cart</a> ]</p> <br><hr> 
-    <ul>
-      {% for item in cart.items %}
-        <li class="cart-item">
-          <h3>{{ item.name }}</h3> [ <a href="/shop/cart/delete_item/{{item.id }}">Delete this item  from your cart</a>]
+  <h1>Items within your cart</h1> [ <form method="POST" action="/shop/cart/clear"><button>Clear your cart</button>
+  </form> ]</p> <br>
+  <hr>
+  <ul>
+    {% for item in cart.items %}
+    <li class="cart-item">
+      <h3>{{ item.name }}</h3> [ <form method="POST" action="/shop/cart/delete_item/{{item.id }}"><button>Delete this
+          item from your cart</button></form>]
 
-          {% if !item.data.is_empty() %}
-            <dl class="item-data">
-              {% for datum in item.data %}
-                <dt>{{ datum.name }}</dt>
-                <dd>{{ datum.value }}</dd>
-              {% endfor %}
-            </dl>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
+        {% if !item.data.is_empty() %}
+        <dl class="item-data">
+          {% for datum in item.data %}
+          <dt>{{ datum.name }}</dt>
+          <dd>{{ datum.value }}</dd>
+          {% endfor %}
+        </dl>
+        {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
   {% endif %}
 </div>
 

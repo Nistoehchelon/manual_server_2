@@ -1,6 +1,7 @@
 use askama::Template;
 use pagination::PaginationElement;
-use shop::ShoppingCart;
+use payment_system_structs::PaymentMethod;
+use shop::{ShoppingCart, TotalCurrency};
 
 pub struct User {
     pub username: String,
@@ -33,6 +34,7 @@ pub struct ShopMainPageTemplate {
 pub struct ViewCartTemplate {
     pub main_info: BaseTemplateData,
     pub cart: ShoppingCart,
+    pub payment_currencies: Vec<PaymentMethod>
 }
 
 #[derive(Template)]

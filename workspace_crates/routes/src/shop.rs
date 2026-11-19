@@ -13,6 +13,7 @@ use http_stuff::{
     http_response::{ok_html, redirect_to},
 };
 use id_generator_unique_in_db::Table::{ShoppingCartItemData, ShoppingCartItems};
+use payment_system_structs::PaymentMethod;
 use routing_structs::RouterData;
 use session::{add_session_notification_error, add_session_notification_success};
 use shop::{ShopService, ShoppingCart, ShoppingCartItem, ShoppingCartItemDatum, TotalCurrency};
@@ -147,6 +148,7 @@ pub async fn view_cart(
     let tpl = ViewCartTemplate {
         main_info: router_data.base_template_data.clone(),
         cart,
+        payment_currencies: PaymentMethod::iter().collect(),
     };
     let html = render(tpl);
     Ok(ok_html(html))
@@ -173,10 +175,6 @@ pub async fn calc_price_for_all_currencies(
         TotalCurrency {
             name: "XNO".to_owned(),
             amount: xno.to_string_trimmed(),
-        },
-        TotalCurrency {
-            name: "USD".to_owned(),
-            amount: total.to_string(),
         },
     ];
     tx.commit().await?;

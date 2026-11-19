@@ -8,6 +8,8 @@ Shop
 
 <h1>Shop items</h1><br>
 
+<span id = "shopping_cart_link"><a href="/shop/cart">Your shopping cart</a></span><br>
+
 {% for (name, description) in services %}
     <a href="/shop/{{name}}">{{name}}</a><br>
     Description: {{ description }}

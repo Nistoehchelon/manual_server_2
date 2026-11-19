@@ -112,138 +112,89 @@ pub async fn route(
             http_request_data: request_data.clone(),
             base_template_data,
         };
-       let final_response =  match (method, path.as_str()) {
-            (HttpMethod::Get, "/signup") => routes::signup::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Post, "/signup") => routes::signup::post(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Get, "/email_otp") => routes::email_otp::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Post, "/email_otp") => routes::email_otp::post(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Get, "/dashboard") => routes::dashboard::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Get, "/logout") => routes::logout::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Get, "/login") => routes::login::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Post, "/login") => routes::login::post(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Get, "/forum") => routes::forum::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Get, "/create_thread") => routes::create_thread::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Post, "/create_thread") => {
-                routes::create_thread::post(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+        let final_response = match (method, path.as_str()) {
+            (HttpMethod::Get, "/signup") => routes::signup::get(router_data.clone()).await,
+            (HttpMethod::Post, "/signup") => routes::signup::post(router_data.clone()).await,
+            (HttpMethod::Get, "/email_otp") => routes::email_otp::get(router_data.clone()).await,
+            (HttpMethod::Post, "/email_otp") => routes::email_otp::post(router_data.clone()).await,
+            (HttpMethod::Get, "/dashboard") => routes::dashboard::get(router_data.clone()).await,
+            (HttpMethod::Get, "/logout") => routes::logout::get(router_data.clone()).await,
+            (HttpMethod::Get, "/login") => routes::login::get(router_data.clone()).await,
+            (HttpMethod::Post, "/login") => routes::login::post(router_data.clone()).await,
+            (HttpMethod::Get, "/forum") => routes::forum::get(router_data.clone()).await,
+            (HttpMethod::Get, "/create_thread") => {
+                routes::create_thread::get(router_data.clone()).await
             }
-            (HttpMethod::Get, "/forum_thread") => routes::forum_thread::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Post, "/forum_thread") => routes::forum_thread::post(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Post, "/create_thread") => {
+                routes::create_thread::post(router_data.clone()).await
+            }
+            (HttpMethod::Get, "/forum_thread") => {
+                routes::forum_thread::get(router_data.clone()).await
+            }
+            (HttpMethod::Post, "/forum_thread") => {
+                routes::forum_thread::post(router_data.clone()).await
+            }
             (HttpMethod::Get, "/forum_thread_message_versions") => {
-                routes::forum_thread_message_versions::get(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::forum_thread_message_versions::get(router_data.clone()).await
             }
             (HttpMethod::Get, "/edit_forum_thread_message") => {
-                routes::edit_forum_thread_message::get(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::edit_forum_thread_message::get(router_data.clone()).await
             }
             (HttpMethod::Post, "/edit_forum_thread_message") => {
-                routes::edit_forum_thread_message::post(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::edit_forum_thread_message::post(router_data.clone()).await
             }
-            (HttpMethod::Get, "/create_forum") => routes::create_forum::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Post, "/create_forum") => routes::create_forum::post(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Get, "/create_forum") => {
+                routes::create_forum::get(router_data.clone()).await
+            }
+            (HttpMethod::Post, "/create_forum") => {
+                routes::create_forum::post(router_data.clone()).await
+            }
             (HttpMethod::Post, "/dump_request") => {
                 routes::dump_request::dump_request(router_data.clone())
-                    .unwrap_or(internal_server_error_500())
             }
 
             (HttpMethod::Get, "/manage_site_pages") => {
-                routes::manage_custom_site_pages::get(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::manage_custom_site_pages::get(router_data.clone()).await
             }
 
-            (HttpMethod::Get, "/shop") => routes::shop::main_page(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Get, "/shop/cart") => routes::shop::view_cart(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Post, "/shop/cart/clear") => routes::shop::clear_cart(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Get, "/shop") => routes::shop::main_page(router_data.clone()).await,
+            (HttpMethod::Get, "/shop/cart") => routes::shop::view_cart(router_data.clone()).await,
+            (HttpMethod::Post, "/shop/cart/clear") => {
+                routes::shop::clear_cart(router_data.clone()).await
+            }
             (HttpMethod::Post, p) if p.starts_with("/shop/cart/delete_item/") => {
-                routes::shop::delete_cart_item(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::shop::delete_cart_item(router_data.clone()).await
             }
             (HttpMethod::Post, "/shop/add_to_cart") => {
                 let res = routes::shop::add_to_cart(router_data.clone()).await;
                 if res.is_err() {
                     tracing::error!("{res:#?}");
                 }
-                res.unwrap_or(internal_server_error_500())
+                res
             }
             (HttpMethod::Get, p) if p.starts_with("/shop/") && !p.starts_with("/shop/cart") => {
-                routes::shop::get_items(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::shop::get_items(router_data.clone()).await
             }
             (HttpMethod::Get, p) if p.starts_with("/dynamic_stylesheet/") => {
-                routes::dynamic_stylesheet::get(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::dynamic_stylesheet::get(router_data.clone()).await
             }
             (HttpMethod::Get, "/invoice/json_status") => {
-                routes::invoice::get_json_status(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::invoice::get_json_status(router_data.clone()).await
             }
-            (HttpMethod::Get, "/invoice/view") => routes::invoice::get_view(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Get, "/invoice/view") => {
+                routes::invoice::get_view(router_data.clone()).await
+            }
             (HttpMethod::Post, "/invoice/create_invoice") => {
-                routes::invoice::post_create_invoice(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::invoice::post_create_invoice(router_data.clone()).await
             }
             (HttpMethod::Get, "/") | (HttpMethod::Get, "/index") => {
-                routes::index::get(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::index::get(router_data.clone()).await
             }
             (HttpMethod::Get, "/manage_custom_site_variables") => {
-                routes::manage_custom_site_variables::get(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::manage_custom_site_variables::get(router_data.clone()).await
             }
             (HttpMethod::Post, "/manage_custom_site_variables") => {
-                routes::manage_custom_site_variables::post(router_data.clone())
-                    .await
-                    .unwrap_or(internal_server_error_500())
+                routes::manage_custom_site_variables::post(router_data.clone()).await
             }
             (HttpMethod::Get, path) => {
                 debug!("Path might be a dynamic custom page");
@@ -252,19 +203,15 @@ pub async fn route(
                 path.remove(0); // remove slash
 
                 match path.is_empty() {
-                    true => routes::not_found::not_found(router_data.clone())
-                        .unwrap_or(internal_server_error_500()),
+                    true => routes::not_found::not_found(router_data.clone()),
                     false => {
                         if let Ok(Some(_page)) =
                             custom_site_pages::find_custom_site_page(db_pool.clone(), path.clone())
                                 .await
                         {
-                            routes::view_custom_site_page::get(router_data.clone(), path)
-                                .await
-                                .unwrap_or(internal_server_error_500())
+                            routes::view_custom_site_page::get(router_data.clone(), path).await
                         } else {
                             routes::not_found::not_found(router_data.clone())
-                                .unwrap_or(internal_server_error_500())
                         }
                     }
                 }
@@ -274,10 +221,15 @@ pub async fn route(
                     "User tried accessing path {p} using method {m}, but no routes exist associated with that method and path."
                 );
                 routes::not_found::not_found(router_data.clone())
-                    .unwrap_or(internal_server_error_500())
             }
         };
-        final_response
+        match final_response {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("{e:#?}");
+                internal_server_error_500()
+            }
+        }
     };
 
     if created_new_session {

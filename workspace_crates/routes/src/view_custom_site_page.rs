@@ -8,13 +8,13 @@ use session::add_session_notification_error;
 pub async fn get(
     router_data: RouterData,
     path: String,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     let custom_site_page =
         match custom_site_pages::find_custom_site_page(db_pool.clone(), path.clone())
             .await
-            .map_err(InternalAppError::new)?
+           ?
         {
             Some(csp) => csp,
             None => {

@@ -18,7 +18,7 @@ pub enum PreliminaryProcessing {
 }
 pub async fn invoice_viewing_preliminary_checks_and_processing(
     router_data: RouterData,
-) -> Result<PreliminaryProcessing, InternalAppError> {
+) -> anyhow::Result<PreliminaryProcessing> {
     let RouterData {
         site_config: _,
         db_pool,
@@ -31,7 +31,7 @@ pub async fn invoice_viewing_preliminary_checks_and_processing(
     };
     if !abac::user_can_view_invoice(db_pool.clone(), session.user_id.clone(), invoice_id.clone())
         .await
-        .map_err(InternalAppError::new)?
+        ?
     {
         tracing::error!(
             "User tried to view an invoice (not necessarily an invoice that actually exists) but were denied"
@@ -43,7 +43,7 @@ pub async fn invoice_viewing_preliminary_checks_and_processing(
     };
     if !abac::user_can_view_invoice(db_pool.clone(), session.user_id.clone(), invoice_id.clone())
         .await
-        .map_err(InternalAppError::new)?
+        ?
     {
         tracing::error!(
             "User tried to view an invoice (not necessarily an invoice that actually exists) but were denied"
@@ -55,7 +55,7 @@ pub async fn invoice_viewing_preliminary_checks_and_processing(
 
 pub async fn get_json_status(
     router_data: RouterData,
-) -> Result<HttpResponseData, InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let RouterData { db_pool, .. } = router_data.clone();
 
     let invoice_id =
@@ -63,12 +63,12 @@ pub async fn get_json_status(
             PreliminaryProcessing::Forbid => return Ok(redirect_to("/".to_string())),
             PreliminaryProcessing::Okay { invoice_id } => invoice_id,
         };
-    let mut tx = db_pool.begin().await.map_err(InternalAppError::new)?;
+    let mut tx = db_pool.begin().await?;
     let payment_status = invoice::invoice_status(&mut tx, InvoiceId(invoice_id))
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let payment_status_json =
-        serde_json::to_string(&payment_status).map_err(InternalAppError::new)?;
+        serde_json::to_string(&payment_status)?;
 
     let resp = http_stuff::http_response::ok(
         payment_status_json.into(),
@@ -78,7 +78,7 @@ pub async fn get_json_status(
     Ok(resp)
 }
 
-pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, InternalAppError> {
+pub async fn get_view(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let RouterData { db_pool, .. } = router_data.clone();
 
     let invoice_id =
@@ -92,16 +92,16 @@ pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, Inter
         .clone()
         .begin()
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let invoice::PaymentData {
         method,
         address,
         amount,
     } = invoice::get_payment_data(&mut tx, InvoiceId(invoice_id.clone()))
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
 
-    tx.commit().await.map_err(InternalAppError::new)?;
+    tx.commit().await?;
     Ok(ok_html(render(ViewInvoiceTemplate {
         main_info: router_data.base_template_data,
         amount,
@@ -112,7 +112,7 @@ pub async fn get_view(router_data: RouterData) -> Result<HttpResponseData, Inter
 }
 pub async fn post_create_invoice(
     router_data: RouterData,
-) -> Result<HttpResponseData, InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let RouterData {
         site_config,
         db_pool,
@@ -124,20 +124,20 @@ pub async fn post_create_invoice(
         .clone()
         .begin()
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let Ok(user) = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone()).await else {
         return Ok(redirect_to("/".to_string()));
     };
     if !abac::user_can_create_invoice(db_pool.clone(), user.id.clone())
         .await
-        .map_err(InternalAppError::new)?
+        ?
     {
         return Ok(redirect_to("/".to_string()));
     }
 
     let body_params =
         parse_body_into_string_form_input_params(http_request_data.body_bytes.clone())
-            .map_err(InternalAppError::new)?;
+            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     if site_config.cloudflare_turnstile_enabled
         && !crate::validate_turnstile(
@@ -147,7 +147,7 @@ pub async fn post_create_invoice(
             site_config.cloudflare_turnstile_secret_key.clone(),
         )
         .await
-        .map_err(InternalAppError::new)?
+        ?
     {
         add_session_notification_error(
             db_pool.clone(),
@@ -173,7 +173,7 @@ pub async fn post_create_invoice(
     let csrf_token_valid =
         csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
     if !csrf_token_valid {
         add_session_notification_error(
             db_pool.clone(),
@@ -201,7 +201,7 @@ pub async fn post_create_invoice(
             ServiceData::Subscription {
                 months,
                 expires_at: {
-                    let now = utc_now().map_err(InternalAppError::new)?;
+                    let now = utc_now()?;
                     now + (months * 30 * 24 * 60)
                 },
             }
@@ -219,8 +219,8 @@ pub async fn post_create_invoice(
                 custom_site_variables::CustomSiteVariableName::SubscriptionCostPerMonthUsd,
             )
             .await
-            .map_err(InternalAppError::new)?;
-            let sub_cost: f64 = sub_cost.parse().map_err(InternalAppError::new)?;
+            ?;
+            let sub_cost: f64 = sub_cost.parse()?;
             let sub_cost = (sub_cost * (months as f64)).to_string();
             let sub_cost = &sub_cost.as_str();
 
@@ -228,17 +228,17 @@ pub async fn post_create_invoice(
                 "litecoin" => PaymentMethod::LTC {
                     amount: get_by_usd::<LTC>(&mut tx, sub_cost)
                         .await
-                        .map_err(InternalAppError::new)?,
+                        ?,
                 },
                 "monero" => PaymentMethod::XMR {
                     amount: get_by_usd::<XMR>(&mut tx, sub_cost)
                         .await
-                        .map_err(InternalAppError::new)?,
+                        ?,
                 },
                 "nano" => PaymentMethod::XNO {
                     amount: get_by_usd::<XNO>(&mut tx, sub_cost)
                         .await
-                        .map_err(InternalAppError::new)?,
+                        ?,
                 },
 
                 _ => {
@@ -258,14 +258,14 @@ pub async fn post_create_invoice(
         webhooks::WebhookEndpoint::PaymentSuccess,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
     let payment_status_update_url = webhooks::get_endpoint_url(
         &mut tx,
         site_config.webhook_and_api_secret_path_prefix.clone(),
         webhooks::WebhookEndpoint::PaymentStatusUpdate,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
     let invoice_data = create_invoice(
         &mut tx,
         user.id,
@@ -283,8 +283,8 @@ pub async fn post_create_invoice(
             .clone(),
     )
     .await
-    .map_err(InternalAppError::new)?;
-    tx.commit().await.map_err(InternalAppError::new)?;
+    ?;
+    tx.commit().await?;
     add_session_notification_success(
         db_pool.clone(),
         session.id,

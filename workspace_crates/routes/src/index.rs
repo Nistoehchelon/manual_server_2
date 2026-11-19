@@ -12,19 +12,19 @@ use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     if session.logged_in {
         let user = get_user_by_user_id(db_pool.clone(), session.user_id.clone())
             .await
-            .map_err(InternalAppError::new)?;
-        let mut tx = db_pool.begin().await.map_err(InternalAppError::new)?;
+          ?;
+        let mut tx = db_pool.begin().await?;
         let user_has_a_subscription =
             user::subscription::user_has_a_subscription(&mut tx, &user.id)
                 .await
-                .map_err(InternalAppError::new)?;
-        tx.commit().await.map_err(InternalAppError::new)?;
+              ?;
+        tx.commit().await?;
 
         return Ok(http_stuff::http_response::ok_html(get_html(
             router_data.base_template_data,

@@ -12,7 +12,7 @@ use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     if !session.logged_in {
@@ -22,14 +22,14 @@ pub async fn get(
 
     let the_user = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let csrf_token = csrf_stuff::get_or_create_token(
         db_pool.clone(),
         session.id.clone(),
         csrf_stuff::DesignatedPurpose::Normal,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
     let msg_id = {
         let msg_id = router_data.http_request_data.query.get("id");
         if let Some(msg_id) = msg_id {
@@ -41,29 +41,29 @@ pub async fn get(
     };
     let msg = forum::forum_thread_message::get_message(db_pool.clone(), msg_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let original_message_poster_id =
         forum::get_initial_message_version(db_pool.clone(), msg_id.clone())
             .await
-            .map_err(InternalAppError::new)?
+            ?
             .user_id;
     let current_message_version =
         forum::get_latest_message_version(db_pool.clone(), msg_id.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
     if !abac::can_edit_forum_thread_message(CanEditForumThreadMessageInput {
         original_message_poster_id,
         user_id: the_user.id,
     })
     .await
-    .map_err(InternalAppError::new)?
+    ?
     {
         println!("User can't edit the message");
         return Ok(redirect_to("/".to_string()));
     }
     let thread = get_thread(db_pool.clone(), msg.thread_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let thread_page = {
         router_data
             .http_request_data
@@ -87,7 +87,7 @@ pub async fn get(
 
 pub async fn post(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let RouterData {
         db_pool, session, ..
     } = router_data.clone();
@@ -100,7 +100,7 @@ pub async fn post(
     let body_params = http_request_parsing::parse_body_into_string_form_input_params(
         router_data.http_request_data.body_bytes.clone(),
     )
-    .map_err(InternalAppError::new)?;
+   .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     let message = body_params.get("message").cloned();
     let message_id = body_params.get("message_id").cloned();
@@ -132,14 +132,14 @@ pub async fn post(
     let msg =
         forum::forum_thread_message::get_message(router_data.db_pool.clone(), message_id.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
     let curr_msg_content: forum::ForumThreadMessageVersion =
         forum::get_latest_message_version(db_pool.clone(), msg.id.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
     let op_msg = forum::get_initial_message_version(router_data.db_pool.clone(), msg.id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let return_url = {
         format!(
             "/forum_thread?id={}&page={}",
@@ -150,7 +150,7 @@ pub async fn post(
                 forum_structs::MESSAGES_PER_PAGE
             )
             .await
-            .map_err(InternalAppError::new)?
+            ?
         )
     };
     if message.to_string() == curr_msg_content.content {
@@ -168,13 +168,13 @@ pub async fn post(
         router_data.session.user_id.clone(),
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
     if !abac::can_edit_forum_thread_message(CanEditForumThreadMessageInput {
         user_id: user.id.clone(),
         original_message_poster_id: op_msg.user_id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?
+    ?
     {
         session::add_session_notification(
             router_data.db_pool.clone(),
@@ -185,7 +185,7 @@ pub async fn post(
             },
         )
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
 
         return Ok(redirect_to(current_url.clone().to_string()));
     }
@@ -193,7 +193,7 @@ pub async fn post(
     let is_csrf_token_valid =
         csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
     if !is_csrf_token_valid {
         return Ok(bad_request_400());
     }
@@ -206,7 +206,7 @@ pub async fn post(
         user.id,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
 
     Ok(redirect_to(return_url))
 }

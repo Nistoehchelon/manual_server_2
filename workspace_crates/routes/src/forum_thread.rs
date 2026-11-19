@@ -21,7 +21,7 @@ use routing_structs::RouterData;
 
 pub async fn get(
     mut router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     let request_data = router_data.http_request_data.clone();
@@ -39,14 +39,14 @@ pub async fn get(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
             return Ok(redirect_to("/forum".to_string()));
         }
     };
     let thread_page = query.get("page");
     let thread_page = match thread_page {
         Some(p) => {
-            let mut temp = p.parse::<u64>().map_err(InternalAppError::new)?;
+            let mut temp = p.parse::<u64>()?;
             if temp == 0 {
                 temp = 1
             }
@@ -57,7 +57,7 @@ pub async fn get(
 
     let thread = match forum::find_thread(db_pool.clone(), thread_id.clone())
         .await
-        .map_err(InternalAppError::new)?
+        ?
     {
         Some(t) => t,
         None => {
@@ -70,7 +70,7 @@ pub async fn get(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
             return Ok(redirect_to("/forum".to_string()));
         }
     };
@@ -81,14 +81,14 @@ pub async fn get(
         thread_id: thread_id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?
+    ?
     {
         println!("User doesn't have permissions to access this thread");
         return Ok(redirect_to("/".to_string()));
     }
     let user_opt = find_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
 
     let limit_per_page = forum_structs::MESSAGES_PER_PAGE;
     let thread_message_ids = forum::get_thread_message_ids(
@@ -98,12 +98,12 @@ pub async fn get(
         limit_per_page,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
 
     let thread_messages_count =
         forum::get_count_thread_messages(db_pool.clone(), thread_id.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
     let current_url = Url::new(request_data.path.clone(), request_data.query.clone());
     let pagi = Pagination {
         records_count: thread_messages_count,
@@ -116,22 +116,22 @@ pub async fn get(
 
     let mut thread_messages: Vec<
         html_templating::html_template_structs::ForumThreadMessageCombinedData,
-    > = Vec::with_capacity(usize::try_from(limit_per_page).map_err(InternalAppError::new)?);
+    > = Vec::with_capacity(usize::try_from(limit_per_page)?);
     for msg_id in thread_message_ids {
         let latest_message_version =
             forum::get_latest_message_version(db_pool.clone(), msg_id.clone())
                 .await
-                .map_err(InternalAppError::new)?;
+                ?;
         let content = latest_message_version.content;
 
         let initial_message_version =
             forum::get_initial_message_version(db_pool.clone(), msg_id.clone())
                 .await
-                .map_err(InternalAppError::new)?;
+                ?;
         let user_id = initial_message_version.user_id.clone();
         let username = user::get_user_by_user_id(db_pool.clone(), user_id.clone())
             .await
-            .map_err(InternalAppError::new)?
+            ?
             .username;
 
         // TODO: convert to string
@@ -139,7 +139,7 @@ pub async fn get(
 
         let modifications_count = forum::get_modifications_count(db_pool.clone(), msg_id.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
 
         let tm = html_templating::html_template_structs::ForumThreadMessageCombinedData {
             id: msg_id,
@@ -161,7 +161,7 @@ pub async fn get(
                     original_message_poster_id: initial_message_version.user_id.clone(),
                 })
                 .await
-                .map_err(InternalAppError::new)?
+                ?
             },
         };
         thread_messages.push(tm);
@@ -173,7 +173,7 @@ pub async fn get(
         csrf_stuff::DesignatedPurpose::Normal,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
 
     router_data.base_template_data.title = String::new();
 
@@ -191,7 +191,7 @@ pub async fn get(
         },
         user_can_add_message: abac::can_create_forum_thread_message(session.clone())
             .await
-            .map_err(InternalAppError::new)?,
+            ?,
     });
 
     Ok(ok_html(html))
@@ -199,7 +199,7 @@ pub async fn get(
 
 pub async fn post(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     let request_data = router_data.http_request_data.clone();
@@ -208,10 +208,11 @@ pub async fn post(
     let current_url = Url::new(request_data.path.clone(), query.clone());
 
     let body_params = http_request_parsing::parse_body_into_string_form_input_params(body_bytes)
-        .map_err(InternalAppError::new)?;
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     let message = body_params.get("message").cloned();
-    let thread_id = query.get("id").cloned();
+    let get = query.get("id");
+    let thread_id = get.cloned();
     let csrf_token = body_params.get("csrf_token").cloned();
 
     let (message, thread_id, csrf_token) = match (message, thread_id, csrf_token) {
@@ -228,7 +229,7 @@ pub async fn post(
 
     if !abac::can_create_forum_thread_message(session.clone())
         .await
-        .map_err(InternalAppError::new)?
+        ?
     {
         add_session_notification(
             db_pool,
@@ -239,7 +240,7 @@ pub async fn post(
             },
         )
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
 
         return Ok(redirect_to(current_url.clone().to_string()));
     }
@@ -250,14 +251,14 @@ pub async fn post(
         thread_id: thread_id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?
+    ?
     {
         println!("User doesn't have permissions to access this thread");
         return Ok(redirect_to("/".to_string()));
     }
     match forum::find_thread(db_pool.clone(), thread_id.clone())
         .await
-        .map_err(InternalAppError::new)?
+        ?
     {
         Some(_) => {}
         None => {
@@ -270,7 +271,7 @@ pub async fn post(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
             return Ok(redirect_to("/forum".to_string()));
         }
     }
@@ -278,7 +279,7 @@ pub async fn post(
     let is_csrf_token_valid =
         csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
     if !is_csrf_token_valid {
         return Ok(bad_request_400());
     }
@@ -296,14 +297,14 @@ pub async fn post(
     };
     forum::add_message(db_pool.clone(), message, session.user_id, thread_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let total_pages = forum::get_count_thread_pages(
         db_pool.clone(),
         thread_id.clone(),
         forum_structs::MESSAGES_PER_PAGE,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
     let mut redir_url = current_url.clone();
     redir_url
         .query

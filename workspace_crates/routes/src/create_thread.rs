@@ -16,7 +16,7 @@ use routing_structs::RouterData;
 
 pub async fn get(
     mut router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let query = router_data.http_request_data.query.clone();
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
@@ -26,7 +26,7 @@ pub async fn get(
         session_id: session.id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
     if !can_create_thread {
         return Ok(redirect_to("/".to_string()));
     }
@@ -37,7 +37,7 @@ pub async fn get(
 
     let forum = find_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
 
     if forum.is_none() {
         add_session_notification(
@@ -49,7 +49,7 @@ pub async fn get(
             },
         )
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
         return Ok(redirect_to("/forum".to_string()));
     }
     let forum = forum.unwrap();
@@ -60,7 +60,7 @@ pub async fn get(
         csrf_stuff::DesignatedPurpose::Normal,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
 
     if !can_access_this_forum(CanAccessThisForumInput {
         db_pool: db_pool.clone(),
@@ -68,7 +68,7 @@ pub async fn get(
         forum_id: forum_id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?
+    ?
     {
         println!("User doesn't have permissions to access this forum");
         return Ok(redirect_to("/".to_string()));
@@ -87,7 +87,7 @@ pub async fn get(
             "draft_forum_thread_content".to_string(),
         )
         .await
-        .map_err(InternalAppError::new)?,
+        ?,
 
         draft_thread_name: session::get_custom_data_or_empty_string(
             db_pool.clone(),
@@ -95,7 +95,7 @@ pub async fn get(
             "draft_forum_thread_name".to_string(),
         )
         .await
-        .map_err(InternalAppError::new)?,
+        ?,
 
         draft_thread_custom_id: {
             let draft = session::get_custom_data_or_empty_string(
@@ -104,7 +104,7 @@ pub async fn get(
                 "draft_forum_thread_custom_id".to_string(),
             )
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
             if draft.is_empty() {
                 "[auto]".to_string()
             } else {
@@ -119,7 +119,7 @@ pub async fn get(
             },
         )
         .await
-        .map_err(InternalAppError::new)?,
+        ?,
         thread_name_length_max: router_data.site_config.max_length_forum_thread_name,
         thread_message_length_max: router_data.site_config.max_length_forum_message,
     });
@@ -128,7 +128,7 @@ pub async fn get(
 
 pub async fn post(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     let request_data = router_data.http_request_data.clone();
@@ -138,12 +138,12 @@ pub async fn post(
         session_id: session.id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
     if !can_create_thread {
         return Ok(redirect_to("/".to_string()));
     }
     let params = http_request_parsing::parse_body_into_string_form_input_params(body_bytes)
-        .map_err(InternalAppError::new)?;
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     let name = params.get("name").cloned();
     let content = params.get("content").cloned();
@@ -157,7 +157,7 @@ pub async fn post(
     let is_csrf_token_valid =
         csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
     if !is_csrf_token_valid {
         return Ok(bad_request_400());
     }
@@ -186,7 +186,7 @@ pub async fn post(
     };
     let forum = find_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
 
     if forum.is_none() {
         session::add_session_notification_error(
@@ -204,17 +204,17 @@ pub async fn post(
         forum_id: forum_id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?
+    ?
     {
         println!("User doesn't have permissions to access this forum");
         return Ok(redirect_to("/".to_string()));
     }
 
-    let mut tx = db_pool.begin().await.map_err(InternalAppError::new)?;
+    let mut tx = db_pool.begin().await?;
     let mut thread_id = id_generator_unique_in_db::generate_unique_thread_id(&mut tx)
         .await
-        .map_err(InternalAppError::new)?;
-    tx.commit().await.map_err(InternalAppError::new)?;
+        ?;
+    tx.commit().await?;
 
     if let Some(custom_id) = params.get("custom_id")
         && custom_id != "[auto]"
@@ -227,7 +227,7 @@ pub async fn post(
             },
         )
         .await
-        .map_err(InternalAppError::new)?
+        ?
         {
             add_session_notification(
                 db_pool,
@@ -240,7 +240,7 @@ pub async fn post(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
             return Ok(redirect_to(format!("create_thread?forum_id={forum_id}")));
         } else {
             session::set_custom_data(
@@ -250,10 +250,10 @@ pub async fn post(
                 custom_id.clone(),
             )
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
             let custom_id_available = forum::find_thread(db_pool.clone(), custom_id.clone())
                 .await
-                .map_err(InternalAppError::new)?
+                ?
                 .is_none();
             if !custom_id_available {
                 add_session_notification(
@@ -265,7 +265,7 @@ pub async fn post(
                     },
                 )
                 .await
-                .map_err(InternalAppError::new)?;
+                ?;
 
                 return Ok(redirect_to(format!("/create_thread?forum_id={forum_id}")));
             } else {
@@ -283,7 +283,7 @@ pub async fn post(
         forum_id.clone(),
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
 
     add_session_notification(
         db_pool.clone(),
@@ -294,7 +294,7 @@ pub async fn post(
         },
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
     Ok(redirect_to(format!(
         "/forum_thread?id={}",
         thread_id.clone()

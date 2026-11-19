@@ -12,7 +12,7 @@ use user::get_user_by_user_id;
 
 use routing_structs::RouterData;
 
-pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, InternalAppError> {
+pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     let request_data = router_data.http_request_data.clone();
@@ -30,7 +30,7 @@ pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, Intern
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            ?;
             return Ok(redirect_to("/forum".to_string()));
         }
     };
@@ -67,7 +67,7 @@ pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, Intern
 
     let msg = match forum::find_thread_message(db_pool.clone(), message_id.clone())
         .await
-        .map_err(InternalAppError::new)?
+       ?
     {
         Some(m) => m,
         None => {
@@ -80,14 +80,14 @@ pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, Intern
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+           ?;
             return Ok(redirect_to("/forum".to_string()));
         }
     };
 
     let thread = forum::get_thread(db_pool.clone(), msg.thread_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+       ?;
 
     if !can_access_this_forum_thread(CanAccessThisForumThreadInput {
         db_pool: db_pool.clone(),
@@ -95,7 +95,7 @@ pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, Intern
         thread_id: thread.id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?
+   ?
     {
         println!("User doesn't have permissions to access this thread");
         return Ok(redirect_to("/".to_string()));
@@ -110,12 +110,12 @@ pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, Intern
         VERSIONS_PER_PAGE,
     )
     .await
-    .map_err(InternalAppError::new)?;
+   ?;
 
     let versions_count =
         forum::get_count_thread_message_versions(db_pool.clone(), message_id.clone())
             .await
-            .map_err(InternalAppError::new)?;
+           ?;
 
     let current_url = Url::new(request_data.path.clone(), request_data.query.clone());
     let pagi = Pagination {
@@ -128,12 +128,12 @@ pub async fn get(mut router_data: RouterData) -> Result<HttpResponseData, Intern
     let versions_pagination_elements = pagi.get_pagination_elements();
 
     let mut message_versions_to_render: Vec<html_template_structs::ForumThreadMessageVersion> =
-        Vec::with_capacity(usize::try_from(VERSIONS_PER_PAGE).map_err(InternalAppError::new)?);
+        Vec::with_capacity(usize::try_from(VERSIONS_PER_PAGE)?);
 
     for msg in message_versions {
         let user = get_user_by_user_id(db_pool.clone(), msg.user_id)
             .await
-            .map_err(InternalAppError::new)?;
+           ?;
         message_versions_to_render.push(html_template_structs::ForumThreadMessageVersion {
             user_id: user.id.clone(),
             user_username: user.username,

@@ -28,16 +28,16 @@ pub async fn validate_turnstile(
     cloudflare_turnstile_post_parameter_name: String,
     client_ip: IpAddr,
     cloudflare_turnstile_secret_key: String,
-) -> Result<bool, SomeSortOfError> {
+) -> anyhow::Result<bool> {
     let cf_turnstile_token = match body_params
         .get(&cloudflare_turnstile_post_parameter_name)
         .cloned()
     {
         Some(t) => t,
         None => {
-            return Err(SomeSortOfError::new(
+           anyhow::bail!(
                 "Could not retrieve cf_turnstile_token from request body",
-            ));
+            );
         }
     };
     Ok(cloudflare_turnstile::validate_turnstile(

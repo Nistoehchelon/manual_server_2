@@ -9,20 +9,20 @@ pub async fn user_can_view_invoice(
     db_pool: sqlx::PgPool,
     user_id: String,
     invoice_id: String,
-) -> Result<bool, SomeSortOfError> {
-    let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
+) -> anyhow::Result<bool> {
+    let mut tx = db_pool.begin().await?;
     let Ok(invoice_user_id) =
         invoice::get_invoice_data(&mut tx, invoice::InvoiceId(invoice_id), "user_id").await
     else {
         return Ok(false);
     };
-    tx.commit().await.map_err(SomeSortOfError::new)?;
+    tx.commit().await?;
     Ok(user_id == invoice_user_id)
 }
 pub async fn user_can_create_invoice(
     _db_pool: sqlx::PgPool,
     _user_id: String,
-) -> Result<bool, SomeSortOfError> {
+) -> anyhow::Result<bool> {
     Ok(true)
 }
 
@@ -52,7 +52,7 @@ pub async fn get_bool_subject_subject_id_permission_name(
 
 pub async fn user_can_view_app_executable_version(
     input: UserCanViewAppExecutableVersionInput,
-) -> Result<bool, SomeSortOfError> {
+) -> anyhow::Result<bool> {
     let b = get_bool_subject_subject_id_permission_name(
         input.db_pool.clone(),
         "user",
@@ -60,7 +60,7 @@ pub async fn user_can_view_app_executable_version(
         Permission::ViewAppExecutableVersion,
     )
     .await
-    .map_err(SomeSortOfError::new)?;
+   ?;
     Ok(b)
 }
 
@@ -123,7 +123,7 @@ pub struct CanEditForumThreadMessageInput {
 }
 pub async fn can_edit_forum_thread_message(
     input: CanEditForumThreadMessageInput,
-) -> Result<bool, SomeSortOfError> {
+) -> anyhow::Result<bool> {
     // todo... at least check if user and msg's OP are the same. Actually, let's do that now.
     Ok(input.user_id == input.original_message_poster_id)
 }
@@ -154,7 +154,7 @@ pub async fn can_set_custom_thread_id_when_creating_it(
     Ok(b)
 }
 
-pub async fn can_create_forum_thread_message(session: Session) -> Result<bool, SomeSortOfError> {
+pub async fn can_create_forum_thread_message(session: Session) -> anyhow::Result<bool> {
     Ok(session.logged_in)
 }
 

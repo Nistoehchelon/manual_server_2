@@ -89,7 +89,7 @@ pub async fn get_count_thread_pages(
     db_pool: sqlx::PgPool,
     thread_id: String,
     messages_per_page: u64,
-) -> Result<u64, SomeSortOfError> {
+) -> anyhow::Result<u64> {
     let msgs_count = get_count_thread_messages(db_pool.clone(), thread_id.clone()).await?;
     let pages_count = msgs_count.div_ceil(messages_per_page);
     Ok(pages_count)
@@ -102,11 +102,11 @@ pub async fn get_thread_message_versions(
     message_id: String,
     page: u64,
     records_per_page: u64,
-) -> Result<Vec<ForumThreadMessageVersion>, SomeSortOfError> {
-    let limit = i64::try_from(records_per_page).map_err(SomeSortOfError::new)?;
-    let page = i64::try_from(page).map_err(SomeSortOfError::new)?;
+) -> anyhow::Result<Vec<ForumThreadMessageVersion>> {
+    let limit = i64::try_from(records_per_page)?;
+    let page = i64::try_from(page)?;
     let offset = (page - 1) * limit;
-    let msg_vers = sqlx::query!("SELECT primary_key, id, user_id, message_id, content, created_at FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY primary_key DESC LIMIT $2 OFFSET $3", message_id, limit, offset).fetch_all(&db_pool).await.map_err(SomeSortOfError::new)?;
+    let msg_vers = sqlx::query!("SELECT primary_key, id, user_id, message_id, content, created_at FROM forum_thread_message_versions WHERE message_id = $1 ORDER BY primary_key DESC LIMIT $2 OFFSET $3", message_id, limit, offset).fetch_all(&db_pool).await?;
     let msg_vers = {
         let mut converted: Vec<ForumThreadMessageVersion> = vec![];
         for r in msg_vers {
@@ -128,25 +128,25 @@ pub async fn get_thread_message_versions(
 pub async fn get_count_thread_message_versions(
     db_pool: sqlx::PgPool,
     message_id: String,
-) -> Result<u64, SomeSortOfError> {
+) -> anyhow::Result<u64> {
     let count = sqlx::query_scalar!(
         "SELECT COUNT(primary_key) as count FROM forum_thread_message_versions WHERE message_id = $1",
         message_id
     )
     .fetch_one(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?;
+   ?;
     if let Some(c) = count {
-        let as_u64 = u64::try_from(c).map_err(SomeSortOfError::new)?;
+        let as_u64 = u64::try_from(c)?;
         return Ok(as_u64);
     }
-    Err(SomeSortOfError::new("Error getting message versions count"))
+    Err(anyhow::anyhow!("Error getting message versions count"))
 }
 
 pub async fn find_thread_message(
     db_pool: sqlx::PgPool,
     message_id: String,
-) -> Result<Option<ForumThreadMessage>, SomeSortOfError> {
+) -> anyhow::Result<Option<ForumThreadMessage>> {
     let result = sqlx::query_as!(
         ForumThreadMessage,
         "SELECT primary_key, id, thread_id FROM forum_thread_messages WHERE id = $1",
@@ -154,29 +154,29 @@ pub async fn find_thread_message(
     )
     .fetch_optional(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?;
+   ?;
     Ok(result)
 }
 
 pub async fn get_count_thread_messages(
     db_pool: sqlx::PgPool,
     thread_id: String,
-) -> Result<u64, SomeSortOfError> {
+) -> anyhow::Result<u64> {
     let _ = get_thread(db_pool.clone(), thread_id.clone())
         .await
-        .map_err(SomeSortOfError::new)?;
+       ?;
     let count = sqlx::query_scalar!(
         "SELECT COUNT(primary_key) as count FROM forum_thread_messages WHERE thread_id = $1",
         thread_id
     )
     .fetch_one(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?;
+   ?;
     if let Some(c) = count {
-        let as_u64 = u64::try_from(c).map_err(SomeSortOfError::new)?;
+        let as_u64 = u64::try_from(c)?;
         return Ok(as_u64);
     }
-    Err(SomeSortOfError::new("Error getting thread messages count"))
+    Err(anyhow::anyhow!("Error getting thread messages count"))
 }
 pub async fn get_forum_threads(
     db_pool: sqlx::PgPool,
@@ -300,7 +300,7 @@ pub async fn find_thread_by_forum_id_and_title(
     db_pool: sqlx::PgPool,
     forum_id: String,
     title: String,
-) -> Result<Option<ForumThread>, DbError> {
+) -> anyhow::Result<Option<ForumThread>> {
     let thread_id = match sqlx::query!(
         "SELECT id FROM forum_threads WHERE forum_id = $1 AND name = $2",
         forum_id,
@@ -308,13 +308,13 @@ pub async fn find_thread_by_forum_id_and_title(
     )
     .fetch_optional(&db_pool)
     .await
-    .map_err(DbError::new)?
+    ?
     {
         Some(t) => t.id,
         None => return Ok(None),
     };
 
-    let t = get_thread(db_pool, thread_id).await.map_err(DbError::new)?;
+    let t = get_thread(db_pool, thread_id).await?;
     Ok(Some(t))
 }
 
@@ -354,32 +354,32 @@ pub async fn add_message(
     message_content: ValidForumThreadMessageContent,
     user_id: String,
     thread_id: String,
-) -> Result<(), DbError> {
-    let mut tx = db_pool.begin().await.map_err(DbError::new)?;
+) -> anyhow::Result<()> {
+    let mut tx = db_pool.begin().await?;
 
-    let message_id_result = sqlx::query!("INSERT INTO forum_thread_messages (id, thread_id, user_id) VALUES (gen_random_uuid(), $1, $2) RETURNING ID", thread_id.clone(), user_id.clone()).fetch_one(&mut *tx).await.map_err(DbError::new)?;
+    let message_id_result = sqlx::query!("INSERT INTO forum_thread_messages (id, thread_id, user_id) VALUES (gen_random_uuid(), $1, $2) RETURNING ID", thread_id.clone(), user_id.clone()).fetch_one(&mut *tx).await?;
 
-    let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), message_content.to_string(), message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
+    let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), message_content.to_string(), message_id_result.id).fetch_one(&mut *tx).await?;
 
-    tx.commit().await.map_err(DbError::new)?;
+    tx.commit().await?;
     Ok(())
 }
 
 pub async fn get_modifications_count(
     db_pool: sqlx::PgPool,
     msg_id: String,
-) -> Result<i64, SomeSortOfError> {
+) -> anyhow::Result<i64> {
     let result = sqlx::query_scalar!(
         "SELECT COUNT(*) as count FROM forum_thread_message_versions WHERE message_id = $1",
         msg_id
     )
     .fetch_one(&db_pool)
     .await
-    .map_err(SomeSortOfError::new)?;
+   ?;
     if let Some(c) = result {
         Ok(c)
     } else {
-        Err(SomeSortOfError::new("Could not get modifications count"))
+        Err(anyhow::anyhow!("Could not get modifications count"))
     }
 }
 pub async fn get_thread_message_ids(
@@ -412,7 +412,7 @@ pub async fn create_thread(
     content: ValidForumThreadMessageContent,
     user_id: String,
     forum_id: String,
-) -> Result<String, DbError> {
+) -> anyhow::Result<String> {
     storage_specific_create_thread(db_pool, id, name, content, user_id, forum_id).await
 }
 
@@ -423,8 +423,8 @@ async fn storage_specific_create_thread(
     content: ValidForumThreadMessageContent,
     user_id: String,
     forum_id: String,
-) -> Result<String, DbError> {
-    let mut tx = db_pool.begin().await.map_err(DbError::new)?;
+) -> anyhow::Result<String> {
+    let mut tx = db_pool.begin().await?;
 
     let thread_id_result = sqlx::query!(
         "INSERT INTO forum_threads (id, name, forum_id) VALUES ($1, $2, $3) RETURNING id",
@@ -434,16 +434,16 @@ async fn storage_specific_create_thread(
     )
     .fetch_one(&mut *tx)
     .await
-    .map_err(DbError::new)?;
+    ?;
 
     let message_id = id_generator_unique_in_db::generate_unique_forum_thread_message_id(&mut tx)
         .await
-        .map_err(DbError::new)?;
-    let message_id_result = sqlx::query!("INSERT INTO forum_thread_messages (id, thread_id, user_id) VALUES ($1, $2, $3) RETURNING ID", message_id, thread_id_result.id.clone(), user_id.clone()).fetch_one(&mut *tx).await.map_err(DbError::new)?;
+        ?;
+    let message_id_result = sqlx::query!("INSERT INTO forum_thread_messages (id, thread_id, user_id) VALUES ($1, $2, $3) RETURNING ID", message_id, thread_id_result.id.clone(), user_id.clone()).fetch_one(&mut *tx).await?;
 
-    let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), content.to_string(), message_id_result.id).fetch_one(&mut *tx).await.map_err(DbError::new)?;
+    let _message_version_id_result = sqlx::query!("INSERT INTO forum_thread_message_versions (id, user_id, content, message_id) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING ID", user_id.clone(), content.to_string(), message_id_result.id).fetch_one(&mut *tx).await?;
 
-    tx.commit().await.map_err(DbError::new)?;
+    tx.commit().await?;
     Ok(thread_id_result.id.clone())
 }
 

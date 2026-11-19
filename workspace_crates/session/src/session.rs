@@ -11,7 +11,7 @@ pub async fn get_custom_data_or_empty_string(
     db_pool: sqlx::PgPool,
     session_id: String,
     name: String,
-) -> Result<String, DbError> {
+) -> anyhow::Result<String> {
     let result = sqlx::query_scalar!(
         r#"SELECT value FROM session_custom_data WHERE session_id = $1 AND name = $2"#,
         session_id,
@@ -19,7 +19,7 @@ pub async fn get_custom_data_or_empty_string(
     )
     .fetch_optional(&db_pool)
     .await
-    .map_err(DbError::new)?;
+    ?;
 
     // Return the value if found, otherwise return an empty string
     Ok(result.unwrap_or_else(|| "".to_string()))
@@ -29,7 +29,7 @@ pub async fn set_custom_data(
     session_id: String,
     name: String,
     value: String,
-) -> Result<(), DbError> {
+) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
         INSERT INTO session_custom_data (session_id, name, value)
@@ -42,8 +42,7 @@ pub async fn set_custom_data(
         value
     )
     .execute(&db_pool)
-    .await
-    .map_err(DbError::new)?;
+    .await?;
 
     Ok(())
 }

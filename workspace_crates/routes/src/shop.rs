@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use error_structs::InternalAppError;
 use html_templating::{
@@ -19,7 +18,7 @@ use sqlx::PgPool;
 use strum::{EnumMessage, IntoEnumIterator};
 use user::get_user_by_user_id;
 
-use crate::subscription;
+use crate::{not_found::not_found, subscription};
 
 pub async fn main_page(
     router_data: RouterData,
@@ -49,13 +48,8 @@ pub async fn view_cart(
         router_data.session.user_id.clone(),
     )
     .await?;
-    let cart_id = sqlx::query!(
-        "SELECT id FROM user_shopping_carts WHERE user_id = $1",
-        user.id
-    )
-    .fetch_one(&router_data.db_pool)
-    .await?
-    .id;
+    let cart_id =
+        possibly_create_and_get_user_cart_id(router_data.db_pool.clone(), user.id.clone()).await?;
     let cart_items = sqlx::query!(
         "SELECT id, name FROM shopping_cart_items WHERE shopping_cart_id = $1",
         cart_id
@@ -96,7 +90,13 @@ pub async fn get_items(
         tracing::debug!("Could not strip prefix");
         return crate::not_found::not_found(router_data);
     };
-    let service: ShopService = service.parse().map_err(InternalAppError::new)?;
+    let service: ShopService = match service.parse() {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!("{e:#?}");
+            return not_found(router_data);
+        }
+    };
     match service {
         ShopService::Subscription => subscription::get(router_data).await,
         ShopService::UsernameColor => get_color(router_data).await,
@@ -266,7 +266,7 @@ async fn common(
     let existing = sqlx::query!(
         "SELECT id FROM shopping_cart_items WHERE shopping_cart_id = $1 AND name = $2",
         user_cart_id,
-        ShopService::Subscription.to_string()
+        service.to_string()
     )
     .fetch_optional(&router_data.db_pool)
     .await

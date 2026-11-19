@@ -1,6 +1,14 @@
+{% extends "template_base.html" %}
+
+{% block title %}
+Shop
+{% endblock %}
+
+{% block content %}
+
 <div class="cart">
   {% if cart.items.is_empty() %}
-    <p>Your shopping cart is empty.</p>
+    <p>Your shopping cart is empty. <a href="/shop">Go to shop</a></p>
   {% else %}
     <ul>
       {% for item in cart.items %}
@@ -20,3 +28,6 @@
     </ul>
   {% endif %}
 </div>
+
+
+{% endblock %}

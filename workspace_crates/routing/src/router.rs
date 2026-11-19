@@ -192,7 +192,17 @@ pub async fn route(
             (HttpMethod::Get, "/shop") => routes::shop::main_page(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Get, p) if p.starts_with("/shop/") => {
+            (HttpMethod::Get, "/shop/cart") => routes::shop::view_cart(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Post, "/shop/add_to_cart") => {
+                let res = routes::shop::add_to_cart(router_data.clone()).await;
+                if res.is_err() {
+                    tracing::error!("{res:#?}");
+                }
+                res.unwrap_or(internal_server_error_500())
+            }
+            (HttpMethod::Get, p) if p.starts_with("/shop/") && !p.starts_with("/shop/cart") => {
                 routes::shop::get_items(router_data.clone())
                     .await
                     .unwrap_or(internal_server_error_500())

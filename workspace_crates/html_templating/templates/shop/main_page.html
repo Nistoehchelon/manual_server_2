@@ -6,6 +6,8 @@ Shop
 
 {% block content %}
 
+<h1>Shop items</h1><br>
+
 {% for (name, description) in services %}
     <a href="/shop/{{name}}">{{name}}</a><br>
     Description: {{ description }}

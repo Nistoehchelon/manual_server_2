@@ -333,7 +333,7 @@ pub async fn add_to_cart(
         Err(e) => match e {
             CommonError::MonthsSpecifiedAreBeyondAllowedRange
             | CommonError::ItemAlreadyInUserCart => {
-                return Ok(redirect_to("/".to_owned()));
+                return Ok(redirect_to("/shop/cart".to_owned()));
             }
 
             CommonError::PropagateError { message } => {

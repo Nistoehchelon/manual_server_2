@@ -11,15 +11,15 @@ Shopping cart
   <p>Your shopping cart is empty. <a href="/shop">Go to shop</a></p>
   {% else %}
   <a href = "/shop">Go to shop</a><br>
-  <h1>Items within your cart</h1> [ <form method="POST" action="/shop/cart/clear"><button>Clear your cart</button> <br>
-  </form> ]</p> <br>
+  <h1>Items within your cart</h1> <form method="POST" action="/shop/cart/clear"><button>Clear your cart</button> <br>
+  </form> <br>
   <hr>
   <ul>
     {% for item in cart.items %}
     <li class="cart-item">
-      <h3>{{ item.name }}</h3> [ <form method="POST" action="/shop/cart/delete_item/{{item.id }}"><button>Delete this
-          item from your cart</button></form>]
-
+      <h3>{{ item.name }}</h3>  <form method="POST" action="/shop/cart/delete_item/{{item.id }}"><button>Delete this
+          item from your cart</button></form>
+        <span>Cost: {{ item.usd_price }} USD</span><br> 
         {% if !item.data.is_empty() %}
         <dl class="item-data">
           {% for datum in item.data %}
@@ -32,11 +32,10 @@ Shopping cart
     {% endfor %}
   </ul>
   {% endif %}
-  <h1>Approximate total (in various currencies):
+  <h1>Approximate total (in various currencies):</h1>
     {% for currency in cart.total_cost_in_various_currencies %}
     {{currency.amount}} {{ currency.name }}<br>
     {% endfor %}
-  </h1>
 </div>
 
 

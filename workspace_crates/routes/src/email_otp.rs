@@ -16,7 +16,7 @@ use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let RouterData {
         session, db_pool, ..
     } = router_data.clone();
@@ -31,7 +31,7 @@ pub async fn get(
             },
         )
         .await
-        .map_err(InternalAppError::new)?;
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
         return Ok(redirect_to("/".to_string()));
     }
     let csrf_token = csrf_stuff::get_or_create_token(
@@ -40,7 +40,7 @@ pub async fn get(
         csrf_stuff::DesignatedPurpose::Normal,
     )
     .await
-    .map_err(InternalAppError::new)?;
+   .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     // Show username form
     Ok(ok_html(get_email_otp_html(
@@ -59,7 +59,7 @@ fn get_email_otp_html(mut base_template_data: BaseTemplateData, csrf_token: Stri
 
 pub async fn post(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let RouterData {
         session,
         db_pool,
@@ -84,7 +84,7 @@ pub async fn post(
                     },
                 )
                 .await
-                .map_err(InternalAppError::new)?;
+                .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
                 return Ok(redirect_to("/".to_string()));
             }
         };
@@ -104,7 +104,7 @@ pub async fn post(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
             return Ok(redirect_to("/".to_string()));
         }
     };
@@ -113,7 +113,7 @@ pub async fn post(
         let cf_turnstile_token = match body_params.get("cf-turnstile-response").cloned() {
             Some(t) => t,
             None => {
-                return Err(InternalAppError::new(
+                return Err(anyhow::anyhow!(
                     "Could not retrieve cf_turnstile_token from request body",
                 ));
             }
@@ -139,7 +139,7 @@ pub async fn post(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
             return Ok(redirect_to("/signup".to_string()));
         }
     }
@@ -147,7 +147,7 @@ pub async fn post(
     let csrf_token_valid =
         csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
     if !csrf_token_valid {
         add_session_notification(
             db_pool.clone(),
@@ -158,11 +158,11 @@ pub async fn post(
             },
         )
         .await
-        .map_err(InternalAppError::new)?;
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
         return Ok(redirect_to("/signup".to_string()));
     }
 
-    let mut tx = db_pool.begin().await.map_err(InternalAppError::new)?;
+    let mut tx = db_pool.begin().await.map_err(|e|anyhow::anyhow!("{e:#?}"))?;
     let validation = email_otp::consume_email_otp(&mut tx, otp.as_str()).await;
     let validation = match validation {
         Ok(v) => v,
@@ -176,7 +176,7 @@ pub async fn post(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
             tracing::error!("{e:#?}");
             return Ok(redirect_to("/email_otp".to_string()));
         }
@@ -195,13 +195,13 @@ pub async fn post(
     // redirect user to /email_otp.
     let user_creation_result = try_to_create_new_user(&mut tx, username, password_hash)
         .await
-        .map_err(InternalAppError::new)?;
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     match user_creation_result {
         Ok(user) => {
             user_creation_success(&session, &db_pool, site_config, &mut tx, email, user)
                 .await
-                .map_err(InternalAppError::new)?;
+                .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
         }
         Err(e) => {
             add_session_notification(
@@ -213,11 +213,11 @@ pub async fn post(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
             return Ok(redirect_to("/signup".to_string()));
         }
     }
-    tx.commit().await.map_err(InternalAppError::new)?;
+    tx.commit().await.map_err(|e|anyhow::anyhow!("{e:#?}"))?;
     Ok(redirect_to("/".to_string()))
 }
 

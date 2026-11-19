@@ -12,7 +12,7 @@ use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     if session.logged_in {
@@ -24,7 +24,7 @@ pub async fn get(
         csrf_stuff::DesignatedPurpose::Normal,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
@@ -36,7 +36,7 @@ pub async fn get(
 
 pub async fn post(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     let hasher_config = router_data.site_config.password_hasher_config;
@@ -50,7 +50,7 @@ pub async fn post(
             },
         )
         .await
-        .map_err(InternalAppError::new)?;
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
         return Ok(redirect_to(String::from("/")));
     }
     let body_bytes = router_data.http_request_data.body_bytes.clone();
@@ -67,7 +67,7 @@ pub async fn post(
                     },
                 )
                 .await
-                .map_err(InternalAppError::new)?;
+                .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
                 return Ok(redirect_to("/".to_string()));
             }
         };
@@ -87,7 +87,7 @@ pub async fn post(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
             return Ok(redirect_to(session.previous_get_page.clone()));
         }
     };
@@ -95,7 +95,7 @@ pub async fn post(
         let cf_turnstile_token = match body_params.get("cf-turnstile-response").cloned() {
             Some(t) => t,
             None => {
-                return Err(InternalAppError::new(
+                return Err(anyhow::anyhow!(
                     "Could not retrieve cf_turnstile_token from request body",
                 ));
             }
@@ -121,14 +121,14 @@ pub async fn post(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
             return Ok(redirect_to(session.previous_get_page.clone()));
         }
     }
 
     let csrf_token_valid = validate_token(db_pool.clone(), session.id.clone(), csrf_token)
         .await
-        .map_err(InternalAppError::new)?;
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
     if !csrf_token_valid {
         add_session_notification(
             db_pool.clone(),
@@ -139,14 +139,14 @@ pub async fn post(
             },
         )
         .await
-        .map_err(InternalAppError::new)?;
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
         return Ok(redirect_to("/login".to_string()));
     }
 
     let user_result =
         find_by_username_and_password(username, password, db_pool.clone(), hasher_config)
             .await
-            .map_err(InternalAppError::new)?;
+            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     if user_result.is_none() {
         add_session_notification(
@@ -158,7 +158,7 @@ pub async fn post(
             },
         )
         .await
-        .map_err(InternalAppError::new)?;
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
         return Ok(redirect_to("/login".to_string()));
     }
     let user = user_result.unwrap();
@@ -167,7 +167,7 @@ pub async fn post(
     session.logged_in = true;
     edit_session(db_pool.clone(), session.id.clone(), session.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     add_session_notification(
         db_pool.clone(),
@@ -178,7 +178,7 @@ pub async fn post(
         },
     )
     .await
-    .map_err(InternalAppError::new)?;
+    .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
     Ok(redirect_to("/".to_string()))
 }
 

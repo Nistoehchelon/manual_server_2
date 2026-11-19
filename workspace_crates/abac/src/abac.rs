@@ -75,10 +75,10 @@ pub async fn can_access_this_forum_thread(
         user_id,
         thread_id,
     }: CanAccessThisForumThreadInput,
-) -> Result<bool, SomeSortOfError> {
+) -> anyhow::Result<bool> {
     let thread = forum::get_thread(db_pool.clone(), thread_id.clone())
         .await
-        .map_err(SomeSortOfError::new)?;
+        ?;
     can_access_this_forum(CanAccessThisForumInput {
         db_pool,
         user_id,
@@ -97,10 +97,10 @@ pub async fn can_access_this_forum(
         user_id,
         forum_id,
     }: CanAccessThisForumInput,
-) -> Result<bool, SomeSortOfError> {
+) -> anyhow::Result<bool> {
     let forum = forum::get_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
-        .map_err(SomeSortOfError::new)?;
+       ?;
     match forum.id.as_str() {
         id if id == custom_site_pages::FORUM_ID
             || id == forum::NONE_ID
@@ -111,7 +111,7 @@ pub async fn can_access_this_forum(
                 user_id: user_id.clone(),
             })
             .await
-            .map_err(SomeSortOfError::new)
+           
         }
         _ => Ok(true),
     }

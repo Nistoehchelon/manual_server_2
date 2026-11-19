@@ -112,7 +112,7 @@ pub async fn route(
             http_request_data: request_data.clone(),
             base_template_data,
         };
-        match (method, path.as_str()) {
+       let final_response =  match (method, path.as_str()) {
             (HttpMethod::Get, "/signup") => routes::signup::get(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
@@ -279,7 +279,8 @@ pub async fn route(
                 routes::not_found::not_found(router_data.clone())
                     .unwrap_or(internal_server_error_500())
             }
-        }
+        };
+        final_response
     };
 
     if created_new_session {

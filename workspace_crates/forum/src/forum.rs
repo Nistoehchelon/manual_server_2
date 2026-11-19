@@ -60,7 +60,7 @@ pub async fn create_forum(
 
     Ok(id)
 }
-pub async fn find_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Option<Forum>, DbError> {
+pub async fn find_forum_by_id(db_pool: sqlx::PgPool, id: String) -> anyhow::Result<Option<Forum>> {
     if id == DEFAULT_FORUM_ID {
         return Ok(Some(Forum {
             id: "0".to_string(),
@@ -77,11 +77,11 @@ pub async fn find_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Optio
     }
     storage_specific_find_forum_by_id(db_pool, id.clone()).await
 }
-pub async fn get_forum_by_id(db_pool: sqlx::PgPool, id: String) -> Result<Forum, DbError> {
+pub async fn get_forum_by_id(db_pool: sqlx::PgPool, id: String) -> anyhow::Result<Forum> {
     let f = find_forum_by_id(db_pool, id.clone()).await?;
     match f {
         Some(f) => Ok(f),
-        None => Err(DbError::new(format!("Forum \"{id}\" not found"))),
+        None => Err(anyhow::anyhow!(format!("Forum \"{id}\" not found"))),
     }
 }
 
@@ -181,7 +181,7 @@ pub async fn get_count_thread_messages(
 pub async fn get_forum_threads(
     db_pool: sqlx::PgPool,
     forum_id: String,
-) -> Result<Vec<ForumThread>, DbError> {
+) -> anyhow::Result<Vec<ForumThread>> {
     let mut threads: Vec<ForumThread> = vec![];
     match find_forum_by_id(db_pool.clone(), forum_id.clone()).await? {
         Some(f) => f,
@@ -198,7 +198,7 @@ pub async fn get_forum_threads(
     .await
     {
         Err(e) => {
-            return Err(DbError::new(e));
+            return Err(anyhow::anyhow!("{e:#?}"));
         }
         Ok(rr) => rr,
     };
@@ -214,7 +214,7 @@ pub async fn get_forum_threads(
     Ok(threads)
 }
 
-pub async fn get_subforums(db_pool: sqlx::PgPool, forum_id: String) -> Result<Vec<Forum>, DbError> {
+pub async fn get_subforums(db_pool: sqlx::PgPool, forum_id: String) -> anyhow::Result<Vec<Forum>> {
     let mut subforums: Vec<Forum> = vec![];
     match find_forum_by_id(db_pool.clone(), forum_id.clone()).await? {
         Some(f) => f,
@@ -231,7 +231,7 @@ pub async fn get_subforums(db_pool: sqlx::PgPool, forum_id: String) -> Result<Ve
     .await
     {
         Err(e) => {
-            return Err(DbError::new(e));
+            return Err(anyhow::anyhow!("{e:#?}"));
         }
         Ok(rr) => rr,
     };
@@ -250,7 +250,7 @@ pub async fn get_subforums(db_pool: sqlx::PgPool, forum_id: String) -> Result<Ve
 pub async fn find_thread(
     db_pool: sqlx::PgPool,
     id: String,
-) -> Result<Option<ForumThread>, DbError> {
+) -> anyhow::Result<Option<ForumThread>> {
     let result = sqlx::query_as!(
         ForumThread,
         "SELECT id, name, forum_id FROM forum_threads WHERE id = $1",
@@ -258,21 +258,21 @@ pub async fn find_thread(
     )
     .fetch_optional(&db_pool)
     .await
-    .map_err(DbError::new)?;
+   ?;
     Ok(result)
 }
 
 pub async fn get_thread(
     db_pool: sqlx::PgPool,
     id: String,
-) -> Result<ForumThread, ExpectedToGetButFailed> {
+) -> anyhow::Result<ForumThread> {
     let thread = match find_thread(db_pool.clone(), id)
         .await
-        .map_err(ExpectedToGetButFailed::new)?
+        ?
     {
         Some(t) => t,
         None => {
-            return Err(ExpectedToGetButFailed::new(
+            return Err(anyhow::anyhow!(
                 "I called get_thread because I expected to get it, but it was not actually found.",
             ));
         }
@@ -450,7 +450,7 @@ async fn storage_specific_create_thread(
 async fn storage_specific_find_forum_by_id(
     db_pool: sqlx::PgPool,
     id: String,
-) -> Result<Option<Forum>, DbError> {
+) -> anyhow::Result<Option<Forum>> {
     let forum = match sqlx::query!(
         r#"SELECT id, name, parent_id FROM public.forums WHERE id = $1"#,
         id
@@ -471,7 +471,7 @@ async fn storage_specific_find_forum_by_id(
         }
         Ok(None) => None,
         Err(e) => {
-            return Err(DbError::new(e));
+            return Err(anyhow::anyhow!("{e:#?}"));
         }
     };
     Ok(forum)

@@ -15,7 +15,7 @@ use routing_structs::RouterData;
 
 pub async fn get(
     mut router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     let http_request_data = router_data.http_request_data.clone();
@@ -29,7 +29,7 @@ pub async fn get(
 
     let forum = match find_forum_by_id(db_pool.clone(), forum_id.clone())
         .await
-        .map_err(InternalAppError::new)?
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?
     {
         Some(f) => f,
         None => {
@@ -42,7 +42,7 @@ pub async fn get(
                 },
             )
             .await
-            .map_err(InternalAppError::new)?;
+           .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
             return Ok(redirect_to("/forum".to_string()));
         }
     };
@@ -53,7 +53,7 @@ pub async fn get(
         forum_id: forum_id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?
+    ?
     {
         println!("User doesn't have permissions to access this forum");
         return decoy_forum_not_found(db_pool.clone(), session.id.clone(), forum_id.clone()).await;
@@ -61,10 +61,10 @@ pub async fn get(
 
     let forum_threads = forum::get_forum_threads(db_pool.clone(), forum.id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let subforums = forum::get_subforums(db_pool.clone(), forum.id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
 
     let subforums = abac::filters::filter_forum_list_based_on_what_user_can_access(
         FilterForumListBasedOnWhatUserCanAccess {
@@ -81,20 +81,20 @@ pub async fn get(
     let mut user_can_create_thread = false;
     let user_opt = find_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     if user_opt.is_some() {
         user_can_create_thread = abac::can_create_forum_thread(abac::CanCreateThreadInput {
             db_pool: db_pool.clone(),
             session_id: session.id.clone(),
         })
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
         user_can_create_forum = abac::can_create_forum(abac::CanCreateForumInput {
             db_pool: db_pool.clone(),
             session_id: session.id.clone(),
         })
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     }
     debug!("Dumping forum: {:#?}", forum);
     let parent_forum: Option<html_template_structs::Forum> = {
@@ -104,7 +104,7 @@ pub async fn get(
             Some(
                 forum::get_forum_by_id(db_pool.clone(), forum.parent_id.clone())
                     .await
-                    .map_err(InternalAppError::new)?
+                    ?
                     .into(),
             )
         }
@@ -128,14 +128,14 @@ async fn decoy_forum_not_found(
     db_pool: sqlx::PgPool,
     session_id: String,
     forum_id: String,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     forum_not_found(db_pool, session_id, forum_id).await
 }
 async fn forum_not_found(
     db_pool: sqlx::PgPool,
     session_id: String,
     forum_id: String,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     add_session_notification(
         db_pool.clone(),
         SessionNotification {
@@ -144,7 +144,6 @@ async fn forum_not_found(
             notification_type: session::SessionNotificationType::Error,
         },
     )
-    .await
-    .map_err(InternalAppError::new)?;
+    .await?;
     Ok(redirect_to("/forum".to_string()))
 }

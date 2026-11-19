@@ -92,14 +92,8 @@ pub async fn set_previous_get_page(
 pub async fn add_session_notification(
     db_pool: sqlx::PgPool,
     session_notification: SessionNotification,
-) -> Result<(), DbError> {
-    match storage_specific_add_session_notification(db_pool, session_notification).await {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            dbg!("Could not create session notification", &e);
-            Err(e)
-        }
-    }
+) -> anyhow::Result<()> {
+    storage_specific_add_session_notification(db_pool, session_notification).await
 }
 
 #[tracing::instrument]
@@ -381,15 +375,12 @@ async fn storage_specific_edit_session(
 async fn storage_specific_add_session_notification(
     db_pool: sqlx::PgPool,
     session_notification: SessionNotification,
-) -> Result<DbSuccess, DbError> {
+) -> anyhow::Result<()> {
     let notification_type = session_notification.notification_type.to_string();
 
-    if let Err(e) = sqlx::query!(r#"INSERT INTO public.session_notifications (session_id, message, notification_type) VALUES ($1, $2, $3)"#, session_notification.session_id,
+    sqlx::query!(r#"INSERT INTO public.session_notifications (session_id, message, notification_type) VALUES ($1, $2, $3)"#, session_notification.session_id,
             session_notification.message,
             notification_type,
-    ).execute(&db_pool).await {
-        dbg!("Could not add session notification");
-        return Err(DbError::new(e));
-    };
-    Ok(DbSuccess::new("okay"))
+    ).execute(&db_pool).await?;
+    Ok(())
 }

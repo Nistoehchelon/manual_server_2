@@ -16,7 +16,7 @@ use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let RouterData {
         session, db_pool, ..
     } = router_data.clone();
@@ -30,8 +30,7 @@ pub async fn get(
                 notification_type: session::SessionNotificationType::Error,
             },
         )
-        .await
-        .map_err(InternalAppError::new)?;
+        .await.map_err(|e|anyhow::anyhow!("{e:#?}"))?;
         return Ok(redirect_to("/".to_string()));
     }
     let csrf_token = csrf_stuff::get_or_create_token(
@@ -40,7 +39,7 @@ pub async fn get(
         csrf_stuff::DesignatedPurpose::Normal,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     // Show username form
     Ok(ok_html(get_signup_html(
@@ -70,7 +69,7 @@ fn get_signup_html(
 
 pub async fn post(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let RouterData {
         session,
         db_pool,
@@ -95,7 +94,7 @@ pub async fn post(
                     },
                 )
                 .await
-                .map_err(InternalAppError::new)?;
+                .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
                 return Ok(redirect_to("/".to_string()));
             }
         };
@@ -119,7 +118,7 @@ pub async fn post(
                     },
                 )
                 .await
-                .map_err(InternalAppError::new)?;
+                .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
                 return Ok(redirect_to("/signup".to_string()));
             }
         };
@@ -132,7 +131,7 @@ pub async fn post(
             site_config.cloudflare_turnstile_secret_key.clone(),
         )
         .await
-        .map_err(InternalAppError::new)?
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?
     {
         add_session_notification_error(
             db_pool.clone(),
@@ -146,7 +145,7 @@ pub async fn post(
     let csrf_token_valid =
         csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone())
             .await
-            .map_err(InternalAppError::new)?;
+            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
     if !csrf_token_valid {
         add_session_notification_error(
             db_pool.clone(),
@@ -157,7 +156,7 @@ pub async fn post(
         return Ok(redirect_to("/signup".to_string()));
     }
 
-    let mut tx = db_pool.begin().await.map_err(InternalAppError::new)?;
+    let mut tx = db_pool.begin().await.map_err(|e|anyhow::anyhow!("{e:#?}"))?;
     let username = match ValidatedUsername::validate(&mut tx, username).await {
         Ok(u) => u,
         Err(e) => {
@@ -188,7 +187,7 @@ pub async fn post(
 
     let email_available = user::find_user_data_by_name_and_value(&mut tx, "email", email.as_str())
         .await
-        .map_err(InternalAppError::new)?
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?
         .is_empty();
     if !email_available {
         // I do not reveal this to the user who is trying to enter the email. Show same msg as on succcess.
@@ -205,7 +204,7 @@ pub async fn post(
         password.to_string(),
         site_config.password_hasher_config.clone(),
     )
-    .map_err(InternalAppError::new)?;
+    .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     let otp = email_otp::create_email_otp(
         db_pool.clone(),
@@ -216,7 +215,7 @@ pub async fn post(
         },
     )
     .await
-    .map_err(InternalAppError::new)?;
+    .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
 
     match email_otp::send_email(
         otp.code,

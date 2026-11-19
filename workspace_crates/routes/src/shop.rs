@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use error_structs::InternalAppError;
 use html_templating::{
-    html_template_structs::{BaseTemplateData, ShopMainPageTemplate, UsernameColorTemplate},
+    html_template_structs::{
+        BaseTemplateData, ShopMainPageTemplate, UsernameColorTemplate, ViewCartTemplate,
+    },
     render,
 };
 use http_stuff::{
@@ -12,34 +14,12 @@ use http_stuff::{
 use id_generator_unique_in_db::Table::{ShoppingCartItemData, ShoppingCartItems};
 use routing_structs::RouterData;
 use session::{add_session_notification_error, add_session_notification_success};
+use shop::{ShoppingCartItemDatum, ShopService, ShoppingCart, ShoppingCartItem};
 use sqlx::PgPool;
 use strum::{EnumMessage, IntoEnumIterator};
 use user::get_user_by_user_id;
 
 use crate::subscription;
-
-#[derive(
-    strum::EnumMessage,
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    strum::Display,
-    strum::EnumString,
-    strum::AsRefStr,
-    strum::EnumIter,
-)]
-#[strum(serialize_all = "snake_case")]
-pub enum ShopService {
-    #[strum(
-        message = "Allows you to login into your account inside the game client and play in matches, valid for a duration of your choice (up to 12 months at a time). After a subscription expires, you can still sign in on the website, but will not be able to sign in to the game server or play matches until the subscription is renewed."
-    )]
-    Subscription,
-    #[strum(
-        message = "A costumetic thingie that allows choosing a color for your display username"
-    )]
-    UsernameColor,
-}
 
 pub async fn main_page(
     router_data: RouterData,
@@ -60,6 +40,53 @@ pub async fn main_page(
     Ok(ok_html(html))
 }
 
+pub async fn view_cart(
+    router_data: RouterData,
+) -> anyhow::Result<http_stuff::http_response::HttpResponseData> {
+    let user = get_user_by_user_id(
+        router_data.db_pool.clone(),
+        router_data.session.user_id.clone(),
+    )
+    .await?;
+    let cart_id = sqlx::query!(
+        "SELECT id FROM user_shopping_carts WHERE user_id = $1",
+        user.id
+    )
+    .fetch_one(&router_data.db_pool)
+    .await?
+    .id;
+    let cart_items = sqlx::query!(
+        "SELECT id, name FROM shopping_cart_items WHERE shopping_cart_id = $1",
+        cart_id
+    )
+    .fetch_all(&router_data.db_pool)
+    .await?;
+
+    let mut items = Vec::with_capacity(cart_items.len());
+
+    for item in cart_items {
+        let data = sqlx::query_as!(
+            ShoppingCartItemDatum,
+            "SELECT name, value FROM shopping_cart_item_data WHERE shopping_cart_item_id = $1",
+            item.id
+        )
+        .fetch_all(&router_data.db_pool)
+        .await?;
+
+        items.push(ShoppingCartItem {
+            name: item.name,
+            data,
+        });
+    }
+
+    let cart = ShoppingCart { items };
+    let tpl = ViewCartTemplate {
+        main_info: router_data.base_template_data.clone(),
+        cart,
+    };
+    let html = render(tpl);
+    Ok(ok_html(html))
+}
 pub async fn get_items(
     router_data: RouterData,
 ) -> Result<http_stuff::http_response::HttpResponseData, error_structs::InternalAppError> {

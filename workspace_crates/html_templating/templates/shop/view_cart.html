@@ -1,0 +1,22 @@
+<div class="cart">
+  {% if cart.items.is_empty() %}
+    <p>Your shopping cart is empty.</p>
+  {% else %}
+    <ul>
+      {% for item in cart.items %}
+        <li class="cart-item">
+          <h3>{{ item.name }}</h3>
+
+          {% if !item.data.is_empty() %}
+            <dl class="item-data">
+              {% for datum in item.data %}
+                <dt>{{ datum.name }}</dt>
+                <dd>{{ datum.value }}</dd>
+              {% endfor %}
+            </dl>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

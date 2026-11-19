@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use askama::Template;
 use pagination::PaginationElement;
+use shop::ShoppingCart;
 
 
 pub struct User {
@@ -31,6 +32,12 @@ impl From<forum::Forum> for Forum {
 pub struct ShopMainPageTemplate {
   pub main_info: BaseTemplateData,
 pub   services: HashMap<String, String>,
+}
+#[derive(Template)]
+#[template(path = "shop/view_cart.html")]
+pub struct ViewCartTemplate {
+  pub main_info: BaseTemplateData,
+pub   cart: ShoppingCart,
 }
 
 #[derive(Template)]

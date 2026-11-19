@@ -9,4 +9,5 @@ forum = { workspace = true }
 session = { workspace = true }
 pagination = { workspace = true }
 custom_site_variables = { workspace = true }
+shop = { workspace = true }
 

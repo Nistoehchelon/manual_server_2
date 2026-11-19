@@ -45,6 +45,7 @@ id_generator_unique_in_db = { path = "workspace_crates/id_generator_unique_in_db
 session = { path = "workspace_crates/session" }
 session_structs_and_so_on = { path = "workspace_crates/session_structs_and_so_on" }
 user = { path = "workspace_crates/user" }
+shop = { path = "workspace_crates/shop" }
 user_creation = { path = "workspace_crates/user_creation" }
 into_vec = { path = "workspace_crates/into_vec" }
 routing = { path = "workspace_crates/routing" }

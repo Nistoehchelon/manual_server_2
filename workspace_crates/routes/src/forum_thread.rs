@@ -1,7 +1,6 @@
 use abac::CanAccessThisForumThreadInput;
 use abac::CanEditForumThreadMessageInput;
 use abac::can_access_this_forum_thread;
-use error_structs::{self};
 use forum::ValidForumThreadMessageContent;
 use forum::forum_structs;
 use html_templating;

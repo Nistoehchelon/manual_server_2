@@ -31,7 +31,7 @@ impl From<forum::Forum> for Forum {
 #[template(path = "shop/main_page.html")]
 pub struct ShopMainPageTemplate {
   pub main_info: BaseTemplateData,
-pub   services: HashMap<String, String>,
+pub   services: Vec<(String, String)>,
 }
 #[derive(Template)]
 #[template(path = "shop/view_cart.html")]

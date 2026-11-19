@@ -14,7 +14,7 @@ use http_stuff::{
 use id_generator_unique_in_db::Table::{ShoppingCartItemData, ShoppingCartItems};
 use routing_structs::RouterData;
 use session::{add_session_notification_error, add_session_notification_success};
-use shop::{ShoppingCartItemDatum, ShopService, ShoppingCart, ShoppingCartItem};
+use shop::{ShopService, ShoppingCart, ShoppingCartItem, ShoppingCartItemDatum};
 use sqlx::PgPool;
 use strum::{EnumMessage, IntoEnumIterator};
 use user::get_user_by_user_id;
@@ -24,16 +24,17 @@ use crate::subscription;
 pub async fn main_page(
     router_data: RouterData,
 ) -> Result<http_stuff::http_response::HttpResponseData, error_structs::InternalAppError> {
-    let service_descriptions: HashMap<String, String> = ShopService::iter()
+    let services: Vec<(String, String)> = ShopService::iter()
         .map(|s| {
-            let key = s.to_string();
-            let desc = s.get_message().unwrap_or_default().to_string();
-            (key, desc)
+            (
+                s.to_string(),
+                s.get_message().unwrap_or_default().to_string(),
+            )
         })
         .collect();
     let tpl = ShopMainPageTemplate {
         main_info: router_data.base_template_data.clone(),
-        services: service_descriptions.clone(),
+        services,
     };
 
     let html = render(tpl);

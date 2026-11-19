@@ -25,7 +25,7 @@ use crate::{not_found::not_found, subscription};
 
 pub async fn main_page(
     router_data: RouterData,
-) -> Result<http_stuff::http_response::HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<http_stuff::http_response::HttpResponseData> {
     let services: Vec<(String, String)> = ShopService::iter()
         .map(|s| {
             (
@@ -239,7 +239,7 @@ fn usd_cost(months: u64, service_cost: f64) -> f64 {
 }
 pub async fn get_items(
     router_data: RouterData,
-) -> Result<http_stuff::http_response::HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<http_stuff::http_response::HttpResponseData> {
     let path = router_data.http_request_data.path.clone();
     let Some(service) = path.strip_prefix("/shop/") else {
         tracing::debug!("Could not strip prefix");
@@ -259,7 +259,7 @@ pub async fn get_items(
 }
 pub async fn get_color(
     router_data: RouterData,
-) -> Result<http_stuff::http_response::HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<http_stuff::http_response::HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     if !session.logged_in {
@@ -267,7 +267,7 @@ pub async fn get_color(
     }
     let _user = get_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
 
     let csrf_token = csrf_stuff::get_or_create_token(
         db_pool.clone(),
@@ -275,19 +275,19 @@ pub async fn get_color(
         csrf_stuff::DesignatedPurpose::Normal,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
     let usd_cost = financial_stuff::get_username_color_cost_per_month_usd(db_pool.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let xmr_cost = financial_stuff::convert_usd_price_to_xmr(db_pool.clone(), &usd_cost)
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), &usd_cost)
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let xno_cost = financial_stuff::convert_usd_price_to_xno(db_pool.clone(), &usd_cost)
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         csrf_token,

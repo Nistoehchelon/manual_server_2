@@ -1020,6 +1020,7 @@ dependencies = [
 name = "csrf_stuff"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "db_manager",
  "error_structs",
  "id_generator",
@@ -1143,6 +1144,7 @@ checksum = "4583a4551df46e2792f82ceeac45e850d2e2d5debba0b91f102385cda5b11f06"
 name = "db_manager"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "sqlx",
  "tracing",
 ]

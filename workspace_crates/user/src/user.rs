@@ -112,7 +112,7 @@ pub async fn get_user_data(
     tx: &mut Transaction<'_, Postgres>,
     user_id: &str,
     data_name: &str,
-) -> Result<Option<String>, SomeSortOfError> {
+) -> anyhow::Result<Option<String>> {
     let row = sqlx::query!(
         r#"
         SELECT data_value
@@ -125,7 +125,7 @@ pub async fn get_user_data(
     )
     .fetch_optional(&mut **tx)
     .await
-    .map_err(SomeSortOfError::new)?;
+    ?;
 
     Ok(row.map(|r| r.data_value))
 }

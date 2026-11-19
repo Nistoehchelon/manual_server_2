@@ -185,9 +185,6 @@ pub async fn route(
                     .await
                     .unwrap_or(internal_server_error_500())
             }
-            (HttpMethod::Get, "/subscription") => routes::subscription::get(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
 
             (HttpMethod::Get, "/shop") => routes::shop::main_page(router_data.clone())
                 .await

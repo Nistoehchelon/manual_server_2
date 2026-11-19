@@ -1,5 +1,6 @@
 use std::fmt::{self, Display};
 
+use anyhow::bail;
 use db_manager::DbPool;
 use error_structs::InternalAppError;
 
@@ -19,7 +20,7 @@ pub async fn get_or_create_token(
     executor: db_manager::DbPool,
     session_id: String,
     designated_purpose: DesignatedPurpose,
-) -> Result<String, InternalAppError> {
+) -> anyhow::Result<String> {
     let mut token_id: Option<String> = None;
     match db_manager::sql_queries::get_token_id_by_session_id_and_designated_purpose(
         executor.clone(),
@@ -34,8 +35,7 @@ pub async fn get_or_create_token(
             }
         }
         Err(e) => {
-            dbg!(&e);
-            return Err(InternalAppError::new("DB error".to_string()));
+            return Err(anyhow::anyhow!("{e:#?}"));
         }
     }
     if let Some(ti) = token_id {
@@ -54,7 +54,7 @@ pub async fn get_or_create_token(
     {
         Ok(_) => {}
         Err(e) => {
-            return Err(InternalAppError::new(e));
+            bail!("{e:#?}");
         }
     };
 
@@ -65,8 +65,7 @@ pub async fn validate_token(
     executor: DbPool,
     session_id: String,
     token_id: String,
-) -> Result<bool, InternalAppError> {
+) -> anyhow::Result<bool> {
     db_manager::sql_queries::validate_token(executor, session_id, token_id)
         .await
-        .map_err(InternalAppError::new)
 }

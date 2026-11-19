@@ -9,13 +9,12 @@ use session::add_session_notification_success;
 
 use routing_structs::RouterData;
 
-pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> {
+pub async fn post(rt: RouterData) -> anyhow::Result<HttpResponseData> {
     if !abac::can_create_forum(abac::CanCreateForumInput {
         db_pool: rt.db_pool.clone(),
         session_id: rt.session.id.clone(),
     })
-    .await
-    .map_err(InternalAppError::new)?
+    .await?
     {
         tracing::error!(
             "User tried to access GET create_forum but does not have sufficient permissions"
@@ -43,7 +42,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         csrf_token.clone(),
     )
     .await
-    .map_err(InternalAppError::new)?;
+   ?;
     if !is_csrf_token_valid {
         return Ok(bad_request_400());
     }
@@ -76,7 +75,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
                 let unique_id =
                     forum::UniqueForumId::parse(rt.db_pool.clone(), custom_id.to_owned())
                         .await
-                        .map_err(InternalAppError::new)?;
+                       ?;
                 forum::ForumIdSource::Custom(unique_id)
             }
             None => {
@@ -89,7 +88,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
     if parent_forum_id != forum::NONE_ID {
         let _parent_forum = forum::get_forum_by_id(rt.db_pool.clone(), parent_forum_id.clone())
             .await
-            .map_err(InternalAppError::new)?;
+           ?;
     }
     if !can_access_this_forum(CanAccessThisForumInput {
         db_pool: rt.db_pool.clone(),
@@ -97,7 +96,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
         forum_id: parent_forum_id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?
+   ?
     {
         tracing::info!("User doesn't have permissions to access this forum");
         return Ok(redirect_to("/".to_string()));
@@ -105,7 +104,7 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
     let newly_created_forum_id =
         forum::create_forum(rt.db_pool.clone(), parent_forum_id, id_source, name.clone())
             .await
-            .map_err(InternalAppError::new)?;
+           ?;
     add_session_notification_success(
         rt.db_pool.clone(),
         rt.session.id,
@@ -115,13 +114,13 @@ pub async fn post(rt: RouterData) -> Result<HttpResponseData, InternalAppError> 
     Ok(redirect_to(format!("/forum?id={newly_created_forum_id}")))
 }
 
-pub async fn get(rt: RouterData) -> Result<HttpResponseData, InternalAppError> {
+pub async fn get(rt: RouterData) -> anyhow::Result<HttpResponseData> {
     if !abac::can_create_forum(abac::CanCreateForumInput {
         db_pool: rt.db_pool.clone(),
         session_id: rt.session.id.clone(),
     })
     .await
-    .map_err(InternalAppError::new)?
+   ?
     {
         tracing::error!(
             "User tried to access GET create_forum but does not have sufficient permissions"
@@ -141,7 +140,7 @@ pub async fn get(rt: RouterData) -> Result<HttpResponseData, InternalAppError> {
         csrf_stuff::DesignatedPurpose::Normal,
     )
     .await
-    .map_err(InternalAppError::new)?;
+   ?;
     let tpl = CreateForumTemplate {
         main_info: rt.base_template_data,
         parent_forum_id,

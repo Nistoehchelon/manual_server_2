@@ -17,15 +17,15 @@ impl UniqueForumId {
     pub async fn parse(
         db_pool: sqlx::PgPool,
         id: String,
-    ) -> Result<UniqueForumId, SomeSortOfError> {
+    ) -> anyhow::Result<UniqueForumId> {
         let forum = find_forum_by_id(db_pool.clone(), id.clone())
             .await
-            .map_err(SomeSortOfError::new)?;
+           ?;
         if let Some(forum) = forum {
-            return Err(SomeSortOfError::new(format!(
+            return Err(anyhow::anyhow!(
                 "Could not parse String into UniqueForumId: the provided id is not unique, a forum with id  \"{}\" already exists",
                 forum.id
-            )));
+            ));
         }
         Ok(UniqueForumId { inner: id })
     }
@@ -38,12 +38,12 @@ pub async fn create_forum(
     parent_forum_id: String,
     id_source: ForumIdSource,
     name: String,
-) -> Result<String, SomeSortOfError> {
-    let mut tx = db_pool.begin().await.map_err(SomeSortOfError::new)?;
+) -> anyhow::Result<String> {
+    let mut tx = db_pool.begin().await?;
     let id = match id_source {
         ForumIdSource::Auto => id_generator_unique_in_db::generate_unique_forum_id(&mut tx)
             .await
-            .map_err(SomeSortOfError::new)?,
+            ?,
         ForumIdSource::Custom(unique_id) => unique_id.get(),
     };
 
@@ -55,8 +55,8 @@ pub async fn create_forum(
     )
     .execute(&mut *tx)
     .await
-    .map_err(SomeSortOfError::new)?;
-    tx.commit().await.map_err(SomeSortOfError::new)?;
+    ?;
+    tx.commit().await?;
 
     Ok(id)
 }

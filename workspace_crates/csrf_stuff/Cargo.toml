@@ -7,3 +7,4 @@ edition = "2024"
 db_manager = { workspace = true }
 id_generator = { workspace = true }
 error_structs = { workspace = true }
+anyhow = { workspace = true }

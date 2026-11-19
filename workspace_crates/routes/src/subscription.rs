@@ -9,7 +9,7 @@ use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     if !session.logged_in {
@@ -17,12 +17,12 @@ pub async fn get(
     }
     let user = get_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
-        .map_err(InternalAppError::new)?;
-    let mut tx = db_pool.begin().await.map_err(InternalAppError::new)?;
+        ?;
+    let mut tx = db_pool.begin().await?;
     let user_has_a_subscription = user::subscription::user_has_a_subscription(&mut tx, &user.id)
         .await
-        .map_err(InternalAppError::new)?;
-    tx.commit().await.map_err(InternalAppError::new)?;
+        ?;
+    tx.commit().await?;
     if user_has_a_subscription {
         return Ok(redirect_to("/".to_string()));
     }
@@ -33,19 +33,19 @@ pub async fn get(
         csrf_stuff::DesignatedPurpose::Normal,
     )
     .await
-    .map_err(InternalAppError::new)?;
+    ?;
     let usd_cost = financial_stuff::get_subscription_cost_usd(db_pool.clone())
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let xmr_cost = financial_stuff::convert_usd_price_to_xmr(db_pool.clone(), &usd_cost)
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), &usd_cost)
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     let xno_cost = financial_stuff::convert_usd_price_to_xno(db_pool.clone(), &usd_cost)
         .await
-        .map_err(InternalAppError::new)?;
+        ?;
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         csrf_token,

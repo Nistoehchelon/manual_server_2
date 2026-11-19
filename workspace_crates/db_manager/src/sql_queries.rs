@@ -48,7 +48,7 @@ pub async fn validate_token(
     executor: DbPool,
     session_id: String,
     token_id: String,
-) -> Result<bool, DbError> {
+) -> anyhow::Result<bool> {
     match sqlx::query!(
         "SELECT id FROM csrf_tokens WHERE session_id = $1 AND id = $2",
         session_id,
@@ -64,7 +64,7 @@ pub async fn validate_token(
                 Ok(false)
             }
         }
-        Err(e) => Err(DbError::new(e)),
+        Err(e) => Err(anyhow::anyhow!("{e:#?}")),
     }
 }
 

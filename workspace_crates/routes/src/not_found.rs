@@ -5,7 +5,7 @@ use http_stuff::http_response::{HttpResponseData, ok_html};
 use routing_structs::RouterData;
 use tracing::debug;
 
-pub fn not_found(router_data: RouterData) -> Result<HttpResponseData, InternalAppError> {
+pub fn not_found(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     debug!(
         "User tried accessing page {}, but it is not found",
         router_data.http_request_data.path.clone()

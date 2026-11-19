@@ -9,7 +9,7 @@ use routing_structs::RouterData;
 
 pub async fn get(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     if !session.logged_in
@@ -18,12 +18,12 @@ pub async fn get(
             user_id: {
                 let u = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone())
                     .await
-                    .map_err(InternalAppError::new)?;
+                    .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
                 u.id
             },
         })
         .await
-        .map_err(InternalAppError::new)?
+        .map_err(|e|anyhow::anyhow!("{e:#?}"))?
     {
         session::add_session_notification_error(
             db_pool.clone(),
@@ -36,7 +36,7 @@ pub async fn get(
 
     let site_pages = forum::get_forum_threads(db_pool.clone(), FORUM_ID.to_string())
         .await
-        .map_err(InternalAppError::new)?;
+       .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
     let site_pages = into_vec(site_pages);
 
     let html = html_templating::render(html_template_structs::ManageSitePagesTemplate {

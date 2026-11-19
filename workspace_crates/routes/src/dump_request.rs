@@ -4,7 +4,7 @@ use routing_structs::RouterData;
 
 pub fn dump_request(
     router_data: RouterData,
-) -> Result<HttpResponseData, error_structs::InternalAppError> {
+) -> anyhow::Result<HttpResponseData> {
     let body_text = router_data.http_request_data.body_bytes.clone();
     let body_text = String::from_utf8_lossy(&body_text).into_owned();
     let request_dump = format!(

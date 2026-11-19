@@ -2376,6 +2376,7 @@ dependencies = [
  "payment_system_client",
  "payment_system_structs",
  "serde",
+ "shop",
  "sqlx",
  "user",
 ]

@@ -42,7 +42,7 @@ Shopping cart
   {% endfor %}
 </div>
 <div>
-  <form action="/shop/cart/new_invoice_creation_request" method="post">
+  <form action="/invoice/invoice_creation_request" method="post">
     <fieldset>
     <legend>Pick a payment currency:</legend>
     {% for currency in payment_currencies %}

@@ -4,6 +4,7 @@ use cryptocurrencies_stuff::currencies::{
 use id_generator_unique_in_db::Table;
 use payment_system_structs::PaymentId;
 use serde::Serialize;
+use shop::ShopService;
 use sqlx::{Postgres, Transaction};
 
 #[derive(Clone)]
@@ -218,13 +219,13 @@ pub async fn invoice_status(
 pub async fn create_invoice(
     tx: &mut Transaction<'_, Postgres>,
     user_id: String,
-    service: ServiceData,
+    cart_id: String,
     payment_method: PaymentMethod,
     payment_success_webhook_url: String,
     payment_status_update_webhook_url: String,
     cloudflare_bypass_under_attack_check_header_name: String,
     cloudflare_bypass_under_attack_check_header_value: String,
-) -> anyhow::Result<(InvoiceId, PaymentMethod, ServiceData)> {
+) -> anyhow::Result<(InvoiceId, PaymentMethod)> {
     let invoice_id_string =
         id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices).await?;
     let invoice_id = InvoiceId(invoice_id_string.clone());
@@ -268,6 +269,18 @@ pub async fn create_invoice(
     let curr_ts = &utc_now()?.to_string();
     set_invoice_data(tx, invoice_id.clone(), "invoice_created_at", curr_ts).await?;
 
+    let items = sqlx::query!("SELECT id, name FROM shopping_cart_items WHERE shopping_cart_id = $1",cart_id ).fetch_all(&mut **tx).await?;
+    for item in items {
+        let service = item.name.parse::<ShopService>()?;
+        let data = sqlx::query!("SELECT name, value FROM shopping_cart_item_data WHERE shopping_cart_item_id = $1", item.id).fetch_all(&mut **tx).await?;
+        match service {
+            ShopService::Subscription => {
+                
+            },
+            ShopService::UsernameColor => todo!(),
+        }
+
+    }
     if let ServiceData::Subscription { months, expires_at } = service {
         let sub_expires_at = expires_at.to_string();
         set_invoice_data(tx, invoice_id.clone(), "service", "subscription").await?;
@@ -286,7 +299,7 @@ pub async fn create_invoice(
         )
         .await?;
     }
-    let invoice = (invoice_id.clone(), payment_method.clone(), service);
+    let invoice = (invoice_id.clone(), payment_method.clone());
 
     let payment_info = payment_system_client::new_invoice(
         tx,

@@ -184,8 +184,8 @@ pub async fn route(
             (HttpMethod::Get, "/invoice/view") => {
                 routes::invoice::get_view(router_data.clone()).await
             }
-            (HttpMethod::Post, "/invoice/create_invoice") => {
-                routes::invoice::post_create_invoice(router_data.clone()).await
+            (HttpMethod::Post, "/invoice/invoice_creation_request") => {
+                routes::invoice::invoice_creation_request(router_data.clone()).await
             }
             (HttpMethod::Get, "/") | (HttpMethod::Get, "/index") => {
                 routes::index::get(router_data.clone()).await

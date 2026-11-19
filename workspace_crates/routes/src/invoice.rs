@@ -11,6 +11,8 @@ use session::{add_session_notification_error, add_session_notification_success};
 
 use routing_structs::RouterData;
 
+use crate::shop::possibly_create_and_get_user_cart_id;
+
 pub enum PreliminaryProcessing {
     Forbid,
     Okay { invoice_id: String },
@@ -109,7 +111,7 @@ pub async fn get_view(router_data: RouterData) -> anyhow::Result<HttpResponseDat
         invoice_id,
     })))
 }
-pub async fn post_create_invoice(
+pub async fn invoice_creation_request(
     router_data: RouterData,
 ) -> anyhow::Result<HttpResponseData> {
     let RouterData {
@@ -134,6 +136,7 @@ pub async fn post_create_invoice(
         return Ok(redirect_to("/".to_string()));
     }
 
+    let user_cart_id = possibly_create_and_get_user_cart_id(db_pool.clone(), user.id.clone()).await?;
     let body_params =
         parse_body_into_string_form_input_params(http_request_data.body_bytes.clone())
             .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
@@ -154,15 +157,14 @@ pub async fn post_create_invoice(
             String::from("Could not validate Turnstile Captcha"),
         )
         .await;
-        return Ok(redirect_to("/signup".to_string()));
+        return Ok(redirect_to("/".to_string()));
     }
-    let service = body_params.get("service").cloned();
-    let payment_method = body_params.get("payment_method").cloned();
+    let payment_currency = body_params.get("payment_currency").cloned();
     let csrf_token = body_params.get("csrf_token").cloned();
 
-    let (service, payment_method, csrf_token) = match (service, payment_method, csrf_token) {
-        (Some(service), Some(payment_method), Some(csrf_token)) => {
-            (service, payment_method, csrf_token)
+    let (payment_currency, csrf_token) = match (payment_currency, csrf_token) {
+        (Some(payment_method), Some(csrf_token)) => {
+            (payment_method, csrf_token)
         }
         _ => {
             return Ok(redirect_to("/".to_string()));
@@ -183,74 +185,7 @@ pub async fn post_create_invoice(
         return Ok(redirect_to("/signup".to_string()));
     }
 
-    let service = match service.as_str() {
-        "subscription" => {
-            let Some(months) = body_params.get("months").to_owned() else {
-                tracing::error!("Invalid invoice Subscription months field");
-                return Ok(redirect_to("/".to_string()));
-            };
-            let Ok(months) = months.parse::<u64>() else {
-                tracing::error!("Invalid invoice Subscription months field");
-                return Ok(redirect_to("/".to_string()));
-            };
-            if months == 0 {
-                tracing::error!("Invalid months {months}");
-                return Ok(redirect_to("/".to_string()));
-            }
-            ServiceData::Subscription {
-                months,
-                expires_at: {
-                    let now = utc_now()?;
-                    now + (months * 30 * 24 * 60)
-                },
-            }
-        }
-        _ => {
-            tracing::error!("Invalid invoice service");
-            return Ok(redirect_to("/".to_string()));
-        }
-    };
-
-    let method = match service {
-        ServiceData::Subscription { months, .. } => {
-            let sub_cost = custom_site_variables::get_custom_site_variable(
-                &mut tx,
-                custom_site_variables::CustomSiteVariableName::SubscriptionCostPerMonthUsd,
-            )
-            .await
-            ?;
-            let sub_cost: f64 = sub_cost.parse()?;
-            let sub_cost = (sub_cost * (months as f64)).to_string();
-            let sub_cost = &sub_cost.as_str();
-
-            match payment_method.as_str() {
-                "litecoin" => PaymentMethod::LTC {
-                    amount: get_by_usd::<LTC>(&mut tx, sub_cost)
-                        .await
-                        ?,
-                },
-                "monero" => PaymentMethod::XMR {
-                    amount: get_by_usd::<XMR>(&mut tx, sub_cost)
-                        .await
-                        ?,
-                },
-                "nano" => PaymentMethod::XNO {
-                    amount: get_by_usd::<XNO>(&mut tx, sub_cost)
-                        .await
-                        ?,
-                },
-
-                _ => {
-                    tracing::error!("Invalid invoice payment method");
-                    return Ok(redirect_to("/".to_string()));
-                }
-            }
-        }
-        ServiceData::UsernameColor {
-            color_code: _,
-            expires_at: _,
-        } => todo!(),
-    };
+    
     let payment_success_url = webhooks::get_endpoint_url(
         &mut tx,
         site_config.webhook_and_api_secret_path_prefix.clone(),
@@ -268,8 +203,8 @@ pub async fn post_create_invoice(
     let invoice_data = create_invoice(
         &mut tx,
         user.id,
-        service,
-        method,
+        user_cart_id,
+        payment_currency.parse()?,
         payment_success_url,
         payment_status_update_url,
         router_data

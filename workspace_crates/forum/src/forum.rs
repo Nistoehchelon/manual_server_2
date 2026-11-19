@@ -3,8 +3,7 @@ use crate::{
     ValidForumThreadName,
     forum_structs::{Forum, ForumThread, ForumThreadMessageVersion},
 };
-use db_manager::DbError;
-use error_structs::{ExpectedToGetButFailed, SomeSortOfError};
+use error_structs::ExpectedToGetButFailed;
 
 pub enum ForumIdSource {
     Auto,

@@ -1,4 +1,3 @@
-use error_structs::SomeSortOfError;
 use sqlx::{Postgres, Transaction};
 
 use crate::user;

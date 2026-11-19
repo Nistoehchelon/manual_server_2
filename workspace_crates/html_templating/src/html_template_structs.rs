@@ -1,7 +1,7 @@
 use askama::Template;
 use pagination::PaginationElement;
 use payment_system_structs::PaymentMethod;
-use shop::{ShoppingCart, TotalCurrency};
+use shop::ShoppingCart;
 
 pub struct User {
     pub username: String,

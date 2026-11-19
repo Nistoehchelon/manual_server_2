@@ -1,4 +1,3 @@
-use error_structs::InternalAppError;
 use html_templating::html_template_structs::{
     self, BaseTemplateData, IndexLoggedInTemplate, IndexNotLoggedInTemplate,
 };

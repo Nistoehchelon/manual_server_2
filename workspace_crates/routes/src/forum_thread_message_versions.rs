@@ -1,5 +1,4 @@
 use abac::{CanAccessThisForumThreadInput, can_access_this_forum_thread};
-use error_structs::InternalAppError;
 use html_templating::{
     html_template_structs::{self},
     render,

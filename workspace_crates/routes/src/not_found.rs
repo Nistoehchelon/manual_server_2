@@ -1,4 +1,3 @@
-use error_structs::InternalAppError;
 use html_templating::{html_template_structs::NotFoundTemplate, render};
 use http_stuff::http_response::{HttpResponseData, ok_html};
 

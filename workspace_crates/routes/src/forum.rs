@@ -2,7 +2,6 @@ use abac::{
     CanAccessThisForumInput, can_access_this_forum,
     filters::FilterForumListBasedOnWhatUserCanAccess,
 };
-use error_structs::InternalAppError;
 use forum::find_forum_by_id;
 use html_templating::html_template_structs::{self};
 use http_stuff::http_response::{self, HttpResponseData, redirect_to};

@@ -1,6 +1,5 @@
 use cryptocurrencies_stuff::currencies::{LTC, XMR, XNO};
 use custom_site_variables::CustomSiteVariableName::UsernameColorCostPerMonthUsd;
-use error_structs::InternalAppError;
 use financial_stuff::get_by_usd;
 use html_templating::{
     html_template_structs::{

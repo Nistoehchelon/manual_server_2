@@ -1,5 +1,4 @@
 use abac::{CanAccessThisForumInput, can_access_this_forum};
-use error_structs::InternalAppError;
 use html_templating::{html_template_structs::CreateForumTemplate, render};
 use http_stuff::{
     http_request_parsing::parse_body_into_string_form_input_params,

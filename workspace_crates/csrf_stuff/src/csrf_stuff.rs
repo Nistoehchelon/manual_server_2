@@ -2,7 +2,6 @@ use std::fmt::{self, Display};
 
 use anyhow::bail;
 use db_manager::DbPool;
-use error_structs::InternalAppError;
 
 pub enum DesignatedPurpose {
     Normal,

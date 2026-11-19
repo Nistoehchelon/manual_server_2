@@ -1,4 +1,3 @@
-use error_structs::InternalAppError;
 use http_stuff::http_response::{HttpResponseData, redirect_to};
 use session::edit_session;
 

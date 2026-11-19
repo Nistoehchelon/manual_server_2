@@ -1,5 +1,4 @@
 use abac::UserCanViewAppExecutableVersionInput;
-use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self};
 use http_stuff::http_response::{HttpResponseData, redirect_to};
 use user;

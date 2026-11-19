@@ -1,5 +1,4 @@
 use email_otp::CreateEmailOtpInput;
-use error_structs::InternalAppError;
 use html_templating::html_template_structs::{self, BaseTemplateData};
 use http_stuff::{
     http_request_parsing::{self},

@@ -268,26 +268,23 @@ pub async fn create_invoice(
     let curr_ts = &utc_now()?.to_string();
     set_invoice_data(tx, invoice_id.clone(), "invoice_created_at", curr_ts).await?;
 
-    match service {
-        ServiceData::Subscription { months, expires_at } => {
-            let sub_expires_at = expires_at.to_string();
-            set_invoice_data(tx, invoice_id.clone(), "service", "subscription").await?;
-            set_invoice_data(
-                tx,
-                invoice_id.clone(),
-                "subscription_months",
-                &months.to_string(),
-            )
-            .await?;
-            set_invoice_data(
-                tx,
-                invoice_id.clone(),
-                "subscription_expires_at",
-                &sub_expires_at,
-            )
-            .await?;
-        }
-        _ => {}
+    if let ServiceData::Subscription { months, expires_at } = service {
+        let sub_expires_at = expires_at.to_string();
+        set_invoice_data(tx, invoice_id.clone(), "service", "subscription").await?;
+        set_invoice_data(
+            tx,
+            invoice_id.clone(),
+            "subscription_months",
+            &months.to_string(),
+        )
+        .await?;
+        set_invoice_data(
+            tx,
+            invoice_id.clone(),
+            "subscription_expires_at",
+            &sub_expires_at,
+        )
+        .await?;
     }
     let invoice = (invoice_id.clone(), payment_method.clone(), service);
 

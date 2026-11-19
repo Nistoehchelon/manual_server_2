@@ -1,4 +1,3 @@
-use error_structs::SomeSortOfError;
 use session::get_session_by_session_id;
 use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;

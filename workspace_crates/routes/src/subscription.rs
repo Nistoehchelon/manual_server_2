@@ -1,4 +1,3 @@
-use error_structs::InternalAppError;
 use html_templating::html_template_structs::{BaseTemplateData, SubscriptionTemplate};
 
 use user::get_user_by_user_id;

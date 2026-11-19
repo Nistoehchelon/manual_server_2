@@ -1,5 +1,4 @@
 use abac::CanEditForumThreadMessageInput;
-use error_structs::InternalAppError;
 use forum::{ValidForumThreadMessageContent, forum_structs, get_thread};
 use html_templating::html_template_structs::EditForumThreadMessageTemplate;
 use http_stuff::{

@@ -1,6 +1,5 @@
 use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
 use cryptocurrencies_stuff::currencies::{LTC, XMR, XNO};
-use error_structs::InternalAppError;
 use financial_stuff::get_by_usd;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
 use http_stuff::{
@@ -248,8 +247,8 @@ pub async fn post_create_invoice(
             }
         }
         ServiceData::UsernameColor {
-            color_code,
-            expires_at,
+            color_code: _,
+            expires_at: _,
         } => todo!(),
     };
     let payment_success_url = webhooks::get_endpoint_url(

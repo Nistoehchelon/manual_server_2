@@ -1,5 +1,4 @@
 use custom_site_variables::{get_all_custom_site_variables, save_custom_site_variables_from_form};
-use error_structs::InternalAppError;
 use http_stuff::http_response::{self, HttpResponseData, redirect_to};
 use routing_structs::RouterData;
 use session::add_session_notification_success;

@@ -1,5 +1,4 @@
 use anyhow::bail;
-use error_structs::SomeSortOfError;
 use tracing::debug;
 
 use crate::ForumThreadMessage;

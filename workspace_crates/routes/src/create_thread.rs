@@ -2,7 +2,6 @@ use abac::{
     CanAccessThisForumInput, CanCreateThreadInput, CanSetCustomThreadIdWhenCreatingItInput,
     can_access_this_forum,
 };
-use error_structs::InternalAppError;
 use forum::find_forum_by_id;
 use forum::{self, ValidForumThreadMessageContent, ValidForumThreadName};
 use html_templating::html_template_structs;

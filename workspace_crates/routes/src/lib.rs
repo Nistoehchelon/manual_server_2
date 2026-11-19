@@ -1,4 +1,3 @@
-use error_structs::SomeSortOfError;
 use std::{collections::HashMap, net::IpAddr};
 pub mod create_forum;
 pub mod create_thread;

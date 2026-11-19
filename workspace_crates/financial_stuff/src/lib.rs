@@ -6,6 +6,12 @@ use cryptocurrencies_stuff::{
 };
 use sqlx::{Postgres, Transaction};
 
+#[derive(Debug, Clone)]
+pub struct ReferenceCurrency {
+    pub name: String,
+    pub amount: String,
+}
+
 /// Parses a decimal string (e.g., "12.34") into a U256 scaled by 10^decimals.
 fn parse_decimal_to_u256(s: &str, decimals: u32) -> anyhow::Result<U256> {
     let s = s.trim();

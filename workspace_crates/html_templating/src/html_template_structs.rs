@@ -29,6 +29,8 @@ pub struct ShopMainPageTemplate {
     pub main_info: BaseTemplateData,
     pub services: Vec<(String, String)>,
 }
+
+
 #[derive(Template)]
 #[template(path = "shop/view_cart.html")]
 pub struct ViewCartTemplate {

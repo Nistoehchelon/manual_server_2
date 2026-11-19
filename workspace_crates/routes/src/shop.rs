@@ -1,4 +1,7 @@
+use cryptocurrencies_stuff::currencies::{LTC, XMR, XNO};
+use custom_site_variables::CustomSiteVariableName::UsernameColorCostPerMonthUsd;
 use error_structs::InternalAppError;
+use financial_stuff::{get_by_usd, get_subscription_cost_usd};
 use html_templating::{
     html_template_structs::{
         BaseTemplateData, ShopMainPageTemplate, UsernameColorTemplate, ViewCartTemplate,
@@ -12,7 +15,7 @@ use http_stuff::{
 use id_generator_unique_in_db::Table::{ShoppingCartItemData, ShoppingCartItems};
 use routing_structs::RouterData;
 use session::{add_session_notification_error, add_session_notification_success};
-use shop::{ShopService, ShoppingCart, ShoppingCartItem, ShoppingCartItemDatum};
+use shop::{ShopService, ShoppingCart, ShoppingCartItem, ShoppingCartItemDatum, TotalCurrency};
 use sqlx::PgPool;
 use strum::{EnumMessage, IntoEnumIterator};
 use user::get_user_by_user_id;
@@ -117,30 +120,124 @@ pub async fn view_cart(
     .await?;
 
     let mut items = Vec::with_capacity(cart_items.len());
-
+    let mut total_cost_usd = 0.0;
     for item in cart_items {
-        let data = sqlx::query_as!(
-            ShoppingCartItemDatum,
-            "SELECT name, value FROM shopping_cart_item_data WHERE shopping_cart_item_id = $1",
-            item.id
+        let data = get_item_data(router_data.db_pool.clone(), &item.id).await?;
+        let cost = calculate_service_item_usd_price(
+            router_data.db_pool.clone(),
+            item.id.clone(),
+            item.name.parse::<ShopService>()?,
         )
-        .fetch_all(&router_data.db_pool)
         .await?;
-
+        total_cost_usd += cost;
         items.push(ShoppingCartItem {
+            usd_price: cost.to_string(),
             id: item.id,
             name: item.name,
             data,
         });
     }
-
-    let cart = ShoppingCart { items };
+    let total_cost_in_various_currencies =
+        calc_price_for_all_currencies(router_data.db_pool.clone(), total_cost_usd).await?;
+    let cart = ShoppingCart {
+        items,
+        total_cost_in_various_currencies,
+    };
     let tpl = ViewCartTemplate {
         main_info: router_data.base_template_data.clone(),
         cart,
     };
     let html = render(tpl);
     Ok(ok_html(html))
+}
+
+pub async fn calc_price_for_all_currencies(
+    db_pool: PgPool,
+    total: f64,
+) -> anyhow::Result<Vec<TotalCurrency>> {
+    let mut tx = db_pool.begin().await?;
+    let ltc = get_by_usd::<LTC>(&mut tx, &total.to_string()).await?;
+    let xmr = get_by_usd::<XMR>(&mut tx, &total.to_string()).await?;
+    let xno = get_by_usd::<XNO>(&mut tx, &total.to_string()).await?;
+
+    let re = vec![
+        TotalCurrency {
+            name: "LTC".to_owned(),
+            amount: ltc.to_string_trimmed(),
+        },
+        TotalCurrency {
+            name: "XMR".to_owned(),
+            amount: xmr.to_string_trimmed(),
+        },
+        TotalCurrency {
+            name: "XNO".to_owned(),
+            amount: xno.to_string_trimmed(),
+        },
+        TotalCurrency {
+            name: "USD".to_owned(),
+            amount: total.to_string(),
+        },
+    ];
+    tx.commit().await?;
+    Ok(re)
+}
+
+async fn get_item_data(
+    db_pool: PgPool,
+    item_id: &String,
+) -> Result<Vec<ShoppingCartItemDatum>, anyhow::Error> {
+    let data = sqlx::query_as!(
+        ShoppingCartItemDatum,
+        "SELECT name, value FROM shopping_cart_item_data WHERE shopping_cart_item_id = $1",
+        item_id
+    )
+    .fetch_all(&db_pool)
+    .await?;
+    Ok(data)
+}
+
+pub async fn calculate_service_item_usd_price(
+    db_pool: PgPool,
+    item_id: String,
+    service: ShopService,
+) -> anyhow::Result<f64> {
+    let item_data = get_item_data(db_pool.clone(), &item_id).await?;
+    let custom_var = match service {
+        ShopService::Subscription => {
+            custom_site_variables::CustomSiteVariableName::SubscriptionCostPerMonthUsd
+        }
+        ShopService::UsernameColor => UsernameColorCostPerMonthUsd,
+    };
+    let service_cost_usd_per_month =
+        custom_site_variables::get_custom_site_variable(&mut *db_pool.acquire().await?, custom_var)
+            .await?;
+    match service {
+        ShopService::Subscription => {
+            let months_str = item_data
+                .iter()
+                .find(|d| d.name == "months")
+                .map(|d| d.value.as_str())
+                .ok_or_else(|| anyhow::anyhow!("Missing 'months' datum for item {}", item_id))?;
+            let service_cost: f64 = service_cost_usd_per_month.parse()?;
+            let usd_service_cost = usd_cost(months_str.parse()?, service_cost);
+            Ok(usd_service_cost)
+        }
+        ShopService::UsernameColor => {
+            let months_str = item_data
+                .iter()
+                .find(|d| d.name == "months")
+                .map(|d| d.value.as_str())
+                .ok_or_else(|| anyhow::anyhow!("Missing 'months' datum for item {}", item_id))?;
+            let service_cost: f64 = service_cost_usd_per_month.parse()?;
+            let usd_service_cost = usd_cost(months_str.parse()?, service_cost);
+            Ok(usd_service_cost)
+        }
+    }
+}
+
+fn usd_cost(months: u64, service_cost: f64) -> f64 {
+    let usd_service_cost = (service_cost * (months as f64));
+    usd_service_cost
 }
 pub async fn get_items(
     router_data: RouterData,

@@ -198,9 +198,11 @@ pub async fn route(
             (HttpMethod::Post, "/shop/cart/clear") => routes::shop::clear_cart(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
-            (HttpMethod::Post, p) if p.starts_with("/shop/cart/delete_item/") => routes::shop::delete_cart_item(router_data.clone())
-                .await
-                .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Post, p) if p.starts_with("/shop/cart/delete_item/") => {
+                routes::shop::delete_cart_item(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
             (HttpMethod::Post, "/shop/add_to_cart") => {
                 let res = routes::shop::add_to_cart(router_data.clone()).await;
                 if res.is_err() {

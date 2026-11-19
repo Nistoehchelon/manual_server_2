@@ -33,11 +33,9 @@ pub async fn get_webhook_root(
     secret_prefix: String,
 ) -> anyhow::Result<String> {
     use custom_site_variables::CustomSiteVariableName;
-    let website_root = custom_site_variables::get_custom_site_variable(
-        tx,
-        CustomSiteVariableName::WebsiteRootUrl,
-    )
-    .await?;
+    let website_root =
+        custom_site_variables::get_custom_site_variable(tx, CustomSiteVariableName::WebsiteRootUrl)
+            .await?;
 
     Ok(format!("{website_root}/{secret_prefix}/webhook"))
 }
@@ -57,9 +55,7 @@ pub async fn validate_token(db_pool: sqlx::PgPool, token: String) -> Result<bool
     Ok(token.is_some())
 }
 
-pub async fn get_token(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-) -> anyhow::Result<String> {
+pub async fn get_token(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>) -> anyhow::Result<String> {
     let token = sqlx::query_as!(
         WebhookToken,
         "SELECT primary_key, token, designated_purpose FROM webhook_tokens LIMIT 1",

@@ -398,8 +398,7 @@ pub async fn get_thread_message_ids(
         offset
     )
     .fetch_all(&db_pool)
-    .await
-    ?;
+    .await?;
     let mut vec_string: Vec<String> = vec![];
     for r in result {
         vec_string.push(r.id.clone());

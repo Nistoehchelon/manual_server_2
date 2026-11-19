@@ -29,13 +29,9 @@ pub async fn find_custom_site_page(
             forum::get_thread_message_ids(db_pool.clone(), page_path.clone(), thread_page, limit)
                 .await?;
         let msg_id = msg_id[0].to_string();
-        let msg = forum::get_latest_message_version(db_pool.clone(), msg_id.clone())
-            .await
-           ?;
+        let msg = forum::get_latest_message_version(db_pool.clone(), msg_id.clone()).await?;
         let msg_content = msg.content;
-        replace_variables_with_contents(db_pool.clone(), msg_content.to_string())
-            .await
-           ?
+        replace_variables_with_contents(db_pool.clone(), msg_content.to_string()).await?
     };
     Ok(Some(CustomSitePage {
         name: thread.name,

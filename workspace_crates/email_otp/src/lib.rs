@@ -1,8 +1,9 @@
 use std::fmt;
 
 use chrono::Utc;
-use email_stuff::{AhasendServiceData, EmailSenderConfigBuilder, LettermintServiceData, ResendServiceData}
-;
+use email_stuff::{
+    AhasendServiceData, EmailSenderConfigBuilder, LettermintServiceData, ResendServiceData,
+};
 use site_config::SiteConfig;
 use sqlx::{FromRow, Postgres, Transaction};
 
@@ -223,20 +224,32 @@ pub async fn send_email(
     };
     let message_content = tpl.render()?;
     let email_sender_config = EmailSenderConfigBuilder::new()
-    .ahasend_opt(site_config.ahasend_sender_enabled.then(|| AhasendServiceData {
-        sender_qualified_domain_name: site_config.ahasend_sender_fqdn,
-        api_key: site_config.ahasend_api_key,
-        account_id: site_config.ahasend_account_id,
-    }))
-    .resend_opt(site_config.resend_sender_enabled.then(|| ResendServiceData {
-        sender_qualified_domain_name: site_config.resend_sender_fqdn,
-        api_key: site_config.resend_api_key,
-    }))
-    .lettermint_opt(site_config.lettermint_sender_enabled.then(|| LettermintServiceData {
-        sender_qualified_domain_name: site_config.lettermint_sender_fqdn,
-        project_token: site_config.lettermint_project_token,
-    }))
-    .build()?;   
+        .ahasend_opt(
+            site_config
+                .ahasend_sender_enabled
+                .then(|| AhasendServiceData {
+                    sender_qualified_domain_name: site_config.ahasend_sender_fqdn,
+                    api_key: site_config.ahasend_api_key,
+                    account_id: site_config.ahasend_account_id,
+                }),
+        )
+        .resend_opt(
+            site_config
+                .resend_sender_enabled
+                .then(|| ResendServiceData {
+                    sender_qualified_domain_name: site_config.resend_sender_fqdn,
+                    api_key: site_config.resend_api_key,
+                }),
+        )
+        .lettermint_opt(
+            site_config
+                .lettermint_sender_enabled
+                .then(|| LettermintServiceData {
+                    sender_qualified_domain_name: site_config.lettermint_sender_fqdn,
+                    project_token: site_config.lettermint_project_token,
+                }),
+        )
+        .build()?;
     match email_stuff::send_email(
         email_sender_config,
         email_stuff::TypicalEmail {

@@ -126,7 +126,7 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
     "###;
     // generate invoice
     let currency = "XNO";
-    let seller_website = "website.com"; 
+    let seller_website = "website.com";
     let on_chain_transaction_id = "nano_tx_id";
     let currency_total_amount = "0.0003";
     let reference_currency = "USD";
@@ -286,8 +286,8 @@ pub async fn create_invoice(
                 &sub_expires_at,
             )
             .await?;
-        },
-        _=> {}
+        }
+        _ => {}
     }
     let invoice = (invoice_id.clone(), payment_method.clone(), service);
 

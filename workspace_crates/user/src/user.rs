@@ -5,13 +5,8 @@ use sqlx::{Postgres, Transaction};
 
 use crate::{ValidatedUsername, user_structs_and_so_on::User};
 
-pub async fn get_user_by_user_id(
-    db_pool: sqlx::PgPool,
-    user_id: String,
-) -> anyhow::Result<User> {
-    match find_user_by_user_id(db_pool, user_id)
-        .await?
-    {
+pub async fn get_user_by_user_id(db_pool: sqlx::PgPool, user_id: String) -> anyhow::Result<User> {
+    match find_user_by_user_id(db_pool, user_id).await? {
         Some(u) => Ok(u),
         None => Err(anyhow::anyhow!("Could not get user")),
     }
@@ -74,8 +69,7 @@ pub async fn set_user_data(
         data_value
     )
     .execute(&mut **tx)
-    .await
-   ?;
+    .await?;
 
     Ok(())
 }

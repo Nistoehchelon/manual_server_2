@@ -26,10 +26,7 @@ pub async fn new_invoice(
         cloudflare_bypass_under_attack_check_header_name.clone(),
         cloudflare_bypass_under_attack_check_header_value.clone(),
     );
-    callback_headers.insert(
-        X_API_TOKEN.to_owned(),
-        webhooks::get_token(&mut *tx).await?,
-    );
+    callback_headers.insert(X_API_TOKEN.to_owned(), webhooks::get_token(&mut *tx).await?);
 
     let payload = NewInvoiceRequest {
         method,

@@ -7,8 +7,6 @@ use crate::html_template_structs::BaseTemplateData;
 #[template(path = "edit_custom_site_variables.html")]
 pub struct EditCustomSiteVariablesTemplate {
     pub main_info: BaseTemplateData,
-    pub variables: Vec<CustomSiteVariableEntry>,   
-    pub csrf_token: String, 
+    pub variables: Vec<CustomSiteVariableEntry>,
+    pub csrf_token: String,
 }
-
-

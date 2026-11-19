@@ -1,5 +1,3 @@
-use financial_stuff::ReferenceCurrency;
-
 #[derive(
     strum::EnumMessage,
     Debug,

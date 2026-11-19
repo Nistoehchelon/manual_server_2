@@ -1,4 +1,3 @@
-
 use askama::Template;
 use pagination::PaginationElement;
 use shop::ShoppingCart;
@@ -29,15 +28,12 @@ pub struct ShopMainPageTemplate {
     pub services: Vec<(String, String)>,
 }
 
-
-
 #[derive(Template)]
 #[template(path = "shop/view_cart.html")]
 pub struct ViewCartTemplate {
     pub main_info: BaseTemplateData,
     pub cart: ShoppingCart,
 }
-
 
 #[derive(Template)]
 #[template(path = "view_custom_page.html")]

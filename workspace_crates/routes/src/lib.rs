@@ -1,6 +1,5 @@
-use std::{collections::HashMap, net::IpAddr};
 use error_structs::SomeSortOfError;
-pub mod shop;
+use std::{collections::HashMap, net::IpAddr};
 pub mod create_forum;
 pub mod create_thread;
 pub mod dashboard;
@@ -18,6 +17,7 @@ pub mod logout;
 pub mod manage_custom_site_pages;
 pub mod manage_custom_site_variables;
 pub mod not_found;
+pub mod shop;
 pub mod signup;
 pub mod subscription;
 pub mod view_custom_site_page;

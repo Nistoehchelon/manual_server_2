@@ -247,7 +247,10 @@ pub async fn post_create_invoice(
                 }
             }
         }
-        ServiceData::UsernameColor { color_code, expires_at } => todo!(),
+        ServiceData::UsernameColor {
+            color_code,
+            expires_at,
+        } => todo!(),
     };
     let payment_success_url = webhooks::get_endpoint_url(
         &mut tx,

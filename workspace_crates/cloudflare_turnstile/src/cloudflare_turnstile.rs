@@ -53,7 +53,8 @@ pub async fn validate_turnstile(
 
     tracing::debug!(
         "Turnstile validation result: {} {:#?}",
-        response.success, response.error_codes,
+        response.success,
+        response.error_codes,
     );
     response.success
 }

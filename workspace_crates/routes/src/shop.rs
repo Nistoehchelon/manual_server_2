@@ -1,7 +1,7 @@
 use cryptocurrencies_stuff::currencies::{LTC, XMR, XNO};
 use custom_site_variables::CustomSiteVariableName::UsernameColorCostPerMonthUsd;
 use error_structs::InternalAppError;
-use financial_stuff::{get_by_usd, get_subscription_cost_usd};
+use financial_stuff::get_by_usd;
 use html_templating::{
     html_template_structs::{
         BaseTemplateData, ShopMainPageTemplate, UsernameColorTemplate, ViewCartTemplate,
@@ -237,8 +237,7 @@ pub async fn calculate_service_item_usd_price(
 }
 
 fn usd_cost(months: u64, service_cost: f64) -> f64 {
-    
-    (service_cost * (months as f64))
+    service_cost * (months as f64)
 }
 pub async fn get_items(
     router_data: RouterData,

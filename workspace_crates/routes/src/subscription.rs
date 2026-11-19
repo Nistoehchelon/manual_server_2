@@ -52,7 +52,7 @@ pub async fn get(
         usd_cost.to_string(),
         xmr_cost.to_string_trimmed(),
         ltc_cost.to_string_trimmed(),
-        xno_cost.to_string_trimmed()
+        xno_cost.to_string_trimmed(),
     )))
 }
 

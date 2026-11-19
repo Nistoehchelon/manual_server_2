@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use askama::Template;
 use pagination::PaginationElement;
@@ -31,12 +30,14 @@ pub struct ShopMainPageTemplate {
 }
 
 
+
 #[derive(Template)]
 #[template(path = "shop/view_cart.html")]
 pub struct ViewCartTemplate {
     pub main_info: BaseTemplateData,
     pub cart: ShoppingCart,
 }
+
 
 #[derive(Template)]
 #[template(path = "view_custom_page.html")]

@@ -19,7 +19,7 @@ Shopping cart
     <li class="cart-item">
       <h3>{{ item.name }}</h3>  <form method="POST" action="/shop/cart/delete_item/{{item.id }}"><button>Delete this
           item from your cart</button></form>
-        <span>Cost: {{ item.usd_price }} USD</span><br> 
+        <span>Cost in reference currency (USD): {{ item.usd_price }} USD</span><br> 
         {% if !item.data.is_empty() %}
         <dl class="item-data">
           {% for datum in item.data %}
@@ -32,10 +32,18 @@ Shopping cart
     {% endfor %}
   </ul>
   {% endif %}
-  <h1>Approximate total (in various currencies):</h1>
-    {% for currency in cart.total_cost_in_various_currencies %}
+  <h1>Total in reference currency (USD):</h1>
+    {{ cart.total_price_usd }} USD<br>
+  <h1>Approximate total (in available-as-payment-method currencies):</h1>
+    {% for currency in cart.total_prices_in_payment_method_currencies %}
     {{currency.amount}} {{ currency.name }}<br>
     {% endfor %}
+    Available payment methods: 
+</div>
+<div>
+  <form action="/shop/cart/checkout" method="post">
+    <button>Go to checkout</button>
+  </form>
 </div>
 
 

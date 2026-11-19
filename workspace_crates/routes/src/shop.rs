@@ -120,7 +120,7 @@ pub async fn view_cart(
     .await?;
 
     let mut items = Vec::with_capacity(cart_items.len());
-    let mut total_cost_usd = 0.0;
+    let mut total_price_usd = 0.0;
     for item in cart_items {
         let data = get_item_data(router_data.db_pool.clone(), &item.id).await?;
         let cost = calculate_service_item_usd_price(
@@ -129,7 +129,7 @@ pub async fn view_cart(
             item.name.parse::<ShopService>()?,
         )
         .await?;
-        total_cost_usd += cost;
+        total_price_usd += cost;
         items.push(ShoppingCartItem {
             usd_price: cost.to_string(),
             id: item.id,
@@ -137,11 +137,12 @@ pub async fn view_cart(
             data,
         });
     }
-    let total_cost_in_various_currencies =
-        calc_price_for_all_currencies(router_data.db_pool.clone(), total_cost_usd).await?;
+    let total_price_in_payment_method_currencies =
+        calc_price_for_all_currencies(router_data.db_pool.clone(), total_price_usd).await?;
     let cart = ShoppingCart {
         items,
-        total_cost_in_various_currencies,
+        total_prices_in_payment_method_currencies: total_price_in_payment_method_currencies,
+        total_price_usd: total_price_usd.to_string(),
     };
     let tpl = ViewCartTemplate {
         main_info: router_data.base_template_data.clone(),
@@ -236,8 +237,8 @@ pub async fn calculate_service_item_usd_price(
 }
 
 fn usd_cost(months: u64, service_cost: f64) -> f64 {
-    let usd_service_cost = (service_cost * (months as f64));
-    usd_service_cost
+    
+    (service_cost * (months as f64))
 }
 pub async fn get_items(
     router_data: RouterData,

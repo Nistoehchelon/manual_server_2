@@ -11,3 +11,4 @@ pub struct EditCustomSiteVariablesTemplate {
     pub csrf_token: String, 
 }
 
+

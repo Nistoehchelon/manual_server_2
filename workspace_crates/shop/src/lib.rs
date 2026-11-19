@@ -28,7 +28,8 @@ pub struct TotalCurrency {
 }
 #[derive(Debug, Clone)]
 pub struct ShoppingCart {
-    pub total_cost_in_various_currencies: Vec<TotalCurrency>,
+    pub total_price_usd: String,
+    pub total_prices_in_payment_method_currencies: Vec<TotalCurrency>,
     pub items: Vec<ShoppingCartItem>,
 }
 #[derive(Debug, Clone)]

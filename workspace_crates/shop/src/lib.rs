@@ -17,7 +17,7 @@ pub enum ShopService {
     )]
     Subscription,
     #[strum(
-        message = "A costumetic thingie that allows choosing a color for your display username"
+        message = "A cosmetic thingie that allows choosing a color for your display username"
     )]
     UsernameColor,
 }

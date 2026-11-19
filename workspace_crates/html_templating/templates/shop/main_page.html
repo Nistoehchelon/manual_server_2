@@ -7,6 +7,9 @@ Shop
 {% block content %}
 
 {% for service in services %}
-    <a href="/shop/{{service.0}}">{{service.1}}</a><br>
+    <a href="/shop/{{service.0}}">{{service.0}}</a><br>
+    Description: {{ service.1 }}
+    <hr>
+    <br>
 {% endfor %}
 {% endblock %}

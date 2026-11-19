@@ -154,6 +154,16 @@ pub struct SubscriptionTemplate {
     pub ltc_cost: String,
     pub xno_cost: String,
 }
+#[derive(Template)]
+#[template(path = "shop/username_color.html")]
+pub struct UsernameColorTemplate {
+    pub main_info: BaseTemplateData,
+    pub csrf_token: String,
+    pub usd_cost: String,
+    pub xmr_cost: String,
+    pub ltc_cost: String,
+    pub xno_cost: String,
+}
 
 #[derive(Template)]
 #[template(path = "index_not_logged_in.html")]

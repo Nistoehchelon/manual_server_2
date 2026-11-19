@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+
+csscolorparser = { workspace = true }
+strum = { workspace = true }
 site_config = { workspace = true }
 auth_system_structs = { workspace = true }
 anyhow = { workspace = true }

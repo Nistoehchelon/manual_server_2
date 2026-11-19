@@ -1,0 +1,12 @@
+{% extends "template_base.html" %}
+
+{% block title %}
+Shop
+{% endblock %}
+
+{% block content %}
+
+{% for service in services %}
+    <a href="/shop/{{service.name}}">{{service.name}}</a><br>
+{% endfor %}
+{% endblock %}

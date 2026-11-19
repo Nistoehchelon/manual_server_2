@@ -1,6 +1,8 @@
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use cryptocurrencies_stuff::{
-    U256, atomic_unit::{AtomicUnit, CurrencyConfig}, currencies::{CurrencyAtomicUnit, LTC, XMR, XNO},
+    U256,
+    atomic_unit::{AtomicUnit, CurrencyConfig},
+    currencies::{CurrencyAtomicUnit, LTC, XMR, XNO},
 };
 use sqlx::{Postgres, Transaction};
 
@@ -51,7 +53,19 @@ pub async fn get_subscription_cost_usd(db_pool: sqlx::PgPool) -> anyhow::Result<
     let mut tx = db_pool.begin().await?;
     let s = custom_site_variables::get_custom_site_variable(
         &mut tx,
-        custom_site_variables::CustomSiteVariableName::SubscriptionCostUsd,
+        custom_site_variables::CustomSiteVariableName::SubscriptionCostPerMonthUsd,
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(s.trim().to_string())
+}
+pub async fn get_username_color_cost_per_month_usd(
+    db_pool: sqlx::PgPool,
+) -> anyhow::Result<String> {
+    let mut tx = db_pool.begin().await?;
+    let s = custom_site_variables::get_custom_site_variable(
+        &mut tx,
+        custom_site_variables::CustomSiteVariableName::UsernameColorCostPerMonthUsd,
     )
     .await?;
     tx.commit().await?;

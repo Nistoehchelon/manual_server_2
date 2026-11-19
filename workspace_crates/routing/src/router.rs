@@ -189,6 +189,11 @@ pub async fn route(
                 .await
                 .unwrap_or(internal_server_error_500()),
 
+            (HttpMethod::Get, p) if p.starts_with("/shop/") => {
+                routes::shop::get(router_data.clone())
+                    .await
+                    .unwrap_or(internal_server_error_500())
+            }
             (HttpMethod::Get, p) if p.starts_with("/dynamic_stylesheet/") => {
                 routes::dynamic_stylesheet::get(router_data.clone())
                     .await
@@ -212,12 +217,12 @@ pub async fn route(
                     .await
                     .unwrap_or(internal_server_error_500())
             }
-             (HttpMethod::Get, "/manage_custom_site_variables") => {
+            (HttpMethod::Get, "/manage_custom_site_variables") => {
                 routes::manage_custom_site_variables::get(router_data.clone())
                     .await
                     .unwrap_or(internal_server_error_500())
             }
-             (HttpMethod::Post, "/manage_custom_site_variables") => {
+            (HttpMethod::Post, "/manage_custom_site_variables") => {
                 routes::manage_custom_site_variables::post(router_data.clone())
                     .await
                     .unwrap_or(internal_server_error_500())

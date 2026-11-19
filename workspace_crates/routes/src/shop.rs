@@ -1,0 +1,291 @@
+use error_structs::InternalAppError;
+use html_templating::html_template_structs::{BaseTemplateData, UsernameColorTemplate};
+use http_stuff::{
+    http_request_parsing::parse_body_into_string_form_input_params, http_response::redirect_to,
+};
+use id_generator_unique_in_db::Table::{ShoppingCartItemData, ShoppingCartItems};
+use routing_structs::RouterData;
+use session::{add_session_notification_error, add_session_notification_success};
+use sqlx::PgPool;
+use user::get_user_by_user_id;
+
+use crate::subscription;
+
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, strum::EnumString, strum::AsRefStr)]
+#[strum(serialize_all = "snake_case")]
+pub enum ShopService {
+    Subscription,
+    UsernameColor,
+}
+pub async fn get(
+    router_data: RouterData,
+) -> Result<http_stuff::http_response::HttpResponseData, error_structs::InternalAppError> {
+    let path = router_data.http_request_data.path.clone();
+    let Some(service) = path.strip_prefix("/shop/") else {
+        tracing::debug!("Could not strip prefix");
+        return crate::not_found::not_found(router_data);
+    };
+    let service: ShopService = service.parse().map_err(InternalAppError::new)?;
+    match service {
+        ShopService::Subscription => subscription::get(router_data).await,
+        ShopService::UsernameColor => get_color(router_data).await,
+    }
+}
+pub async fn get_color(
+    router_data: RouterData,
+) -> Result<http_stuff::http_response::HttpResponseData, error_structs::InternalAppError> {
+    let db_pool = router_data.db_pool.clone();
+    let session = router_data.session.clone();
+    if !session.logged_in {
+        return Ok(redirect_to("/".to_string()));
+    }
+    let _user = get_user_by_user_id(db_pool.clone(), session.user_id.clone())
+        .await
+        .map_err(InternalAppError::new)?;
+
+    let csrf_token = csrf_stuff::get_or_create_token(
+        db_pool.clone(),
+        session.id.clone(),
+        csrf_stuff::DesignatedPurpose::Normal,
+    )
+    .await
+    .map_err(InternalAppError::new)?;
+    let usd_cost = financial_stuff::get_username_color_cost_per_month_usd(db_pool.clone())
+        .await
+        .map_err(InternalAppError::new)?;
+    let xmr_cost = financial_stuff::convert_usd_price_to_xmr(db_pool.clone(), &usd_cost)
+        .await
+        .map_err(InternalAppError::new)?;
+    let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), &usd_cost)
+        .await
+        .map_err(InternalAppError::new)?;
+    let xno_cost = financial_stuff::convert_usd_price_to_xno(db_pool.clone(), &usd_cost)
+        .await
+        .map_err(InternalAppError::new)?;
+    Ok(http_stuff::http_response::ok_html(get_html(
+        router_data.base_template_data,
+        csrf_token,
+        usd_cost.to_string(),
+        xmr_cost.to_string_trimmed(),
+        ltc_cost.to_string_trimmed(),
+        xno_cost.to_string_trimmed(),
+    )))
+}
+
+pub async fn add_to_cart(
+    router_data: RouterData,
+) -> anyhow::Result<http_stuff::http_response::HttpResponseData> {
+    let user = get_user_by_user_id(
+        router_data.db_pool.clone(),
+        router_data.session.user_id.clone(),
+    )
+    .await?;
+
+    let user_cart_id =
+        possibly_create_and_get_user_cart_id(router_data.db_pool.clone(), user.id.clone()).await?;
+
+    let body = router_data.http_request_data.clone().body_bytes;
+    let params =
+        parse_body_into_string_form_input_params(body).map_err(|e| anyhow::anyhow!("{e:#?}"))?;
+
+    let service: ShopService = params
+        .get("service")
+        .ok_or_else(|| anyhow::anyhow!("Service param not found"))?
+        .parse()?;
+
+    let common_tuple = match common(
+        router_data.clone(),
+        user_cart_id,
+        params.clone(),
+        service.clone(),
+    )
+    .await
+    {
+        Ok(s) => s,
+        Err(e) => match e {
+            CommonError::MonthsSpecifiedAreBeyondAllowedRange
+            | CommonError::ItemAlreadyInUserCart => {
+                return Ok(redirect_to("/".to_owned()));
+            }
+
+            CommonError::PropagateError { message } => {
+                return Err(anyhow::anyhow!("{message}"));
+            }
+        },
+    };
+    let (months, mut tx, shopping_cart_item_id) = common_tuple;
+    match service {
+        ShopService::Subscription => {
+            let item_data_id =
+                id_generator_unique_in_db::generate_unique_id_for(&mut tx, ShoppingCartItemData)
+                    .await?;
+            sqlx::query!("INSERT INTO shopping_cart_item_data (id, shopping_cart_item_id, name, value) VALUES($1, $2, $3, $4)", item_data_id, shopping_cart_item_id, "months", months.to_string()).execute(&mut *tx).await?;
+            tx.commit().await?;
+
+            return Ok(redirect_to("/shop?added".to_owned()));
+        }
+        ShopService::UsernameColor => {
+            let raw_color_code = params
+                .get("color_code")
+                .ok_or_else(|| anyhow::anyhow!("Color param not found"))?;
+            let color_code = match raw_color_code.parse::<csscolorparser::Color>() {
+                Ok(cc) => cc,
+                Err(e) => {
+                    add_session_notification_error(
+                        router_data.db_pool.clone(),
+                        router_data.session.id.clone(),
+                        format!("Could not parse color {raw_color_code}: {e}"),
+                    )
+                    .await;
+                    return Ok(redirect_to("/shop/username_color".to_owned()));
+                }
+            };
+
+            let item_data_id =
+                id_generator_unique_in_db::generate_unique_id_for(&mut tx, ShoppingCartItemData)
+                    .await?;
+            sqlx::query!("INSERT INTO shopping_cart_item_data (id, shopping_cart_item_id, name, value) VALUES($1, $2, $3, $4)", item_data_id, shopping_cart_item_id, "color_code", color_code.to_string()).execute(&mut *tx).await?;
+            let item_data_id =
+                id_generator_unique_in_db::generate_unique_id_for(&mut tx, ShoppingCartItemData)
+                    .await?;
+            sqlx::query!("INSERT INTO shopping_cart_item_data (id, shopping_cart_item_id, name, value) VALUES($1, $2, $3, $4)", item_data_id, shopping_cart_item_id, "months", months.to_string()).execute(&mut *tx).await?;
+
+            tx.commit().await?;
+        }
+    }
+
+    add_session_notification_success(
+        router_data.db_pool.clone(),
+        router_data.session.id.clone(),
+        format!("Items {service} added to cart"),
+    )
+    .await;
+    Ok(redirect_to("/shop".to_owned()))
+}
+
+pub enum CommonError {
+    MonthsSpecifiedAreBeyondAllowedRange,
+    ItemAlreadyInUserCart,
+    PropagateError { message: String },
+}
+async fn common(
+    router_data: RouterData,
+    user_cart_id: String,
+    params: std::collections::HashMap<String, String>,
+    service: ShopService,
+) -> Result<(u64, sqlx::Transaction<'static, sqlx::Postgres>, String), CommonError> {
+    let months = params
+        .get("months")
+        .ok_or_else(|| CommonError::PropagateError {
+            message: "No months found in params".to_owned(),
+        })?
+        .parse::<u64>()
+        .map_err(|e| CommonError::PropagateError {
+            message: format!("Months parse error: {e:#?}"),
+        })?;
+    if !(0..=12).contains(&months) {
+        add_session_notification_error(
+            router_data.db_pool.clone(),
+            router_data.session.id.clone(),
+            format!("Invalid months {months}, must be between (inclusive) 1 and 12"),
+        )
+        .await;
+        return Err(CommonError::MonthsSpecifiedAreBeyondAllowedRange);
+    }
+    let existing = sqlx::query!(
+        "SELECT id FROM shopping_cart_items WHERE shopping_cart_id = $1 AND name = $2",
+        user_cart_id,
+        ShopService::Subscription.to_string()
+    )
+    .fetch_optional(&router_data.db_pool)
+    .await
+    .map_err(|e| CommonError::PropagateError {
+        message: format!("{e:#?}"),
+    })?;
+    if existing.is_some() {
+        add_session_notification_error(
+            router_data.db_pool.clone(),
+            router_data.session.id.clone(),
+            "This item already exists in your  cart".to_owned(),
+        )
+        .await;
+        return Err(CommonError::ItemAlreadyInUserCart);
+    }
+    let mut tx =
+        router_data
+            .db_pool
+            .clone()
+            .begin()
+            .await
+            .map_err(|e| CommonError::PropagateError {
+                message: format!("{e:#?}"),
+            })?;
+    let shopping_cart_item_id =
+        id_generator_unique_in_db::generate_unique_id_for(&mut tx, ShoppingCartItems)
+            .await
+            .map_err(|e| CommonError::PropagateError {
+                message: format!("{e:#?}"),
+            })?;
+    sqlx::query!(
+        "INSERT INTO shopping_cart_items (id, shopping_cart_id, name) VALUES($1, $2, $3)",
+        shopping_cart_item_id,
+        user_cart_id,
+        service.to_string()
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(|e| CommonError::PropagateError {
+        message: format!("{e:#?}"),
+    })?;
+    Ok((months, tx, shopping_cart_item_id))
+}
+fn get_html(
+    base_template: BaseTemplateData,
+    csrf_token: String,
+    usd_cost: String,
+    xmr_cost: String,
+    ltc_cost: String,
+    xno_cost: String,
+) -> String {
+    let sub_template = UsernameColorTemplate {
+        csrf_token,
+        main_info: base_template,
+        usd_cost,
+        xmr_cost,
+        ltc_cost,
+        xno_cost,
+    };
+    html_templating::render(sub_template)
+}
+
+pub async fn possibly_create_and_get_user_cart_id(
+    db_pool: PgPool,
+    user_id: String,
+) -> anyhow::Result<String> {
+    let cart_option = sqlx::query!(
+        "SELECT id FROM user_shopping_carts WHERE user_id = $1",
+        user_id
+    )
+    .fetch_optional(&db_pool)
+    .await?;
+    match cart_option {
+        Some(id) => Ok(id.id),
+        None => {
+            let mut tx = db_pool.begin().await?;
+            let id = id_generator_unique_in_db::generate_unique_id_for(
+                &mut tx,
+                id_generator_unique_in_db::Table::UserShoppingCarts,
+            )
+            .await?;
+            sqlx::query!(
+                "INSERT INTO user_shopping_carts (user_id, id) VALUES($1, $2)",
+                user_id,
+                id
+            )
+            .execute(&mut *tx)
+            .await?;
+            tx.commit().await?;
+            Ok(id)
+        }
+    }
+}

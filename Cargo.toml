@@ -71,6 +71,7 @@ email_stuff = { git = "https://github.com/Nistoehchelon/email_stuff.git" }
 strum = { version = "0.28", features = ["derive"] }
 lol_html = "3.0.3"
 
+csscolorparser = "0.9.2"
 
 secrecy = "0.10.3"
 

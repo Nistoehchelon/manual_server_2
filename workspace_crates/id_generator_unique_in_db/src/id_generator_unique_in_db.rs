@@ -9,6 +9,9 @@ pub enum Table {
     ForumThreadMessages,
     Invoices,
     Forums,
+    UserShoppingCarts,
+    ShoppingCartItems,
+    ShoppingCartItemData,
 }
 
 pub async fn generate_unique_id_for(
@@ -58,6 +61,24 @@ pub async fn generate_unique_id_for(
                 .fetch_one(&mut **tx)
                 .await?
             }
+            Table::UserShoppingCarts => sqlx::query_scalar!(
+                r#"SELECT EXISTS(SELECT 1 FROM user_shopping_carts WHERE id = $1) as "exists!""#,
+                id
+            )
+            .fetch_one(&mut **tx)
+            .await?,
+            Table::ShoppingCartItems => sqlx::query_scalar!(
+                r#"SELECT EXISTS(SELECT 1 FROM shopping_cart_items WHERE id = $1) as "exists!""#,
+                id
+            )
+            .fetch_one(&mut **tx)
+            .await?,
+            Table::ShoppingCartItemData => sqlx::query_scalar!(
+                r#"SELECT EXISTS(SELECT 1 FROM shopping_cart_item_data WHERE id = $1) as "exists!""#,
+                id
+            )
+            .fetch_one(&mut **tx)
+            .await?,
         };
 
         if !exists {

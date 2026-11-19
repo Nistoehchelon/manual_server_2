@@ -6,6 +6,7 @@ pub mod create_forum;
 pub mod forum_thread;
 pub mod forum_thread_message_versions;
 pub mod edit_forum_thread_message;
+pub mod shop;
 pub mod manage_custom_site_variables;
 pub mod index;
 pub mod login;

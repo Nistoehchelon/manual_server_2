@@ -216,7 +216,7 @@ pub async fn post_create_invoice(
         ServiceData::Subscription { months, .. } => {
             let sub_cost = custom_site_variables::get_custom_site_variable(
                 &mut tx,
-                custom_site_variables::CustomSiteVariableName::SubscriptionCostUsd,
+                custom_site_variables::CustomSiteVariableName::SubscriptionCostPerMonthUsd,
             )
             .await
             .map_err(InternalAppError::new)?;

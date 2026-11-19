@@ -1,7 +1,6 @@
 use std::{collections::HashMap, net::IpAddr};
-
 use error_structs::SomeSortOfError;
-
+pub mod shop;
 pub mod create_forum;
 pub mod create_thread;
 pub mod dashboard;

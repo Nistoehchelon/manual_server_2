@@ -13,8 +13,10 @@ pub enum CustomSiteVariableName {
     PaymentServerUrl,
     #[strum(serialize = "payment_server_token")]
     PaymentServerToken,
-    #[strum(serialize = "subscription_cost_usd")]
-    SubscriptionCostUsd,
+    #[strum(serialize = "subscription_cost_per_month_usd")]
+    SubscriptionCostPerMonthUsd,
+    #[strum(serialize = "username_color_cost_per_month_usd")]
+    UsernameColorCostPerMonthUsd,
     #[strum(serialize = "usd_per_ltc")]
     USDPerLTC,
     #[strum(serialize = "usd_per_xmr")]

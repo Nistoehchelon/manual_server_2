@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use askama::Template;
 use pagination::PaginationElement;
 
@@ -5,6 +7,8 @@ use pagination::PaginationElement;
 pub struct User {
     pub username: String,
 }
+
+
 
 pub struct Forum {
     pub id: String,
@@ -19,6 +23,14 @@ impl From<forum::Forum> for Forum {
             parent_id: f.parent_id,
         }
     }
+}
+
+
+#[derive(Template)]
+#[template(path = "shop/main_page.html")]
+pub struct ShopMainPageTemplate {
+  pub main_info: BaseTemplateData,
+pub   services: HashMap<String, String>,
 }
 
 #[derive(Template)]

@@ -4,12 +4,9 @@ use askama::Template;
 use pagination::PaginationElement;
 use shop::ShoppingCart;
 
-
 pub struct User {
     pub username: String,
 }
-
-
 
 pub struct Forum {
     pub id: String,
@@ -26,18 +23,17 @@ impl From<forum::Forum> for Forum {
     }
 }
 
-
 #[derive(Template)]
 #[template(path = "shop/main_page.html")]
 pub struct ShopMainPageTemplate {
-  pub main_info: BaseTemplateData,
-pub   services: Vec<(String, String)>,
+    pub main_info: BaseTemplateData,
+    pub services: Vec<(String, String)>,
 }
 #[derive(Template)]
 #[template(path = "shop/view_cart.html")]
 pub struct ViewCartTemplate {
-  pub main_info: BaseTemplateData,
-pub   cart: ShoppingCart,
+    pub main_info: BaseTemplateData,
+    pub cart: ShoppingCart,
 }
 
 #[derive(Template)]

@@ -3,7 +3,6 @@
 {% block content %}
 <a href="/forum_thread?id={{ thread.id }}&amp;page={{ thread_page }}">Back to thread "{{ thread.name }}"</a><br>
 
-{% include "includes/notifications.html" %}
 <form method="POST" action="/edit_forum_thread_message">
 <p>Message:<br> <textarea name="message" maxlength="{{ thread_message_length_max }}">{{ message_content }}</textarea><br></p>
    <p> <button type="submit">Submit</button><br></p>

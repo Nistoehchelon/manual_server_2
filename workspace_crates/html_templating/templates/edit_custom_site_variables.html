@@ -1,7 +1,6 @@
 {% extends "template_base.html" %}
 
 {% block content%}
-{% include "includes/notifications.html" %}
 <form action="/manage_custom_site_variables" method="POST">
     {% for var in variables %}
     {{ var.name }}: <input type = "text" name = "{{ var.name }}" value = "{{ var.value.as_deref().unwrap_or("[not set]")}}">

@@ -9,7 +9,6 @@
 
 {% block content%}
 <h1>OTP</h1>
-{% include "includes/notifications.html" %}
 <form method="POST" action="/email_otp">
   <label for="otp">You are hereby commanded to enter the OTP code you have received in that very important email letter: </label>
   <input type="text" id="otp" name="otp" placeholder="Enter the code you have received" required><br>

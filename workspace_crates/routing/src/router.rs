@@ -195,6 +195,9 @@ pub async fn route(
             (HttpMethod::Get, "/shop/cart") => routes::shop::view_cart(router_data.clone())
                 .await
                 .unwrap_or(internal_server_error_500()),
+            (HttpMethod::Get, "/shop/cart/clear") => routes::shop::clear_cart(router_data.clone())
+                .await
+                .unwrap_or(internal_server_error_500()),
             (HttpMethod::Post, "/shop/add_to_cart") => {
                 let res = routes::shop::add_to_cart(router_data.clone()).await;
                 if res.is_err() {

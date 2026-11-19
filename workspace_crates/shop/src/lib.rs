@@ -31,6 +31,7 @@ pub struct ShoppingCart {
 }
 #[derive(Debug, Clone)]
 pub struct ShoppingCartItem {
+    pub id: String,
     pub name: String,
     pub data: Vec<ShoppingCartItemDatum>,
 }

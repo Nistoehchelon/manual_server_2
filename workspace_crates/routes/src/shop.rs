@@ -1,4 +1,3 @@
-
 use error_structs::InternalAppError;
 use html_templating::{
     html_template_structs::{
@@ -40,6 +39,36 @@ pub async fn main_page(
     Ok(ok_html(html))
 }
 
+pub async fn clear_cart(
+    router_data: RouterData,
+) -> anyhow::Result<http_stuff::http_response::HttpResponseData> {
+    let user = get_user_by_user_id(
+        router_data.db_pool.clone(),
+        router_data.session.user_id.clone(),
+    )
+    .await?;
+    let cart_id =
+        possibly_create_and_get_user_cart_id(router_data.db_pool.clone(), user.id.clone()).await?;
+    let result = sqlx::query!(
+        "DELETE FROM shopping_cart_items WHERE shopping_cart_id = $1",
+        cart_id
+    )
+    .execute(&router_data.db_pool)
+    .await?;
+
+    add_session_notification_success(
+        router_data.db_pool.clone(),
+        router_data.session.id.clone(),
+        format!(
+            "Cart cleared successfully, removed {} items",
+            result.rows_affected()
+        ),
+    )
+    .await;
+    Ok(redirect_to("/shop/cart".to_owned()))
+}
+
+
 pub async fn view_cart(
     router_data: RouterData,
 ) -> anyhow::Result<http_stuff::http_response::HttpResponseData> {
@@ -69,6 +98,7 @@ pub async fn view_cart(
         .await?;
 
         items.push(ShoppingCartItem {
+            id: item.id,
             name: item.name,
             data,
         });

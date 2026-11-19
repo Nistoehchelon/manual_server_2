@@ -3,7 +3,6 @@
 {% block content %}
 <a href="/forum?id={{ forum.id }}">Back to forum "{{ forum.name }}"</a><br>
 
-{% include "includes/notifications.html" %}
 <form method="POST" action="/create_thread">
     {% if can_set_custom_id %}
     Thread id (leave "[auto]" for auto generation):<br> <input name="custom_id"

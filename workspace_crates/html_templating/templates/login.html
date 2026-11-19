@@ -10,7 +10,6 @@
 
 {% block content%}
 <h1>Log in 😊</h1>
-{% include "includes/notifications.html" %}
 <form method="POST" action="/login">
     <input type="text" name="username" placeholder="Enter your username" required minlength="{{ username_length_min }}" maxlength="{{ username_length_max }}"><br>
     <input type="password" name="password" placeholder="Enter your password" required minlength="{{ password_length_min }}" maxlength="{{ password_length_max }}"><br>

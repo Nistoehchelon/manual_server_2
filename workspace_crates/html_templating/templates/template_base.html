@@ -17,6 +17,7 @@
     {% endif %}
 </div>
 <div id="content">
+     {% include "includes/notifications.html" %}
       {% block content%}
       {%endblock%}
       <script src="/static/app.js" nonce="{{ main_info.nonce }}"></script>

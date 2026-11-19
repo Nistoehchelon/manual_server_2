@@ -7,7 +7,6 @@ Message versions
 {% endblock %}
 
 {% block content %}
-{% include "includes/notifications.html" %}
 
 <a href="/forum_thread?id={{ thread_id }}&page={{ thread_page }}#{{ message_id }}">Back to thread</a><br>
 {% set paginator = versions_paginator %}

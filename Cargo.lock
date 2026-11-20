@@ -2370,6 +2370,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "cryptocurrencies_stuff",
+ "csscolorparser",
  "custom_site_variables",
  "error_structs",
  "financial_stuff",

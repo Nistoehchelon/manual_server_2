@@ -98,7 +98,7 @@ pub async fn calculate_service_item_usd_price(
     }
 }
 
-async fn get_item_data(
+pub async fn get_item_data(
     conn: &mut PgConnection,
     item_id: &String,
 ) -> Result<Vec<ShoppingCartItemDatum>, anyhow::Error> {

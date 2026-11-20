@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use cryptocurrencies_stuff::currencies::{
     CurrencyAtomicUnit, LTC, LTCAtomicUnit, XMR, XMRAtomicUnit, XNO, XNOAtomicUnit,
 };
@@ -7,6 +8,7 @@ use payment_system_structs::{PaymentId, PaymentMethod};
 use serde::Serialize;
 use shop::{ShopService, TotalCurrency, calculate_service_item_usd_price};
 use sqlx::{Postgres, Transaction};
+use user::set_user_data;
 
 #[derive(Clone)]
 pub struct PaymentData {
@@ -67,18 +69,6 @@ impl std::fmt::Display for PaymentMethodAmount {
 #[derive(Clone)]
 pub struct InvoiceId(pub String);
 
-pub enum ValidService {
-    Subscription,
-}
-impl ValidService {
-    pub fn try_from(s: &str) -> anyhow::Result<Self> {
-        match s {
-            "subscription" => Ok(Self::Subscription),
-            _ => Err(anyhow::anyhow!("Parse error")),
-        }
-    }
-}
-
 pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Result<()> {
     let mut tx = db_pool.begin().await?;
     let invoice_id = sqlx::query!(
@@ -99,16 +89,47 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
             return Err(anyhow::anyhow!("Invoice not found"));
         }
     }
-    let service = get_invoice_data(&mut tx, invoice_id.clone(), "service").await?;
-    let service = ValidService::try_from(&service)?;
-    match service {
-        ValidService::Subscription => {
-            let subscription_expires_at =
-                get_invoice_data(&mut tx, invoice_id.clone(), "subscription_expires_at")
-                    .await?
-                    .parse::<u64>()?;
-            let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id").await?;
-            user::subscription::set_expiry_time(&mut tx, &user_id, subscription_expires_at).await?;
+    let invoice_items = get_invoice_items(&mut tx, invoice_id.0.clone()).await?;
+    for item in invoice_items {
+        let service = item.name.parse::<ShopService>()?;
+        match service {
+            ShopService::Subscription => {
+                let subscription_months =
+                    get_invoice_item_data(&mut tx, "months".to_owned(), item.id.clone())
+                        .await?
+                        .parse::<u64>()?;
+                let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id").await?;
+                let subscription_expires_at =
+                    add_months_to_timestamp(utc_now()?, subscription_months)?;
+                user::subscription::set_expiry_time(&mut tx, &user_id, subscription_expires_at)
+                    .await?;
+            }
+            ShopService::UsernameColor => {
+                let service_months =
+                    get_invoice_item_data(&mut tx, "months".to_owned(), item.id.clone())
+                        .await?
+                        .parse::<u64>()?;
+                let color_code =
+                    get_invoice_item_data(&mut tx, "color_code".to_owned(), item.id.clone())
+                        .await?
+                        .parse::<csscolorparser::Color>()?;
+                let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id").await?;
+                let color_expires_at = add_months_to_timestamp(utc_now()?, service_months)?;
+                set_user_data(
+                    &mut tx,
+                    &user_id,
+                    "username_color_code",
+                    &color_code.to_string(),
+                )
+                .await?;
+                set_user_data(
+                    &mut tx,
+                    &user_id,
+                    "username_color_expires_at",
+                    &color_expires_at.to_string(),
+                )
+                .await?;
+            }
         }
     }
 
@@ -406,6 +427,31 @@ pub async fn move_shopping_cart_items_into_invoice(
     Ok(())
 }
 
+pub struct InvoiceItems {
+    id: String,
+    name: String,
+}
+pub async fn get_invoice_items(
+    tx: &mut Transaction<'_, Postgres>,
+    invoice_id: String,
+) -> anyhow::Result<Vec<InvoiceItems>> {
+    let items = sqlx::query_as!(
+        InvoiceItems,
+        "SELECT id, name FROM invoice_cart_items WHERE invoice_id = $1",
+        invoice_id
+    )
+    .fetch_all(&mut **tx)
+    .await?;
+    Ok(items)
+}
+
+pub async fn get_invoice_item_data(
+    tx: &mut Transaction<'_, Postgres>,
+    item_name: String,
+    invoice_item_id: String,
+) -> anyhow::Result<String> {
+    Ok(sqlx::query!(r###"SELECT value FROM invoice_cart_item_data WHERE name = $1 AND invoice_cart_item_id = $2"###, item_name, invoice_item_id).fetch_one(&mut **tx).await?.value)
+}
 pub async fn get_invoice_data(
     tx: &mut Transaction<'_, Postgres>,
     invoice_id: InvoiceId,
@@ -463,4 +509,16 @@ pub fn utc_now() -> anyhow::Result<u64> {
     let now = chrono::Utc::now().timestamp();
     let now = u64::try_from(now)?;
     Ok(now)
+}
+
+const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60; // i.e., 30 days
+
+pub fn add_months_to_timestamp(timestamp: u64, months: u64) -> Result<u64> {
+    let added_seconds = months
+        .checked_mul(SECONDS_PER_MONTH)
+        .context("Months overflowed u64")?;
+
+    timestamp
+        .checked_add(added_seconds)
+        .context("Timestamp overflowed u64")
 }

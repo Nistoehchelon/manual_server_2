@@ -15,7 +15,10 @@ use id_generator_unique_in_db::Table::{ShoppingCartItemData, ShoppingCartItems};
 use payment_system_structs::PaymentMethod;
 use routing_structs::RouterData;
 use session::{add_session_notification_error, add_session_notification_success};
-use shop::{ShopService, ShoppingCart, ShoppingCartItem, ShoppingCartItemDatum, TotalCurrency, calc_price_for_all_currencies, calculate_service_item_usd_price};
+use shop::{
+    ShopService, ShoppingCart, ShoppingCartItem, ShoppingCartItemDatum, TotalCurrency,
+    calc_price_for_all_currencies, calculate_service_item_usd_price, get_item_data,
+};
 use sqlx::PgPool;
 use strum::{EnumMessage, IntoEnumIterator};
 use user::get_user_by_user_id;
@@ -122,12 +125,10 @@ pub async fn view_cart(
     let mut items = Vec::with_capacity(cart_items.len());
     let mut total_price_usd = 0.0;
     for item in cart_items {
-        let data = get_item_data(router_data.db_pool.clone(), &item.id).await?;
-        let cost = calculate_service_item_usd_price(
-            router_data.db_pool.clone().acquire()?,
-            item.id.clone(),
-        )
-        .await?;
+        let mut conn = router_data.db_pool.clone().acquire().await?;
+        let data = get_item_data(&mut conn, &item.id).await?;
+
+        let cost = calculate_service_item_usd_price(&mut conn, item.id.clone()).await?;
         total_price_usd += cost;
         items.push(ShoppingCartItem {
             usd_price: cost.to_string(),
@@ -180,29 +181,18 @@ pub async fn get_color(
     if !session.logged_in {
         return Ok(redirect_to("/".to_string()));
     }
-    let _user = get_user_by_user_id(db_pool.clone(), session.user_id.clone())
-        .await
-        ?;
+    let _user = get_user_by_user_id(db_pool.clone(), session.user_id.clone()).await?;
 
     let csrf_token = csrf_stuff::get_or_create_token(
         db_pool.clone(),
         session.id.clone(),
         csrf_stuff::DesignatedPurpose::Normal,
     )
-    .await
-    ?;
-    let usd_cost = financial_stuff::get_username_color_cost_per_month_usd(db_pool.clone())
-        .await
-        ?;
-    let xmr_cost = financial_stuff::convert_usd_price_to_xmr(db_pool.clone(), &usd_cost)
-        .await
-        ?;
-    let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), &usd_cost)
-        .await
-        ?;
-    let xno_cost = financial_stuff::convert_usd_price_to_xno(db_pool.clone(), &usd_cost)
-        .await
-        ?;
+    .await?;
+    let usd_cost = financial_stuff::get_username_color_cost_per_month_usd(db_pool.clone()).await?;
+    let xmr_cost = financial_stuff::convert_usd_price_to_xmr(db_pool.clone(), &usd_cost).await?;
+    let ltc_cost = financial_stuff::convert_usd_price_to_ltc(db_pool.clone(), &usd_cost).await?;
+    let xno_cost = financial_stuff::convert_usd_price_to_xno(db_pool.clone(), &usd_cost).await?;
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         csrf_token,

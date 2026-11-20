@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
+financial_stuff = { workspace = true }
 shop = { workspace = true }
 error_structs = { workspace = true }
 sqlx = { workspace = true }

@@ -1,10 +1,11 @@
 use cryptocurrencies_stuff::currencies::{
-    CurrencyAtomicUnit, LTCAtomicUnit, XMRAtomicUnit, XNOAtomicUnit,
+    CurrencyAtomicUnit, LTC, LTCAtomicUnit, XMR, XMRAtomicUnit, XNO, XNOAtomicUnit,
 };
+use financial_stuff::get_by_usd;
 use id_generator_unique_in_db::Table;
-use payment_system_structs::PaymentId;
+use payment_system_structs::{PaymentId, PaymentMethod};
 use serde::Serialize;
-use shop::ShopService;
+use shop::{ShopService, TotalCurrency, calculate_service_item_usd_price};
 use sqlx::{Postgres, Transaction};
 
 #[derive(Clone)]
@@ -46,18 +47,18 @@ pub enum ServiceData {
 }
 
 #[derive(Clone, Debug)]
-pub enum PaymentMethod {
+pub enum PaymentMethodAmount {
     XMR { amount: XMRAtomicUnit },
     LTC { amount: LTCAtomicUnit },
     XNO { amount: XNOAtomicUnit },
 }
 
-impl std::fmt::Display for PaymentMethod {
+impl std::fmt::Display for PaymentMethodAmount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            PaymentMethod::XMR { .. } => "monero",
-            PaymentMethod::LTC { .. } => "litecoin",
-            PaymentMethod::XNO { .. } => "nano",
+            PaymentMethodAmount::XMR { .. } => "monero",
+            PaymentMethodAmount::LTC { .. } => "litecoin",
+            PaymentMethodAmount::XNO { .. } => "nano",
         };
         write!(f, "{}", s)
     }
@@ -220,7 +221,8 @@ pub async fn create_invoice(
     tx: &mut Transaction<'_, Postgres>,
     user_id: String,
     cart_id: String,
-    payment_method: PaymentMethod,
+    payment_method: payment_system_structs::PaymentMethod,
+    payment_server_url: String,
     payment_success_webhook_url: String,
     payment_status_update_webhook_url: String,
     cloudflare_bypass_under_attack_check_header_name: String,
@@ -232,27 +234,14 @@ pub async fn create_invoice(
     sqlx::query!("INSERT INTO invoices (id) VALUES ($1)", invoice_id_string)
         .execute(&mut **tx)
         .await?;
-
     set_invoice_data(tx, invoice_id.clone(), "status", "pending").await?;
+
     set_invoice_data(tx, invoice_id.clone(), "user_id", &user_id).await?;
     set_invoice_data(
         tx,
         invoice_id.clone(),
         "payment_method",
         &payment_method.to_string(),
-    )
-    .await?;
-
-    let payment_amount_atomic_units = match payment_method.clone() {
-        PaymentMethod::XMR { amount } => amount.as_atomic(),
-        PaymentMethod::LTC { amount } => amount.as_atomic(),
-        PaymentMethod::XNO { amount } => amount.as_atomic(),
-    };
-    set_invoice_data(
-        tx,
-        invoice_id.clone(),
-        "payment_amount_atomic_units",
-        &payment_amount_atomic_units.to_string(),
     )
     .await?;
 
@@ -269,42 +258,70 @@ pub async fn create_invoice(
     let curr_ts = &utc_now()?.to_string();
     set_invoice_data(tx, invoice_id.clone(), "invoice_created_at", curr_ts).await?;
 
-    let items = sqlx::query!("SELECT id, name FROM shopping_cart_items WHERE shopping_cart_id = $1",cart_id ).fetch_all(&mut **tx).await?;
+    let items = sqlx::query!(
+        "SELECT id, name FROM shopping_cart_items WHERE shopping_cart_id = $1",
+        cart_id
+    )
+    .fetch_all(&mut **tx)
+    .await?;
+    let mut total_usd = 0.0;
     for item in items {
-        let service = item.name.parse::<ShopService>()?;
-        let data = sqlx::query!("SELECT name, value FROM shopping_cart_item_data WHERE shopping_cart_item_id = $1", item.id).fetch_all(&mut **tx).await?;
-        match service {
-            ShopService::Subscription => {
-                
-            },
-            ShopService::UsernameColor => todo!(),
+        let item_id = item.id;
+        let item_name = item.name;
+        let price_usd = calculate_service_item_usd_price(tx, item_id.clone()).await?;
+        total_usd += price_usd;
+        let payment_method_currency_price_atomic_unit = match payment_method {
+            payment_system_structs::PaymentMethod::Monero => {
+                get_by_usd::<XMR>(tx, &price_usd.to_string())
+                    .await?
+                    .as_atomic()
+            }
+            payment_system_structs::PaymentMethod::Litecoin => {
+                get_by_usd::<LTC>(tx, &price_usd.to_string())
+                    .await?
+                    .as_atomic()
+            }
+            payment_system_structs::PaymentMethod::Nano => {
+                get_by_usd::<XNO>(tx, &price_usd.to_string())
+                    .await?
+                    .as_atomic()
+            }
         }
+        .to_string();
+        sqlx::query!("INSERT INTO shopping_cart_item_data (id, name, value, shopping_cart_item_id) VALUES (uuidv7()::text, $1, $2, $3)", "payment_method_currency_price_atomic_unit", payment_method_currency_price_atomic_unit, &item_id).execute(&mut **tx).await?;
+        sqlx::query!("INSERT INTO shopping_cart_item_data (id, name, value, shopping_cart_item_id) VALUES (uuidv7()::text, $1, $2, $3)", "usd", payment_method_currency_price_atomic_unit, &item_id).execute(&mut **tx).await?;
+    }
+    let total_payment_amount_atomic_units = match payment_method {
+        payment_system_structs::PaymentMethod::Monero => {
+            get_by_usd::<XMR>(tx, &total_usd.to_string())
+                .await?
+                .as_atomic()
+        }
+        payment_system_structs::PaymentMethod::Litecoin => {
+            get_by_usd::<LTC>(tx, &total_usd.to_string())
+                .await?
+                .as_atomic()
+        }
+        payment_system_structs::PaymentMethod::Nano => {
+            get_by_usd::<XNO>(tx, &total_usd.to_string())
+                .await?
+                .as_atomic()
+        }
+    };
+    set_invoice_data(
+        tx,
+        invoice_id.clone(),
+        "payment_amount_atomic_units",
+        &total_payment_amount_atomic_units.to_string(),
+    )
+    .await?;
 
-    }
-    if let ServiceData::Subscription { months, expires_at } = service {
-        let sub_expires_at = expires_at.to_string();
-        set_invoice_data(tx, invoice_id.clone(), "service", "subscription").await?;
-        set_invoice_data(
-            tx,
-            invoice_id.clone(),
-            "subscription_months",
-            &months.to_string(),
-        )
-        .await?;
-        set_invoice_data(
-            tx,
-            invoice_id.clone(),
-            "subscription_expires_at",
-            &sub_expires_at,
-        )
-        .await?;
-    }
-    let invoice = (invoice_id.clone(), payment_method.clone());
+    move_shopping_cart_items_into_invoice(invoice_id.clone(), cart_id.clone(), tx).await?;
 
     let payment_info = payment_system_client::new_invoice(
         tx,
         invoice_id_string,
-        payment_amount_atomic_units,
+        total_payment_amount_atomic_units,
         payment_method.to_string().parse()?,
         payment_success_webhook_url,
         payment_status_update_webhook_url,
@@ -341,7 +358,50 @@ pub async fn create_invoice(
         &payment_info.method.to_string(),
     )
     .await?;
-    Ok(invoice)
+    todo!()
+}
+
+pub async fn move_shopping_cart_items_into_invoice(
+    invoice_id: InvoiceId,
+    cart_id: String,
+    tx: &mut Transaction<'_, Postgres>,
+) -> anyhow::Result<()> {
+    sqlx::query!(
+        r###"
+        WITH source_items AS (
+            SELECT 
+                id AS old_item_id,
+                uuidv7()::text AS new_item_id,
+                name
+            FROM shopping_cart_items
+            WHERE shopping_cart_id = $2
+        ),
+        inserted_items AS (
+            INSERT INTO invoice_cart_items (id, invoice_id, name)
+            SELECT new_item_id, $1, name
+            FROM source_items
+            RETURNING id
+        ),
+        inserted_item_data AS (
+            INSERT INTO invoice_cart_item_data (id, invoice_cart_item_id, name, value)
+            SELECT 
+                uuidv7()::text,
+                si.new_item_id,
+                scid.name,
+                scid.value
+            FROM shopping_cart_item_data scid
+            JOIN source_items si ON scid.shopping_cart_item_id = si.old_item_id
+            RETURNING id
+        )
+        DELETE FROM shopping_cart_items
+        WHERE id IN (SELECT old_item_id FROM source_items)
+    "###,
+        invoice_id.0,
+        cart_id
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
 }
 
 pub async fn get_invoice_data(

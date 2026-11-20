@@ -1,4 +1,5 @@
-use ::invoice::{PaymentMethod, ServiceData, create_invoice, utc_now};
+use custom_site_variables::get_custom_site_variable;
+use ::invoice::{ServiceData, create_invoice, utc_now};
 use cryptocurrencies_stuff::currencies::{LTC, XMR, XNO};
 use financial_stuff::get_by_usd;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
@@ -205,6 +206,7 @@ pub async fn invoice_creation_request(
         user.id,
         user_cart_id,
         payment_currency.parse()?,
+        get_custom_site_variable(&mut tx, custom_site_variables::CustomSiteVariableName::PaymentServerUrl).await?,
         payment_success_url,
         payment_status_update_url,
         router_data

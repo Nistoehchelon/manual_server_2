@@ -15,7 +15,7 @@ use id_generator_unique_in_db::Table::{ShoppingCartItemData, ShoppingCartItems};
 use payment_system_structs::PaymentMethod;
 use routing_structs::RouterData;
 use session::{add_session_notification_error, add_session_notification_success};
-use shop::{ShopService, ShoppingCart, ShoppingCartItem, ShoppingCartItemDatum, TotalCurrency};
+use shop::{ShopService, ShoppingCart, ShoppingCartItem, ShoppingCartItemDatum, TotalCurrency, calc_price_for_all_currencies, calculate_service_item_usd_price};
 use sqlx::PgPool;
 use strum::{EnumMessage, IntoEnumIterator};
 use user::get_user_by_user_id;
@@ -124,9 +124,8 @@ pub async fn view_cart(
     for item in cart_items {
         let data = get_item_data(router_data.db_pool.clone(), &item.id).await?;
         let cost = calculate_service_item_usd_price(
-            router_data.db_pool.clone(),
+            router_data.db_pool.clone().acquire()?,
             item.id.clone(),
-            item.name.parse::<ShopService>()?,
         )
         .await?;
         total_price_usd += cost;
@@ -153,89 +152,6 @@ pub async fn view_cart(
     Ok(ok_html(html))
 }
 
-pub async fn calc_price_for_all_currencies(
-    db_pool: PgPool,
-    total: f64,
-) -> anyhow::Result<Vec<TotalCurrency>> {
-    let mut tx = db_pool.begin().await?;
-    let ltc = get_by_usd::<LTC>(&mut tx, &total.to_string()).await?;
-    let xmr = get_by_usd::<XMR>(&mut tx, &total.to_string()).await?;
-    let xno = get_by_usd::<XNO>(&mut tx, &total.to_string()).await?;
-
-    let re = vec![
-        TotalCurrency {
-            name: "LTC".to_owned(),
-            amount: ltc.to_string_trimmed(),
-        },
-        TotalCurrency {
-            name: "XMR".to_owned(),
-            amount: xmr.to_string_trimmed(),
-        },
-        TotalCurrency {
-            name: "XNO".to_owned(),
-            amount: xno.to_string_trimmed(),
-        },
-    ];
-    tx.commit().await?;
-    Ok(re)
-}
-
-async fn get_item_data(
-    db_pool: PgPool,
-    item_id: &String,
-) -> Result<Vec<ShoppingCartItemDatum>, anyhow::Error> {
-    let data = sqlx::query_as!(
-        ShoppingCartItemDatum,
-        "SELECT name, value FROM shopping_cart_item_data WHERE shopping_cart_item_id = $1",
-        item_id
-    )
-    .fetch_all(&db_pool)
-    .await?;
-    Ok(data)
-}
-
-pub async fn calculate_service_item_usd_price(
-    db_pool: PgPool,
-    item_id: String,
-    service: ShopService,
-) -> anyhow::Result<f64> {
-    let item_data = get_item_data(db_pool.clone(), &item_id).await?;
-    let custom_var = match service {
-        ShopService::Subscription => {
-            custom_site_variables::CustomSiteVariableName::SubscriptionCostPerMonthUsd
-        }
-        ShopService::UsernameColor => UsernameColorCostPerMonthUsd,
-    };
-    let service_cost_usd_per_month =
-        custom_site_variables::get_custom_site_variable(&mut *db_pool.acquire().await?, custom_var)
-            .await?;
-    match service {
-        ShopService::Subscription => {
-            let months_str = item_data
-                .iter()
-                .find(|d| d.name == "months")
-                .map(|d| d.value.as_str())
-                .ok_or_else(|| anyhow::anyhow!("Missing 'months' datum for item {}", item_id))?;
-            let service_cost: f64 = service_cost_usd_per_month.parse()?;
-            let usd_service_cost = usd_cost(months_str.parse()?, service_cost);
-            Ok(usd_service_cost)
-        }
-        ShopService::UsernameColor => {
-            let months_str = item_data
-                .iter()
-                .find(|d| d.name == "months")
-                .map(|d| d.value.as_str())
-                .ok_or_else(|| anyhow::anyhow!("Missing 'months' datum for item {}", item_id))?;
-            let service_cost: f64 = service_cost_usd_per_month.parse()?;
-            let usd_service_cost = usd_cost(months_str.parse()?, service_cost);
-            Ok(usd_service_cost)
-        }
-    }
-}
-
-fn usd_cost(months: u64, service_cost: f64) -> f64 {
-    service_cost * (months as f64)
-}
 pub async fn get_items(
     router_data: RouterData,
 ) -> anyhow::Result<http_stuff::http_response::HttpResponseData> {

@@ -9,25 +9,22 @@ use http_stuff::http_response::HttpResponseData;
 
 use routing_structs::RouterData;
 
-pub async fn get(
-    router_data: RouterData,
-) -> anyhow::Result<HttpResponseData> {
+pub async fn get(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     if session.logged_in {
-        let user = get_user_by_user_id(db_pool.clone(), session.user_id.clone())
-            .await
-          ?;
+        let user = get_user_by_user_id(db_pool.clone(), session.user_id.clone()).await?;
         let mut tx = db_pool.begin().await?;
         let user_has_a_subscription =
-            user::subscription::user_has_a_subscription(&mut tx, &user.id)
-                .await
-              ?;
+            user::subscription::user_has_a_subscription(&mut tx, &user.id).await?;
+        let username_color =
+            user::username_color::try_get_username_color(&mut tx, user.id.clone()).await?;
         tx.commit().await?;
 
         return Ok(http_stuff::http_response::ok_html(get_html(
             router_data.base_template_data,
             session.clone(),
+            username_color,
             user,
             user_has_a_subscription,
         )));
@@ -35,6 +32,7 @@ pub async fn get(
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
         session.clone(),
+        None,
         User::default(),
         false,
     )))
@@ -43,6 +41,7 @@ pub async fn get(
 fn get_html(
     mut base_template: BaseTemplateData,
     session: Session,
+    username_color: Option<csscolorparser::Color>,
     user: User,
     user_has_a_subscription: bool,
 ) -> String {
@@ -54,6 +53,7 @@ fn get_html(
             main_info: base_template,
             user: html_template_structs::User {
                 username: user.username.clone(),
+                username_color,
             },
         };
         html_templating::render(index_template)

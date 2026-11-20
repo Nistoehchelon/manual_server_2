@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 csscolorparser = { workspace = true }
+time_funcs = { workspace = true }
 anyhow = { workspace = true }
 financial_stuff = { workspace = true }
 shop = { workspace = true }

@@ -53,6 +53,7 @@ routing_structs = { path = "workspace_crates/routing_structs" }
 abac = { path = "workspace_crates/abac" }
 csrf_stuff = { path = "workspace_crates/csrf_stuff" }
 pagination = { path = "workspace_crates/pagination" }
+time_funcs = { path = "workspace_crates/time_funcs" }
 app_executable_version = { path = "workspace_crates/app_executable_version" }
 
 auth_system_structs = { git = "https://github.com/Nistoehchelon/auth_system.git" }

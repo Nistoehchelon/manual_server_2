@@ -2004,6 +2004,7 @@ name = "html_templating"
 version = "0.1.0"
 dependencies = [
  "askama",
+ "csscolorparser",
  "custom_site_variables",
  "forum",
  "pagination",
@@ -2380,6 +2381,7 @@ dependencies = [
  "serde",
  "shop",
  "sqlx",
+ "time_funcs",
  "user",
 ]
 
@@ -4904,6 +4906,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "time_funcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+]
+
+[[package]]
 name = "tiny-keccak"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5352,12 +5362,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "count_string_length",
+ "csscolorparser",
  "db_manager",
  "error_structs",
  "id_generator",
  "id_generator_unique_in_db",
  "password_hashing",
  "sqlx",
+ "time_funcs",
 ]
 
 [[package]]

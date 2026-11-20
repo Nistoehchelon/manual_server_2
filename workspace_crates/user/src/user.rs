@@ -1,7 +1,7 @@
 use db_manager::{DbError, DbSuccess};
 use error_structs::{PublicError, SomeSortOfError};
 use password_hashing::PasswordHasherConfig;
-use sqlx::{Postgres, Transaction};
+use sqlx::{PgConnection, Postgres, Transaction};
 
 use crate::{ValidatedUsername, user_structs_and_so_on::User};
 
@@ -109,7 +109,7 @@ pub async fn find_user_data_by_name_and_value(
 }
 
 pub async fn get_user_data(
-    tx: &mut Transaction<'_, Postgres>,
+    conn: &mut PgConnection,
     user_id: &str,
     data_name: &str,
 ) -> anyhow::Result<Option<String>> {
@@ -123,7 +123,7 @@ pub async fn get_user_data(
         user_id,
         data_name
     )
-    .fetch_optional(&mut **tx)
+    .fetch_optional(conn)
     .await
     ?;
 

@@ -1,4 +1,4 @@
-use ::invoice::{ServiceData, create_invoice, utc_now};
+use ::invoice::{ServiceData, create_invoice};
 use cryptocurrencies_stuff::currencies::{LTC, XMR, XNO};
 use custom_site_variables::get_custom_site_variable;
 use financial_stuff::get_by_usd;

@@ -6,9 +6,11 @@ edition = "2024"
 [dependencies]
 password_hashing = { workspace = true }
 anyhow = { workspace = true }
+time_funcs = { workspace = true }
 id_generator = { workspace = true }
 id_generator_unique_in_db = { workspace = true }
 error_structs = { workspace = true }
 sqlx = { workspace = true }
 db_manager = { workspace = true }
 count_string_length = { workspace = true }
+csscolorparser = { workspace = true }

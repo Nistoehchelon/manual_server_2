@@ -1,18 +1,21 @@
 use html_templating::{
     html_template_structs::{
-        AllowedUsernameColorCodesTemplate, BaseTemplateData, ShopMainPageTemplate, UsernameColorTemplate, ViewCartTemplate,
-    }, render,
+        AllowedUsernameColorCodesTemplate, BaseTemplateData, ShopMainPageTemplate,
+        UsernameColorTemplate, ViewCartTemplate,
+    },
+    render,
 };
 use http_stuff::{
-    http_request_parsing::parse_body_into_string_form_input_params, http_response::{HttpResponseData, ok_html, redirect_to},
+    http_request_parsing::parse_body_into_string_form_input_params,
+    http_response::{HttpResponseData, ok_html, redirect_to},
 };
 use id_generator_unique_in_db::Table::{ShoppingCartItemData, ShoppingCartItems};
 use payment_system_structs::PaymentMethod;
 use routing_structs::RouterData;
 use session::{add_session_notification_error, add_session_notification_success};
 use shop::{
-    ShopService, ShoppingCart, ShoppingCartItem,
-    calc_price_for_all_currencies, calculate_service_item_usd_price, get_item_data,
+    ShopService, ShoppingCart, ShoppingCartItem, calc_price_for_all_currencies,
+    calculate_service_item_usd_price, get_item_data,
 };
 use sqlx::PgPool;
 use strum::{EnumMessage, IntoEnumIterator};
@@ -257,10 +260,7 @@ pub async fn add_to_cart(
             let color_code = match raw_color_code.parse::<csscolorparser::Color>() {
                 Ok(cc) => {
                     let conn = &mut *tx;
-                    if !user::username_color::get_available_username_colors(conn)
-                        .await?
-                        .contains(&cc.to_string())
-                    {
+                    if !user::username_color::color_available(conn, cc).await? {
                         add_session_notification_error(
                             router_data.db_pool.clone(),
                             router_data.session.id.clone(),
@@ -434,10 +434,15 @@ pub async fn possibly_create_and_get_user_cart_id(
     }
 }
 
-pub async fn get_available_username_color_codes(router_data: RouterData) -> anyhow::Result<HttpResponseData> { 
+pub async fn get_available_username_color_codes(
+    router_data: RouterData,
+) -> anyhow::Result<HttpResponseData> {
     let mut conn = router_data.db_pool.acquire().await?;
     let colors = user::username_color::get_available_username_colors(&mut conn).await?;
-    let template = AllowedUsernameColorCodesTemplate { main_info: router_data.base_template_data, colors };
+    let template = AllowedUsernameColorCodesTemplate {
+        main_info: router_data.base_template_data,
+        colors,
+    };
     let html = render(template);
     Ok(ok_html(html))
 }

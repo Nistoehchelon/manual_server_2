@@ -29,6 +29,12 @@ pub struct ShopMainPageTemplate {
     pub main_info: BaseTemplateData,
     pub services: Vec<(String, String)>,
 }
+#[derive(Template)]
+#[template(path = "shop/allowed_username_color_codes.html")]
+pub struct AllowedUsernameColorCodesTemplate {
+    pub main_info: BaseTemplateData,
+    pub colors: Vec<String>,
+}
 
 #[derive(Template)]
 #[template(path = "shop/view_cart.html")]

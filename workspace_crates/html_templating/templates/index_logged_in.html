@@ -4,12 +4,17 @@
 
 {% endblock %}
 {% block logged_in_or_not %}
-<b>You are logged in as 
-    
-     <p class ="username_color_red">{{ user.username }}</p>
-    
-    </b> [ <a href="/dashboard">Go To Your Holy Dashboard</a> ] [ <a
-    href="/logout">Logout</a>] <br>
+<b>You are logged in as
+
+    {% if let Some(color) = user.username_color %}
+    <span class="username_color_{{ color.to_string() }}">
+        {% endif %}
+    {{ user.username }}
+        {% if let Some(color) = user.username_color %}
+    </span>
+    {% endif %}
+
+</b> [ <a href="/dashboard">Go To Your Holy Dashboard</a> ] [ <a href="/logout">Logout</a>] <br>
 
 
 <p><a href="/shop">Shop</a></p>

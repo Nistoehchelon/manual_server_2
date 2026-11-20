@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{ Result};
 use cryptocurrencies_stuff::currencies::{
     CurrencyAtomicUnit, LTC, LTCAtomicUnit, XMR, XMRAtomicUnit, XNO, XNOAtomicUnit,
 };
@@ -6,7 +6,7 @@ use financial_stuff::get_by_usd;
 use id_generator_unique_in_db::Table;
 use payment_system_structs::{PaymentId, PaymentMethod};
 use serde::Serialize;
-use shop::{ShopService, TotalCurrency, calculate_service_item_usd_price};
+use shop::{ShopService, calculate_service_item_usd_price};
 use sqlx::{Postgres, Transaction};
 use time_funcs::{add_months_to_timestamp, utc_now};
 use user::set_user_data;

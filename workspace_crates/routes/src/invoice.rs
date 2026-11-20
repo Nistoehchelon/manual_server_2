@@ -1,7 +1,5 @@
-use ::invoice::{ServiceData, create_invoice};
-use cryptocurrencies_stuff::currencies::{LTC, XMR, XNO};
+use ::invoice::{create_invoice};
 use custom_site_variables::get_custom_site_variable;
-use financial_stuff::get_by_usd;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
 use http_stuff::{
     http_request_parsing::parse_body_into_string_form_input_params,

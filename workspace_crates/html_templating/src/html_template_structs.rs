@@ -41,6 +41,7 @@ pub struct AllowedUsernameColorCodesTemplate {
 pub struct ViewCartTemplate {
     pub main_info: BaseTemplateData,
     pub cart: ShoppingCart,
+    pub csrf_token: String,
     pub payment_currencies: Vec<PaymentMethod>
 }
 

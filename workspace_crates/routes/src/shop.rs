@@ -146,6 +146,12 @@ pub async fn view_cart(
         main_info: router_data.base_template_data.clone(),
         cart,
         payment_currencies: PaymentMethod::iter().collect(),
+        csrf_token: csrf_stuff::get_or_create_token(
+            router_data.db_pool.clone(),
+            router_data.session.id.clone(),
+            csrf_stuff::DesignatedPurpose::Normal,
+        )
+        .await?,
     };
     let html = render(tpl);
     Ok(ok_html(html))

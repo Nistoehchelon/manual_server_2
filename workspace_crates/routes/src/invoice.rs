@@ -1,4 +1,4 @@
-use ::invoice::{create_invoice};
+use ::invoice::create_invoice;
 use custom_site_variables::get_custom_site_variable;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
 use http_stuff::{
@@ -97,6 +97,7 @@ pub async fn get_view(router_data: RouterData) -> anyhow::Result<HttpResponseDat
         invoice_id,
     })))
 }
+#[tracing::instrument(skip_all)]
 pub async fn invoice_creation_request(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let RouterData {
         site_config,
@@ -107,9 +108,11 @@ pub async fn invoice_creation_request(router_data: RouterData) -> anyhow::Result
     } = router_data.clone();
     let mut tx = db_pool.clone().begin().await?;
     let Ok(user) = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone()).await else {
+        tracing::error!("Could not get user"); 
         return Ok(redirect_to("/".to_string()));
     };
     if !abac::user_can_create_invoice(db_pool.clone(), user.id.clone()).await? {
+        tracing::error!("User can't create invoice");
         return Ok(redirect_to("/".to_string()));
     }
 
@@ -119,29 +122,13 @@ pub async fn invoice_creation_request(router_data: RouterData) -> anyhow::Result
         parse_body_into_string_form_input_params(http_request_data.body_bytes.clone())
             .map_err(|e| anyhow::anyhow!("{e:#?}"))?;
 
-    if site_config.cloudflare_turnstile_enabled
-        && !crate::validate_turnstile(
-            body_params.clone(),
-            site_config.cloudflare_turnstile_post_parameter_name.clone(),
-            http_request_data.x_real_ip,
-            site_config.cloudflare_turnstile_secret_key.clone(),
-        )
-        .await?
-    {
-        add_session_notification_error(
-            db_pool.clone(),
-            session.id.clone(),
-            String::from("Could not validate Turnstile Captcha"),
-        )
-        .await;
-        return Ok(redirect_to("/".to_string()));
-    }
     let payment_currency = body_params.get("payment_currency").cloned();
     let csrf_token = body_params.get("csrf_token").cloned();
 
     let (payment_currency, csrf_token) = match (payment_currency, csrf_token) {
         (Some(payment_method), Some(csrf_token)) => (payment_method, csrf_token),
         _ => {
+            tracing::error!("Invalid body params {body_params:#?}");
             return Ok(redirect_to("/".to_string()));
         }
     };

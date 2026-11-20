@@ -43,6 +43,7 @@ Shopping cart
 </div>
 <div>
   <form action="/invoice/invoice_creation_request" method="post">
+    <input type ="hidden" name="csrf_token" value ="{{ csrf_token }}">
     <fieldset>
     <legend>Pick a payment currency:</legend>
     {% for currency in payment_currencies %}

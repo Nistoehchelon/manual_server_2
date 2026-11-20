@@ -118,7 +118,6 @@ pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData
         let name_color_class =
             user::username_color::try_get_username_color_class(&mut conn, user_id.clone()).await?;
 
-        // TODO: convert to string
         let created_at = String::from("todo created_at");
 
         let modifications_count =

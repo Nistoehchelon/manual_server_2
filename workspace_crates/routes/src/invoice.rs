@@ -1,6 +1,6 @@
-use custom_site_variables::get_custom_site_variable;
 use ::invoice::{ServiceData, create_invoice, utc_now};
 use cryptocurrencies_stuff::currencies::{LTC, XMR, XNO};
+use custom_site_variables::get_custom_site_variable;
 use financial_stuff::get_by_usd;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
 use http_stuff::{
@@ -32,8 +32,7 @@ pub async fn invoice_viewing_preliminary_checks_and_processing(
         return Ok(PreliminaryProcessing::Forbid);
     };
     if !abac::user_can_view_invoice(db_pool.clone(), session.user_id.clone(), invoice_id.clone())
-        .await
-        ?
+        .await?
     {
         tracing::error!(
             "User tried to view an invoice (not necessarily an invoice that actually exists) but were denied"
@@ -44,8 +43,7 @@ pub async fn invoice_viewing_preliminary_checks_and_processing(
         return Ok(PreliminaryProcessing::Forbid);
     };
     if !abac::user_can_view_invoice(db_pool.clone(), session.user_id.clone(), invoice_id.clone())
-        .await
-        ?
+        .await?
     {
         tracing::error!(
             "User tried to view an invoice (not necessarily an invoice that actually exists) but were denied"
@@ -55,9 +53,7 @@ pub async fn invoice_viewing_preliminary_checks_and_processing(
     Ok(PreliminaryProcessing::Okay { invoice_id })
 }
 
-pub async fn get_json_status(
-    router_data: RouterData,
-) -> anyhow::Result<HttpResponseData> {
+pub async fn get_json_status(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let RouterData { db_pool, .. } = router_data.clone();
 
     let invoice_id =
@@ -66,11 +62,8 @@ pub async fn get_json_status(
             PreliminaryProcessing::Okay { invoice_id } => invoice_id,
         };
     let mut tx = db_pool.begin().await?;
-    let payment_status = invoice::invoice_status(&mut tx, InvoiceId(invoice_id))
-        .await
-        ?;
-    let payment_status_json =
-        serde_json::to_string(&payment_status)?;
+    let payment_status = invoice::invoice_status(&mut tx, InvoiceId(invoice_id)).await?;
+    let payment_status_json = serde_json::to_string(&payment_status)?;
 
     let resp = http_stuff::http_response::ok(
         payment_status_json.into(),
@@ -90,18 +83,12 @@ pub async fn get_view(router_data: RouterData) -> anyhow::Result<HttpResponseDat
         };
 
     // test
-    let mut tx = db_pool
-        .clone()
-        .begin()
-        .await
-        ?;
+    let mut tx = db_pool.clone().begin().await?;
     let invoice::PaymentData {
         method,
         address,
         amount,
-    } = invoice::get_payment_data(&mut tx, InvoiceId(invoice_id.clone()))
-        .await
-        ?;
+    } = invoice::get_payment_data(&mut tx, InvoiceId(invoice_id.clone())).await?;
 
     tx.commit().await?;
     Ok(ok_html(render(ViewInvoiceTemplate {
@@ -112,9 +99,7 @@ pub async fn get_view(router_data: RouterData) -> anyhow::Result<HttpResponseDat
         invoice_id,
     })))
 }
-pub async fn invoice_creation_request(
-    router_data: RouterData,
-) -> anyhow::Result<HttpResponseData> {
+pub async fn invoice_creation_request(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let RouterData {
         site_config,
         db_pool,
@@ -122,25 +107,19 @@ pub async fn invoice_creation_request(
         session,
         ..
     } = router_data.clone();
-    let mut tx = db_pool
-        .clone()
-        .begin()
-        .await
-        ?;
+    let mut tx = db_pool.clone().begin().await?;
     let Ok(user) = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone()).await else {
         return Ok(redirect_to("/".to_string()));
     };
-    if !abac::user_can_create_invoice(db_pool.clone(), user.id.clone())
-        .await
-        ?
-    {
+    if !abac::user_can_create_invoice(db_pool.clone(), user.id.clone()).await? {
         return Ok(redirect_to("/".to_string()));
     }
 
-    let user_cart_id = possibly_create_and_get_user_cart_id(db_pool.clone(), user.id.clone()).await?;
+    let user_cart_id =
+        possibly_create_and_get_user_cart_id(db_pool.clone(), user.id.clone()).await?;
     let body_params =
         parse_body_into_string_form_input_params(http_request_data.body_bytes.clone())
-            .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
+            .map_err(|e| anyhow::anyhow!("{e:#?}"))?;
 
     if site_config.cloudflare_turnstile_enabled
         && !crate::validate_turnstile(
@@ -149,8 +128,7 @@ pub async fn invoice_creation_request(
             http_request_data.x_real_ip,
             site_config.cloudflare_turnstile_secret_key.clone(),
         )
-        .await
-        ?
+        .await?
     {
         add_session_notification_error(
             db_pool.clone(),
@@ -164,18 +142,14 @@ pub async fn invoice_creation_request(
     let csrf_token = body_params.get("csrf_token").cloned();
 
     let (payment_currency, csrf_token) = match (payment_currency, csrf_token) {
-        (Some(payment_method), Some(csrf_token)) => {
-            (payment_method, csrf_token)
-        }
+        (Some(payment_method), Some(csrf_token)) => (payment_method, csrf_token),
         _ => {
             return Ok(redirect_to("/".to_string()));
         }
     };
 
     let csrf_token_valid =
-        csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone())
-            .await
-            ?;
+        csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone()).await?;
     if !csrf_token_valid {
         add_session_notification_error(
             db_pool.clone(),
@@ -186,27 +160,35 @@ pub async fn invoice_creation_request(
         return Ok(redirect_to("/signup".to_string()));
     }
 
-    
     let payment_success_url = webhooks::get_endpoint_url(
         &mut tx,
         site_config.webhook_and_api_secret_path_prefix.clone(),
         webhooks::WebhookEndpoint::PaymentSuccess,
     )
-    .await
-    ?;
+    .await?;
     let payment_status_update_url = webhooks::get_endpoint_url(
         &mut tx,
         site_config.webhook_and_api_secret_path_prefix.clone(),
         webhooks::WebhookEndpoint::PaymentStatusUpdate,
     )
-    .await
-    ?;
+    .await?;
+    let payment_server_url = get_custom_site_variable(
+        &mut tx,
+        custom_site_variables::CustomSiteVariableName::PaymentServerUrl,
+    )
+    .await?;
+    let payment_server_token = get_custom_site_variable(
+        &mut tx,
+        custom_site_variables::CustomSiteVariableName::PaymentServerToken,
+    )
+    .await?;
     let invoice_data = create_invoice(
         &mut tx,
         user.id,
         user_cart_id,
         payment_currency.parse()?,
-        get_custom_site_variable(&mut tx, custom_site_variables::CustomSiteVariableName::PaymentServerUrl).await?,
+        payment_server_url,
+        payment_server_token,
         payment_success_url,
         payment_status_update_url,
         router_data
@@ -218,8 +200,7 @@ pub async fn invoice_creation_request(
             .payment_server_cloudflare_bypass_under_attack_check_header_token_value
             .clone(),
     )
-    .await
-    ?;
+    .await?;
     tx.commit().await?;
     add_session_notification_success(
         db_pool.clone(),

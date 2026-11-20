@@ -12,14 +12,14 @@ pub async fn new_invoice(
     _invoice_id: String,
     amount_atomic: CurrencyAtomicUnit,
     method: payment_system_structs::PaymentMethod,
+    payment_server_url: String,
+    payment_server_token: String,
     success_callback_url: String,
     status_update_callback_url: String,
     cloudflare_bypass_under_attack_check_header_name: String,
     cloudflare_bypass_under_attack_check_header_value: String,
 ) -> anyhow::Result<PaymentInfo> {
-    let payment_server_url = get_payment_server_url(tx).await?;
     let path = "new_invoice".to_string();
-    let token = get_payment_server_token(tx).await?;
     let request_url = format!("{payment_server_url}/{path}");
     let mut callback_headers = HashMap::new();
     callback_headers.insert(
@@ -39,7 +39,7 @@ pub async fn new_invoice(
 
     let response = client
         .post(&request_url)
-        .header(X_API_TOKEN, token)
+        .header(X_API_TOKEN, payment_server_token)
         .header(
             cloudflare_bypass_under_attack_check_header_name,
             cloudflare_bypass_under_attack_check_header_value,

@@ -223,6 +223,7 @@ pub async fn create_invoice(
     cart_id: String,
     payment_method: payment_system_structs::PaymentMethod,
     payment_server_url: String,
+    payment_server_token: String,
     payment_success_webhook_url: String,
     payment_status_update_webhook_url: String,
     cloudflare_bypass_under_attack_check_header_name: String,
@@ -267,7 +268,6 @@ pub async fn create_invoice(
     let mut total_usd = 0.0;
     for item in items {
         let item_id = item.id;
-        let item_name = item.name;
         let price_usd = calculate_service_item_usd_price(tx, item_id.clone()).await?;
         total_usd += price_usd;
         let payment_method_currency_price_atomic_unit = match payment_method {
@@ -288,8 +288,8 @@ pub async fn create_invoice(
             }
         }
         .to_string();
-        sqlx::query!("INSERT INTO shopping_cart_item_data (id, name, value, shopping_cart_item_id) VALUES (uuidv7()::text, $1, $2, $3)", "payment_method_currency_price_atomic_unit", payment_method_currency_price_atomic_unit, &item_id).execute(&mut **tx).await?;
-        sqlx::query!("INSERT INTO shopping_cart_item_data (id, name, value, shopping_cart_item_id) VALUES (uuidv7()::text, $1, $2, $3)", "usd", payment_method_currency_price_atomic_unit, &item_id).execute(&mut **tx).await?;
+        sqlx::query!("INSERT INTO shopping_cart_item_data (id, name, value, shopping_cart_item_id) VALUES (uuidv7()::text, $1, $2, $3)", "payment_method_atomic_unit_price", payment_method_currency_price_atomic_unit, &item_id).execute(&mut **tx).await?;
+        sqlx::query!("INSERT INTO shopping_cart_item_data (id, name, value, shopping_cart_item_id) VALUES (uuidv7()::text, $1, $2, $3)", "usd_price", price_usd.to_string(), &item_id).execute(&mut **tx).await?;
     }
     let total_payment_amount_atomic_units = match payment_method {
         payment_system_structs::PaymentMethod::Monero => {
@@ -320,9 +320,11 @@ pub async fn create_invoice(
 
     let payment_info = payment_system_client::new_invoice(
         tx,
-        invoice_id_string,
+        invoice_id.0.clone(),
         total_payment_amount_atomic_units,
         payment_method.to_string().parse()?,
+        payment_server_url,
+        payment_server_token,
         payment_success_webhook_url,
         payment_status_update_webhook_url,
         cloudflare_bypass_under_attack_check_header_name,

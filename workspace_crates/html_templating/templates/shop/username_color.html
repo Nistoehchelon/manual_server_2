@@ -18,15 +18,14 @@ Username color
     <span id="ltc_cost_per_month">{{ ltc_cost }}</span> LTC /
     <span id="xno_cost_per_month">{{ xno_cost }}</span> XNO
 </div>
-<div>You may pick the duration of up to 12 months at a time. You may modify the color at any time in settings. </div>
-<p> The list of allowed color codes is available <a href = "/shop/username_color/allowed_color_codes">here</a></p>
+<div>You may pick the duration of up to 12 months at a time. </div>
+<p> The list of available color codes is available <a href = "/shop/username_color/available_color_codes">here</a></p>
 <p>Choose your desired initial color code and duration.</p>
 
 <form id="username_color_form" method="post" action="/shop/add_to_cart">
     <input type="hidden" name="service" value="username_color">
     <label for="color_code">Color code: </label>
-    <input type="text" id="color_code" name="color_code" placeholder="Example for purple: #800080" min="1" max="12"
-        step="1" required>
+    <input type="text" id="color_code" name="color_code" placeholder="Example: purple" required>
     <label for="months">Duration: </label>
     <input type="number" id="months" name="months" placeholder="In months..." min="1" max="12" step="1" required>
 

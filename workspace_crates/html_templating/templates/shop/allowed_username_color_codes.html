@@ -1,17 +1,17 @@
 {% extends "template_base.html" %}
 
 {% block title %}
-Shop
+Available username color codes
 {% endblock %}
 
 {% block content %}
 
-<h1>Allowed username color codes</h1><br>
+<h1>Available username color codes</h1><br>
 
 <span id = "shopping_cart_link"><a href="/shop/username_color">Back to "Username color"</a></span><br>
 
 {% for color in colors %}
-    {{ color }}
+    <span class="username_color_{{ color.trim_start_matches('#')}}">{{ color }}</span>
     <br>
 {% endfor %}
 {% endblock %}

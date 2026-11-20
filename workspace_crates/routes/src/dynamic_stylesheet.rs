@@ -1,7 +1,7 @@
 use http_stuff::http_response::{Charset, HttpResponseData, ok};
 
 use routing_structs::RouterData;
-use user::username_color::get_allowed_username_colors;
+use user::username_color::get_available_username_colors;
 
 // /dynamic_stylesheet/contact?offset=0
 pub async fn get(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
@@ -42,7 +42,7 @@ pub async fn get(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
 
 pub async fn allowed_username_colors(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let conn = &mut router_data.db_pool.acquire().await?;
-    let colors = get_allowed_username_colors(conn).await?;
+    let colors = get_available_username_colors(conn).await?;
     let mut css = String::new();
     for c in colors {
         let color_class = c.strip_prefix("#").unwrap_or(&c);

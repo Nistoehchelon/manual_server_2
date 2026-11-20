@@ -115,7 +115,6 @@ pub async fn route(
         let final_response = match (method, path.as_str()) {
             (HttpMethod::Get, "/signup") => routes::signup::get(router_data.clone()).await,
             (HttpMethod::Get, "/allowed_username_colors.css") => routes::dynamic_stylesheet::allowed_username_colors(router_data.clone()).await,
-            (HttpMethod::Get, "/shop/username_color/allowed_username_color_codes") => routes::shop::get_allowed_username_color_codes(router_data.clone()).await,
             (HttpMethod::Post, "/signup") => routes::signup::post(router_data.clone()).await,
             (HttpMethod::Get, "/email_otp") => routes::email_otp::get(router_data.clone()).await,
             (HttpMethod::Post, "/email_otp") => routes::email_otp::post(router_data.clone()).await,
@@ -173,7 +172,8 @@ pub async fn route(
                     tracing::error!("{res:#?}");
                 }
                 res
-            }
+            },
+            (HttpMethod::Get, "/shop/username_color/available_color_codes") => routes::shop::get_available_username_color_codes(router_data.clone()).await,
             (HttpMethod::Get, p) if p.starts_with("/shop/") && !p.starts_with("/shop/cart") => {
                 routes::shop::get_items(router_data.clone()).await
             }

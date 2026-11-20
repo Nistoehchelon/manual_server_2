@@ -257,7 +257,7 @@ pub async fn add_to_cart(
             let color_code = match raw_color_code.parse::<csscolorparser::Color>() {
                 Ok(cc) => {
                     let conn = &mut *tx;
-                    if !user::username_color::get_allowed_username_colors(conn)
+                    if !user::username_color::get_available_username_colors(conn)
                         .await?
                         .contains(&cc.to_string())
                     {
@@ -265,7 +265,7 @@ pub async fn add_to_cart(
                             router_data.db_pool.clone(),
                             router_data.session.id.clone(),
                             format!(
-                                "Color code {} is not on the list of allowed username colors",
+                                "Color code {} is not on the list of available username colors",
                                 cc
                             ),
                         )
@@ -434,9 +434,9 @@ pub async fn possibly_create_and_get_user_cart_id(
     }
 }
 
-pub async fn get_allowed_username_color_codes(router_data: RouterData) -> anyhow::Result<HttpResponseData> { 
+pub async fn get_available_username_color_codes(router_data: RouterData) -> anyhow::Result<HttpResponseData> { 
     let mut conn = router_data.db_pool.acquire().await?;
-    let colors = user::username_color::get_allowed_username_colors(&mut conn).await?;
+    let colors = user::username_color::get_available_username_colors(&mut conn).await?;
     let template = AllowedUsernameColorCodesTemplate { main_info: router_data.base_template_data, colors };
     let html = render(template);
     Ok(ok_html(html))

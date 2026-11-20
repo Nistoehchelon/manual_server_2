@@ -5,7 +5,7 @@ use shop::ShoppingCart;
 
 pub struct User {
     pub username: String,
-    pub username_color: Option<csscolorparser::Color>,
+    pub username_color: Option<String>,
 }
 
 pub struct Forum {

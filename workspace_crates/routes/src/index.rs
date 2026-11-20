@@ -41,7 +41,7 @@ pub async fn get(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
 fn get_html(
     mut base_template: BaseTemplateData,
     session: Session,
-    username_color: Option<csscolorparser::Color>,
+    username_color: Option<String>,
     user: User,
     user_has_a_subscription: bool,
 ) -> String {

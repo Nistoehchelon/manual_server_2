@@ -5,7 +5,7 @@ use crate::get_user_data;
 pub async fn try_get_username_color(
     conn: &mut PgConnection,
     user_id: String,
-) -> anyhow::Result<Option<csscolorparser::Color>> {
+) -> anyhow::Result<Option<String>> {
     let Some(color_expiry) = get_user_data(conn, &user_id, "username_color_expires_at").await?
     else {
         return Ok(None);
@@ -14,6 +14,7 @@ pub async fn try_get_username_color(
         return Ok(None);
     };
     let color_code = color_code.parse::<csscolorparser::Color>()?;
+    let color_code = color_code.name().unwrap_or(&color_code.to_string()).to_string();
     let color_expiry = color_expiry.parse::<u64>()?;
     if color_expiry > time_funcs::utc_now()? {
         Ok(Some(color_code))

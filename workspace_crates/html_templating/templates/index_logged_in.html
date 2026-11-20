@@ -6,14 +6,10 @@
 {% block logged_in_or_not %}
 <b>You are logged in as
 
-    {% if let Some(color) = user.username_color %}
-    <span class="username_color_{{ color }}">
-        {% endif %}
-    {{ user.username }}
-        {% if let Some(color) = user.username_color %}
-    </span>
-    {% endif %}
 
+    <span {% if let Some(color)=user.username_color_class %} class="{{ color }}" {% endif %}>
+        {{ user.username }}
+    </span>
 </b> [ <a href="/dashboard">Go To Your Holy Dashboard</a> ] [ <a href="/logout">Logout</a>] <br>
 
 

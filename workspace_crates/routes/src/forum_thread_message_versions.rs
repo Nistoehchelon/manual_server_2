@@ -7,7 +7,7 @@ use http_stuff::http_response::{HttpResponseData, ok_html, redirect_to};
 use pagination::Pagination;
 use session::{SessionNotification, SessionNotificationType, add_session_notification};
 use url::Url;
-use user::get_user_by_user_id;
+use user::{get_user_by_user_id, username_color::try_get_username_color_class};
 
 use routing_structs::RouterData;
 
@@ -28,8 +28,7 @@ pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData
                     notification_type: SessionNotificationType::Error,
                 },
             )
-            .await
-            ?;
+            .await?;
             return Ok(redirect_to("/forum".to_string()));
         }
     };
@@ -64,10 +63,7 @@ pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData
         }
     };
 
-    let msg = match forum::find_thread_message(db_pool.clone(), message_id.clone())
-        .await
-       ?
-    {
+    let msg = match forum::find_thread_message(db_pool.clone(), message_id.clone()).await? {
         Some(m) => m,
         None => {
             add_session_notification(
@@ -78,23 +74,19 @@ pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData
                     notification_type: session::SessionNotificationType::Error,
                 },
             )
-            .await
-           ?;
+            .await?;
             return Ok(redirect_to("/forum".to_string()));
         }
     };
 
-    let thread = forum::get_thread(db_pool.clone(), msg.thread_id.clone())
-        .await
-       ?;
+    let thread = forum::get_thread(db_pool.clone(), msg.thread_id.clone()).await?;
 
     if !can_access_this_forum_thread(CanAccessThisForumThreadInput {
         db_pool: db_pool.clone(),
         user_id: session.user_id.clone(),
         thread_id: thread.id.clone(),
     })
-    .await
-   ?
+    .await?
     {
         println!("User doesn't have permissions to access this thread");
         return Ok(redirect_to("/".to_string()));
@@ -108,13 +100,10 @@ pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData
         page,
         VERSIONS_PER_PAGE,
     )
-    .await
-   ?;
+    .await?;
 
     let versions_count =
-        forum::get_count_thread_message_versions(db_pool.clone(), message_id.clone())
-            .await
-           ?;
+        forum::get_count_thread_message_versions(db_pool.clone(), message_id.clone()).await?;
 
     let current_url = Url::new(request_data.path.clone(), request_data.query.clone());
     let pagi = Pagination {
@@ -130,12 +119,13 @@ pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData
         Vec::with_capacity(usize::try_from(VERSIONS_PER_PAGE)?);
 
     for msg in message_versions {
-        let user = get_user_by_user_id(db_pool.clone(), msg.user_id)
-            .await
-           ?;
+        let user = get_user_by_user_id(db_pool.clone(), msg.user_id).await?;
+        let mut conn = db_pool.acquire().await?;
+        let color_class = try_get_username_color_class(&mut conn, user.id.clone()).await?;
         message_versions_to_render.push(html_template_structs::ForumThreadMessageVersion {
             user_id: user.id.clone(),
             user_username: user.username,
+            user_username_color_class: color_class,
             content: msg.content.to_string(),
             created_at: msg.created_at.to_string(),
         });

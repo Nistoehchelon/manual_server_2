@@ -2,7 +2,23 @@ use sqlx::PgConnection;
 
 use crate::get_user_data;
 
-pub async fn try_get_username_color(
+pub fn strip_color_hashtag_prefix(input: String) -> String {
+    input.trim_start_matches('#').to_string()
+}
+
+pub async fn try_get_username_color_class(
+    conn: &mut PgConnection,
+    user_id: String,
+) -> anyhow::Result<Option<String>> {
+    let res = try_get_username_color_code(conn, user_id).await?;
+    let color_class = match res {
+        None => return Ok(None),
+        Some(r) => r.trim_start_matches('#').to_string(),
+    };
+    let color_class = format!("username_color_{color_class}");
+    Ok(Some(color_class))
+}
+pub async fn try_get_username_color_code(
     conn: &mut PgConnection,
     user_id: String,
 ) -> anyhow::Result<Option<String>> {
@@ -14,7 +30,10 @@ pub async fn try_get_username_color(
         return Ok(None);
     };
     let color_code = color_code.parse::<csscolorparser::Color>()?;
-    let color_code = color_code.name().unwrap_or(&color_code.to_string()).to_string();
+    let color_code = color_code
+        .name()
+        .unwrap_or(&color_code.to_string())
+        .to_string();
     let color_expiry = color_expiry.parse::<u64>()?;
     if color_expiry > time_funcs::utc_now()? {
         Ok(Some(color_code))

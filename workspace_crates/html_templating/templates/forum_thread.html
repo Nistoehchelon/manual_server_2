@@ -18,7 +18,12 @@ Viewing page {{ thread_page }}<br>
 {% else %}
   {% for message in thread_messages %}
     <div id="message_{{ message.id }}"></div>
-    <a href = "/user?id={{ message.user_id }}">{{ message.user_username }}</a>
+    
+    <a 
+    {% if let Some(color) = message.user_username_color_class  %}
+    class ="{{ color }}"
+    {% endif %} 
+    href = "/user?id={{ message.user_id }}">{{ message.user_username }}</a>
   [  
   {% if message.the_viewing_user_can_edit_it %}
  <a href="/edit_forum_thread_message?id={{ message.id }}">edit message</a> |

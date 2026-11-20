@@ -5,7 +5,7 @@ use shop::ShoppingCart;
 
 pub struct User {
     pub username: String,
-    pub username_color: Option<String>,
+    pub username_color_class: Option<String>,
 }
 
 pub struct Forum {
@@ -77,6 +77,7 @@ pub struct ForumThreadMessageCombinedData {
     pub created_at: String,
     pub user_id: String,
     pub user_username: String,
+    pub user_username_color_class: Option<String>,
     pub modifications_count: i64,
     pub the_viewing_user_can_edit_it: bool,
 }
@@ -145,9 +146,11 @@ impl From<session::SessionNotification> for SessionNotification {
 pub struct ForumThreadMessageVersion {
     pub user_id: String,
     pub user_username: String,
+    pub user_username_color_class: Option<String>,
     pub content: String,
     pub created_at: String,
 }
+
 
 #[derive(Template)]
 #[template(path = "forum_thread_message_versions.html")]
@@ -159,6 +162,7 @@ pub struct ForumThreadMessageVersionsTemplate {
     pub message_versions: Vec<ForumThreadMessageVersion>,
     pub versions_paginator: Paginator,
 }
+
 
 #[derive(Template)]
 #[template(path = "index_logged_in.html")]

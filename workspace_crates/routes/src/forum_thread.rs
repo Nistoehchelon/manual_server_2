@@ -18,9 +18,7 @@ use user::find_user_by_user_id;
 
 use routing_structs::RouterData;
 
-pub async fn get(
-    mut router_data: RouterData,
-) -> anyhow::Result<HttpResponseData> {
+pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     let request_data = router_data.http_request_data.clone();
@@ -37,8 +35,7 @@ pub async fn get(
                     notification_type: session::SessionNotificationType::Error,
                 },
             )
-            .await
-            ?;
+            .await?;
             return Ok(redirect_to("/forum".to_string()));
         }
     };
@@ -54,10 +51,7 @@ pub async fn get(
         None => 1,
     };
 
-    let thread = match forum::find_thread(db_pool.clone(), thread_id.clone())
-        .await
-        ?
-    {
+    let thread = match forum::find_thread(db_pool.clone(), thread_id.clone()).await? {
         Some(t) => t,
         None => {
             add_session_notification(
@@ -68,8 +62,7 @@ pub async fn get(
                     notification_type: session::SessionNotificationType::Error,
                 },
             )
-            .await
-            ?;
+            .await?;
             return Ok(redirect_to("/forum".to_string()));
         }
     };
@@ -79,15 +72,12 @@ pub async fn get(
         user_id: session.user_id.clone(),
         thread_id: thread_id.clone(),
     })
-    .await
-    ?
+    .await?
     {
         println!("User doesn't have permissions to access this thread");
         return Ok(redirect_to("/".to_string()));
     }
-    let user_opt = find_user_by_user_id(db_pool.clone(), session.user_id.clone())
-        .await
-        ?;
+    let user_opt = find_user_by_user_id(db_pool.clone(), session.user_id.clone()).await?;
 
     let limit_per_page = forum_structs::MESSAGES_PER_PAGE;
     let thread_message_ids = forum::get_thread_message_ids(
@@ -96,13 +86,10 @@ pub async fn get(
         thread_page,
         limit_per_page,
     )
-    .await
-    ?;
+    .await?;
 
     let thread_messages_count =
-        forum::get_count_thread_messages(db_pool.clone(), thread_id.clone())
-            .await
-            ?;
+        forum::get_count_thread_messages(db_pool.clone(), thread_id.clone()).await?;
     let current_url = Url::new(request_data.path.clone(), request_data.query.clone());
     let pagi = Pagination {
         records_count: thread_messages_count,
@@ -118,27 +105,24 @@ pub async fn get(
     > = Vec::with_capacity(usize::try_from(limit_per_page)?);
     for msg_id in thread_message_ids {
         let latest_message_version =
-            forum::get_latest_message_version(db_pool.clone(), msg_id.clone())
-                .await
-                ?;
+            forum::get_latest_message_version(db_pool.clone(), msg_id.clone()).await?;
         let content = latest_message_version.content;
 
         let initial_message_version =
-            forum::get_initial_message_version(db_pool.clone(), msg_id.clone())
-                .await
-                ?;
+            forum::get_initial_message_version(db_pool.clone(), msg_id.clone()).await?;
         let user_id = initial_message_version.user_id.clone();
         let username = user::get_user_by_user_id(db_pool.clone(), user_id.clone())
-            .await
-            ?
+            .await?
             .username;
+        let mut conn = db_pool.acquire().await?;
+        let name_color_class =
+            user::username_color::try_get_username_color_class(&mut conn, user_id.clone()).await?;
 
         // TODO: convert to string
         let created_at = String::from("todo created_at");
 
-        let modifications_count = forum::get_modifications_count(db_pool.clone(), msg_id.clone())
-            .await
-            ?;
+        let modifications_count =
+            forum::get_modifications_count(db_pool.clone(), msg_id.clone()).await?;
 
         let tm = html_templating::html_template_structs::ForumThreadMessageCombinedData {
             id: msg_id,
@@ -146,6 +130,7 @@ pub async fn get(
             created_at,
             user_id: user_id.clone(),
             user_username: username,
+            user_username_color_class: name_color_class,
             modifications_count,
             the_viewing_user_can_edit_it: 'check: {
                 abac::can_edit_forum_thread_message(CanEditForumThreadMessageInput {
@@ -159,8 +144,7 @@ pub async fn get(
                     },
                     original_message_poster_id: initial_message_version.user_id.clone(),
                 })
-                .await
-                ?
+                .await?
             },
         };
         thread_messages.push(tm);
@@ -171,8 +155,7 @@ pub async fn get(
         session.id.clone(),
         csrf_stuff::DesignatedPurpose::Normal,
     )
-    .await
-    ?;
+    .await?;
 
     router_data.base_template_data.title = String::new();
 
@@ -188,17 +171,13 @@ pub async fn get(
             name: "thread_paginator".to_string(),
             elements: thread_pagination_elements,
         },
-        user_can_add_message: abac::can_create_forum_thread_message(session.clone())
-            .await
-            ?,
+        user_can_add_message: abac::can_create_forum_thread_message(session.clone()).await?,
     });
 
     Ok(ok_html(html))
 }
 
-pub async fn post(
-    router_data: RouterData,
-) -> anyhow::Result<HttpResponseData> {
+pub async fn post(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     let request_data = router_data.http_request_data.clone();
@@ -207,7 +186,7 @@ pub async fn post(
     let current_url = Url::new(request_data.path.clone(), query.clone());
 
     let body_params = http_request_parsing::parse_body_into_string_form_input_params(body_bytes)
-        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
+        .map_err(|e| anyhow::anyhow!("{e:#?}"))?;
 
     let message = body_params.get("message").cloned();
     let get = query.get("id");
@@ -226,10 +205,7 @@ pub async fn post(
         }
     };
 
-    if !abac::can_create_forum_thread_message(session.clone())
-        .await
-        ?
-    {
+    if !abac::can_create_forum_thread_message(session.clone()).await? {
         add_session_notification(
             db_pool,
             session::SessionNotification {
@@ -238,8 +214,7 @@ pub async fn post(
                 notification_type: session::SessionNotificationType::Error,
             },
         )
-        .await
-        ?;
+        .await?;
 
         return Ok(redirect_to(current_url.clone().to_string()));
     }
@@ -249,16 +224,12 @@ pub async fn post(
         user_id: session.user_id.clone(),
         thread_id: thread_id.clone(),
     })
-    .await
-    ?
+    .await?
     {
         println!("User doesn't have permissions to access this thread");
         return Ok(redirect_to("/".to_string()));
     }
-    match forum::find_thread(db_pool.clone(), thread_id.clone())
-        .await
-        ?
-    {
+    match forum::find_thread(db_pool.clone(), thread_id.clone()).await? {
         Some(_) => {}
         None => {
             add_session_notification(
@@ -269,16 +240,13 @@ pub async fn post(
                     notification_type: session::SessionNotificationType::Error,
                 },
             )
-            .await
-            ?;
+            .await?;
             return Ok(redirect_to("/forum".to_string()));
         }
     }
 
     let is_csrf_token_valid =
-        csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone())
-            .await
-            ?;
+        csrf_stuff::validate_token(db_pool.clone(), session.id.clone(), csrf_token.clone()).await?;
     if !is_csrf_token_valid {
         return Ok(bad_request_400());
     }
@@ -294,16 +262,13 @@ pub async fn post(
             return Ok(redirect_to(session.previous_get_page));
         }
     };
-    forum::add_message(db_pool.clone(), message, session.user_id, thread_id.clone())
-        .await
-        ?;
+    forum::add_message(db_pool.clone(), message, session.user_id, thread_id.clone()).await?;
     let total_pages = forum::get_count_thread_pages(
         db_pool.clone(),
         thread_id.clone(),
         forum_structs::MESSAGES_PER_PAGE,
     )
-    .await
-    ?;
+    .await?;
     let mut redir_url = current_url.clone();
     redir_url
         .query

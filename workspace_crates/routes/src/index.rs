@@ -17,14 +17,14 @@ pub async fn get(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
         let mut tx = db_pool.begin().await?;
         let user_has_a_subscription =
             user::subscription::user_has_a_subscription(&mut tx, &user.id).await?;
-        let username_color =
-            user::username_color::try_get_username_color(&mut tx, user.id.clone()).await?;
+        let username_color_class =
+            user::username_color::try_get_username_color_class(&mut tx, user.id.clone()).await?;
         tx.commit().await?;
 
         return Ok(http_stuff::http_response::ok_html(get_html(
             router_data.base_template_data,
             session.clone(),
-            username_color,
+            username_color_class,
             user,
             user_has_a_subscription,
         )));
@@ -41,7 +41,7 @@ pub async fn get(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
 fn get_html(
     mut base_template: BaseTemplateData,
     session: Session,
-    username_color: Option<String>,
+    username_color_class: Option<String>,
     user: User,
     user_has_a_subscription: bool,
 ) -> String {
@@ -53,7 +53,7 @@ fn get_html(
             main_info: base_template,
             user: html_template_structs::User {
                 username: user.username.clone(),
-                username_color,
+                username_color_class,
             },
         };
         html_templating::render(index_template)

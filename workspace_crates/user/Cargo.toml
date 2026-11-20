@@ -8,7 +8,9 @@ password_hashing = { workspace = true }
 anyhow = { workspace = true }
 time_funcs = { workspace = true }
 id_generator = { workspace = true }
+tracing = { workspace = true }
 id_generator_unique_in_db = { workspace = true }
+custom_site_variables = { workspace = true }
 error_structs = { workspace = true }
 sqlx = { workspace = true }
 db_manager = { workspace = true }

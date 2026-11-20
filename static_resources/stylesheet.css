@@ -2,8 +2,9 @@
   --body-background-color: rgb(0, 0, 0);
   --user-input-field-background: color-mix(in srgb, var(--body-background-color), white 20%);
 }
+
 body {
-   margin: 2vw auto;
+  margin: 2vw auto;
   font-size: 2.0em;
   font-family: Arial, sans-serif;
   max-width: 95vw;
@@ -14,21 +15,24 @@ body {
   overflow-wrap: break-word;
   /* prevents annoying long text by splitting it downwards */
 }
+
 textarea,
 input[type="text"],
 input[type="number"],
 input[type="password"],
 input[type="email"] {
-    font-size: inherit;
+  font-size: inherit;
   width: 95vw;
   box-sizing: border-box;
   background-color: var(--user-input-field-background);
   color: inherit;
   border: 1px solid #ccc;
 }
+
 button {
-font-size: inherit;
+  font-size: inherit;
 }
+
 textarea {
 
   height: 20vh;
@@ -39,7 +43,8 @@ textarea {
 }
 
 
-.preserve_whitespace_as_is, .forum_thread_message_content {
+.preserve_whitespace_as_is,
+.forum_thread_message_content {
   white-space: pre-wrap;
 }
 
@@ -81,4 +86,34 @@ a:hover {
 
 .more_grayish_text {
   color: rgb(46, 45, 45)
+}
+
+
+
+.username_color_red {
+  color: red;
+}
+
+.username_color_blue {
+  color: blue;
+}
+
+.username_color_purple {
+  color: purple;
+}
+
+.username_color_green {
+  color: green;
+}
+
+.username_color_brown {
+  color: brown;
+}
+
+.username_color_cyan {
+  color: cyan;
+}
+
+.username_color_8a43cc {
+  color: #8a43cc;
 }

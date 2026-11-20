@@ -1,11 +1,10 @@
+use custom_site_variables::CustomSiteVariableName::AllowedUsernameColor;
 use http_stuff::http_response::{Charset, HttpResponseData, ok};
 
 use routing_structs::RouterData;
 
 // /dynamic_stylesheet/contact?offset=0
-pub async fn get(
-    router_data: RouterData,
-) -> anyhow::Result<HttpResponseData> {
+pub async fn get(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let path = router_data.http_request_data.path.clone();
     let Some(page) = path.strip_prefix("/dynamic_stylesheet/") else {
         tracing::debug!("Could not strip prefix");

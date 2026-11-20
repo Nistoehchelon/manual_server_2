@@ -114,6 +114,7 @@ pub async fn route(
         };
         let final_response = match (method, path.as_str()) {
             (HttpMethod::Get, "/signup") => routes::signup::get(router_data.clone()).await,
+            (HttpMethod::Get, "/allowed_username_colors.css") => routes::signup::get(router_data.clone()).await,
             (HttpMethod::Post, "/signup") => routes::signup::post(router_data.clone()).await,
             (HttpMethod::Get, "/email_otp") => routes::email_otp::get(router_data.clone()).await,
             (HttpMethod::Post, "/email_otp") => routes::email_otp::post(router_data.clone()).await,

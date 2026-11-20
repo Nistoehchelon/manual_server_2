@@ -1,16 +1,12 @@
 {% extends "index_base.html" %}
 
 {% block head %}
-<style nonce="{{ main_info.nonce }}">
-    .hey {
-        color: red;
-    }
-</style>
+
 {% endblock %}
 {% block logged_in_or_not %}
 <b>You are logged in as 
     
-     <p class ="hey">{{ user.username }}</p>
+     <p class ="username_color_red">{{ user.username }}</p>
     
     </b> [ <a href="/dashboard">Go To Your Holy Dashboard</a> ] [ <a
     href="/logout">Logout</a>] <br>

@@ -1,12 +1,11 @@
 {% extends "template_base.html" %}
 
-{% block content%}
+{% block content %}
 <form action="/manage_custom_site_variables" method="POST">
     {% for var in variables %}
-    {{ var.name }}: <input type = "text" name = "{{ var.name }}" value = "{{ var.value.as_deref().unwrap_or("[not set]")}}">
+    {{ var.name }}: <textarea name="{{ var.name }}">{{ var.value.as_deref().unwrap_or("[not set]") }}</textarea>
     {% endfor %}
-    <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <button>Submit</button>
-
 </form>
-{%endblock%}
+{% endblock %}

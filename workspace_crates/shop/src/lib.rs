@@ -142,3 +142,4 @@ pub async fn calc_price_for_all_currencies(
     tx.commit().await?;
     Ok(re)
 }
+

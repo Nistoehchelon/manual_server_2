@@ -29,6 +29,8 @@ pub enum CustomSiteVariableName {
     WebsiteFundXMRBalanceVisual,
     #[strum(serialize = "website_root_url")]
     WebsiteRootUrl,
+    #[strum(serialize = "allowed_username_colors")]
+    AllowedUsernameColor,
 }
 
 pub async fn set_custom_site_variable(
@@ -51,20 +53,20 @@ pub async fn set_custom_site_variable(
     Ok(())
 }
 pub async fn get_custom_site_variable(
-    tx: &mut PgConnection,
+    conn: &mut PgConnection,
     var_name: CustomSiteVariableName,
 ) -> anyhow::Result<String> {
     let result = sqlx::query!(
         r#"SELECT value FROM custom_site_variables WHERE name = $1"#,
         var_name.to_string()
     )
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut *conn)
     .await?
     .value;
     Ok(result)
 }
 
-pub async fn find_custom_site_var(
+pub async fn find_custom_site_variable(
     tx: &mut PgConnection,
     var_name: CustomSiteVariableName,
 ) -> anyhow::Result<Option<String>> {

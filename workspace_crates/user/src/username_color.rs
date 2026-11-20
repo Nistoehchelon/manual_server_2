@@ -13,3 +13,25 @@ pub async fn try_get_username_color(conn: &mut PgConnection, user_id: String) ->
         Ok(None)
     }
 }
+
+
+pub async fn get_allowed_username_colors(
+    conn: &mut PgConnection,
+) -> anyhow::Result<Vec<String>> {
+    let Ok(Some(content)) =
+        custom_site_variables::find_custom_site_variable(conn, custom_site_variables::CustomSiteVariableName::AllowedUsernameColor).await
+    else {
+        tracing::error!("Could not get allowed_username_colors");
+        return Ok(Vec::new());
+    };
+    let colors: Vec<String> = content
+        .lines()
+        .map(|line| {
+            let line = line.trim();
+            line.to_owned()
+        })
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    Ok(colors)
+}

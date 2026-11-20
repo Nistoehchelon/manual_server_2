@@ -260,7 +260,25 @@ pub async fn add_to_cart(
                 .get("color_code")
                 .ok_or_else(|| anyhow::anyhow!("Color param not found"))?;
             let color_code = match raw_color_code.parse::<csscolorparser::Color>() {
-                Ok(cc) => cc,
+                Ok(cc) => {
+                    let conn = &mut *tx;
+                    if !user::username_color::get_allowed_username_colors(conn)
+                        .await?
+                        .contains(&cc.to_string())
+                    {
+                        add_session_notification_error(
+                            router_data.db_pool.clone(),
+                            router_data.session.id.clone(),
+                            format!(
+                                "Color code {} is not on the list of allowed username colors",
+                                cc
+                            ),
+                        )
+                        .await;
+                        return Ok(redirect_to("/shop/username_color".to_owned()));
+                    }
+                    cc
+                }
                 Err(e) => {
                     add_session_notification_error(
                         router_data.db_pool.clone(),

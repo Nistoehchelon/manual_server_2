@@ -382,7 +382,7 @@ pub async fn create_invoice(
         &payment_info.method.to_string(),
     )
     .await?;
-    todo!()
+    Ok((invoice_id, payment_info.method))
 }
 
 pub async fn move_shopping_cart_items_into_invoice(

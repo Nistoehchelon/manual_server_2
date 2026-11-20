@@ -1,3 +1,4 @@
+use anyhow::Context;
 use sqlx::{PgConnection, Postgres, Transaction};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
@@ -61,7 +62,7 @@ pub async fn get_custom_site_variable(
         var_name.to_string()
     )
     .fetch_one(&mut *conn)
-    .await?
+    .await.context("Could not get custom site variable")?
     .value;
     Ok(result)
 }
@@ -75,7 +76,7 @@ pub async fn find_custom_site_variable(
         var_name.to_string(),
     )
     .fetch_optional(&mut *tx)
-    .await?;
+    .await.context("Db error")?;
     Ok(row.map(|r| r.value))
 }
 pub async fn save_custom_site_variables_from_form(
@@ -84,7 +85,7 @@ pub async fn save_custom_site_variables_from_form(
 ) -> anyhow::Result<()> {
     for variant in CustomSiteVariableName::iter() {
         let name = variant.to_string();
-        const NOT_SET_PLACEHOLDER: &str = "NOT_SET_PLACEHOLDER";
+        const NOT_SET_PLACEHOLDER: &str = "[not set]";
         match form.get(&name).map(String::as_str) {
             // Non-empty → upsert
             Some(v) if !v.is_empty() && v != NOT_SET_PLACEHOLDER => {

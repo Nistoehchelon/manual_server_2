@@ -5378,6 +5378,7 @@ dependencies = [
 name = "user_creation"
 version = "0.1.0"
 dependencies = [
+ "abac",
  "error_structs",
  "password_hashing",
  "sqlx",

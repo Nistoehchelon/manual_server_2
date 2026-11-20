@@ -7,4 +7,5 @@ edition = "2024"
 user = { workspace = true }
 sqlx = { workspace = true }
 password_hashing = { workspace = true }
+abac = { workspace = true }
 error_structs = { workspace = true }

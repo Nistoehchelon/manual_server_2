@@ -1,15 +1,21 @@
-use anyhow::{ Result};
-use cryptocurrencies_stuff::currencies::{
-    CurrencyAtomicUnit, LTC, LTCAtomicUnit, XMR, XMRAtomicUnit, XNO, XNOAtomicUnit,
+use anyhow::{Context, Result};
+use chrono::Datelike;
+use cryptocurrencies_stuff::{
+    U256,
+    currencies::{CurrencyAtomicUnit, LTC, LTCAtomicUnit, XMR, XMRAtomicUnit, XNO, XNOAtomicUnit},
+};
+use custom_site_variables::{
+    CustomSiteVariableName::{ShopSellerName, ShopSellerPubKeyUrl},
+    get_custom_site_variable,
 };
 use financial_stuff::get_by_usd;
 use id_generator_unique_in_db::Table;
 use payment_system_structs::{PaymentId, PaymentMethod};
 use serde::Serialize;
 use shop::{ShopService, calculate_service_item_usd_price};
-use sqlx::{Postgres, Transaction};
-use time_funcs::{add_months_to_timestamp, utc_now};
-use user::set_user_data;
+use sqlx::{PgConnection, Postgres, Transaction};
+use time_funcs::{add_months_to_timestamp, utc_now_secs};
+use user::{get_user_by_user_id, set_user_data};
 
 #[derive(Clone)]
 pub struct PaymentData {
@@ -67,7 +73,7 @@ impl std::fmt::Display for PaymentMethodAmount {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, derive_more::Display)]
 pub struct InvoiceId(pub String);
 
 pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Result<()> {
@@ -96,26 +102,26 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
         match service {
             ShopService::Subscription => {
                 let subscription_months =
-                    get_invoice_item_data(&mut tx, "months".to_owned(), item.id.clone())
+                    get_invoice_item_datum_value(&mut tx, "months".to_owned(), item.id.clone())
                         .await?
                         .parse::<u64>()?;
                 let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id").await?;
                 let subscription_expires_at =
-                    add_months_to_timestamp(utc_now()?, subscription_months)?;
+                    add_months_to_timestamp(utc_now_secs()?, subscription_months)?;
                 user::subscription::set_expiry_time(&mut tx, &user_id, subscription_expires_at)
                     .await?;
             }
             ShopService::UsernameColor => {
                 let service_months =
-                    get_invoice_item_data(&mut tx, "months".to_owned(), item.id.clone())
+                    get_invoice_item_datum_value(&mut tx, "months".to_owned(), item.id.clone())
                         .await?
                         .parse::<u64>()?;
                 let color_code =
-                    get_invoice_item_data(&mut tx, "color_code".to_owned(), item.id.clone())
+                    get_invoice_item_datum_value(&mut tx, "color_code".to_owned(), item.id.clone())
                         .await?
                         .parse::<csscolorparser::Color>()?;
                 let user_id = get_invoice_data(&mut tx, invoice_id.clone(), "user_id").await?;
-                let color_expires_at = add_months_to_timestamp(utc_now()?, service_months)?;
+                let color_expires_at = add_months_to_timestamp(utc_now_secs()?, service_months)?;
                 set_user_data(
                     &mut tx,
                     &user_id,
@@ -134,57 +140,125 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
         }
     }
 
-    set_invoice_data(&mut tx, invoice_id, "status", "complete").await?;
+    set_invoice_data(&mut tx, invoice_id.clone(), "status", "complete").await?;
     tx.commit().await?;
 
     // Now let's generate a receipt
-    let receipt_id = "32mem2em2mdmq";
-    let seller_name = "Mberg";
-    let seller_user_id = "dmsodqp";
-    let buyer = "bob321";
-    let buyer_user_id = "m12emq";
-    let seller_pubkey_url = "website.com/my_pubkey.pem";
-    let base64_qr = ""; // stores link to website.com/receipt?receipt_id=
-    let datetime = "4th Jan 2199 12:32 UTC-0";
-    let items = r###"
-    1. Subscription for 6 months, effective from approximately the datetime of this receipt, Cost: 0.0001 XNO (6 USD)<br>
-    2. Colored username (blue) for 6 months, effective from approximately the datetime of this receipt: 0.0002 XNO (12 USD)<br>
-    "###;
-    // generate invoice
-    let currency = "XNO";
-    let seller_website = "website.com";
-    let on_chain_transaction_id = "nano_tx_id";
-    let currency_total_amount = "0.0003";
+    let receipt_id = sqlx::query_scalar!(
+        r#"
+        INSERT INTO receipts (invoice_id, html_content)
+        VALUES ($1, $2)
+        RETURNING id
+        "#,
+        invoice_id.0,
+        "temp_empty",
+    )
+    .fetch_one(&db_pool)
+    .await?;
+    let mut conn = db_pool.acquire().await?;
+    let seller_name = get_custom_site_variable(&mut conn, ShopSellerName).await?;
+    let user_id = get_invoice_data(&mut conn, invoice_id.clone(), "user_id").await?;
+    let currency_name_str =
+        get_invoice_data(&mut conn, invoice_id.clone(), "payment_method").await?;
+    let currency_name =
+        payment_system_structs::PaymentMethod::try_from(currency_name_str.as_str())?;
+    let currency_ticker = currency_name.ticker();
+
+    let username = get_user_by_user_id(db_pool.clone(), user_id.clone())
+        .await?
+        .username;
+    let buyer_current_username = username;
+    let buyer_user_id = user_id;
+    let seller_pubkey_url = get_custom_site_variable(&mut conn, ShopSellerPubKeyUrl).await?;
+    let datetime = time_funcs::format_utc_custom(time_funcs::utc_now());
+    let mut items_str = String::new();
+    let mut num = 1;
+    let mut usd_price_total: f64 = 0.0;
+    let invoice_items = get_invoice_items(&mut conn, invoice_id.0.clone()).await?;
+    for i in invoice_items {
+        items_str.push_str(format!(r##"{num}. "##).as_str());
+        num += 1;
+        items_str.push_str(format!("{}, Data: ", i.name).as_str());
+        let data = get_invoice_item_data(&mut conn, i.id.clone()).await?;
+        for d in data {
+            if d.name == "payment_amount_atomic_unit_price" {
+                items_str.push_str(
+                    format!(
+                        r###"-> Price in {currency_ticker}: {}<br>"###,
+                        to_str_price(&currency_name_str, &d.value)?
+                    )
+                    .as_str(),
+                );
+                continue;
+            }
+            if d.name == "usd_price" {
+                let item_usd_price_f64 = d.value.parse::<f64>()?;
+                usd_price_total += item_usd_price_f64;
+            }
+            items_str.push_str(format!(r###"-> {}: {}<br>"###, d.name, d.value).as_str());
+        }
+    }
+
+    let currency_total_amount =
+        get_invoice_data(&mut conn, invoice_id, "payment_amount_atomic_units").await?;
+    let currency_total_amount = to_str_price(&currency_name_str, &currency_total_amount)?;
     let reference_currency = "USD";
-    let reference_currency_total_amount = "18.0";
-    let reference_currency_per_currency = format!("60000 {reference_currency}");
-    let _invoice_html = format!(
+    let reference_currency_total_amount = usd_price_total;
+    let currency_total_amount_f64 = currency_total_amount.parse::<f64>()?;
+    let reference_currency_per_currency =
+        reference_currency_total_amount / currency_total_amount_f64;
+    let root_website_url = get_custom_site_variable(
+        &mut conn,
+        custom_site_variables::CustomSiteVariableName::WebsiteRootUrl,
+    )
+    .await?;
+    let invoice_html = format!(
         r###"
     <div>
         Receipt id: {receipt_id}<br>
-        Link to this receipt (accessible only if you're logged in): <img src="data:image/png;base64,{base64_qr}"<br>
+        Link to this receipt (accessible only if you're logged in): {root_website_url}/receipt/{receipt_id}<br>
         Date and time: {datetime}<br>
-        Buyer: name {buyer}, buyer_user_id: {buyer_user_id}<br>
-        Seller: name: {seller_name}, seller_user_id: {seller_user_id}, at {seller_website}<br>
+        Buyer: name {buyer_current_username}, buyer_user_id: {buyer_user_id}<br>
+        Seller: name: {seller_name}<br>
         Seller pubkey location url: {seller_pubkey_url}<br>
         Seller receipt cryptographic signature: [the signature, as well as a guide on how to verify the signature, are available inside the receipt zip file in files receipt.signature and SIGNATURE_VERIFICATION_GUIDE.md, respectively]<br>
        
-        Currency name: {currency}<br>
-        Currency total: {currency_total_amount} {currency}<br>
+        Currency name: {currency_name} (Ticker: {currency_ticker})<br>
+        Currency total: {currency_total_amount} {currency_ticker}<br>
         Reference currency name: {reference_currency}<br>
         Reference currency total amount: {reference_currency_total_amount} {reference_currency}<br>
-        Reference currency per currency rate ({reference_currency} / {currency}) rate (approximate, according to the typical exchange rates available at datetime of this receipt) : {reference_currency_per_currency},
-        Currency ({currency}) on chain transaction id: {on_chain_transaction_id}<br>
+        Reference currency per currency rate ({reference_currency} / {currency_ticker}) rate (approximate, according to the typical exchange rates available at datetime of this receipt) : {reference_currency_per_currency}
         Items purchased:<br>
-        {items}<br>
+        {items_str}<br>
 
     </div>
     "###,
     );
-
+    sqlx::query!(
+        "UPDATE receipts SET html_content = $1 WHERE id = $2",
+        invoice_html,
+        receipt_id
+    )
+    .execute(&db_pool)
+    .await?;
     Ok(())
 }
 
+pub fn to_str_price(curr_name: &str, val: &str) -> anyhow::Result<String> {
+    let curr = payment_system_structs::PaymentMethod::from_str(&curr_name)?;
+    let ret = match curr {
+        PaymentMethod::Litecoin => {
+            LTCAtomicUnit::from_atomic(CurrencyAtomicUnit(val.parse()?)).to_string_trimmed()
+        }
+        PaymentMethod::Monero => {
+            XMRAtomicUnit::from_atomic(CurrencyAtomicUnit(val.parse()?)).to_string_trimmed()
+        }
+        PaymentMethod::Nano => {
+            XNOAtomicUnit::from_atomic(CurrencyAtomicUnit(val.parse()?)).to_string_trimmed()
+        }
+    };
+    Ok(ret)
+}
 #[derive(Serialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum InvoicePaymentStatus {
@@ -271,7 +345,7 @@ pub async fn create_invoice(
     .await?;
 
     const FIVE_MIN: u64 = 5 * 60;
-    let invoice_expires_at = utc_now()? + FIVE_MIN;
+    let invoice_expires_at = utc_now_secs()? + FIVE_MIN;
     let invoice_expires_at_string: &String = &invoice_expires_at.to_string();
     set_invoice_data(
         tx,
@@ -280,7 +354,7 @@ pub async fn create_invoice(
         invoice_expires_at_string,
     )
     .await?;
-    let curr_ts = &utc_now()?.to_string();
+    let curr_ts = &utc_now_secs()?.to_string();
     set_invoice_data(tx, invoice_id.clone(), "invoice_created_at", curr_ts).await?;
 
     let items = sqlx::query!(
@@ -384,7 +458,7 @@ pub async fn create_invoice(
         &payment_info.method.to_string(),
     )
     .await?;
-let ret = (invoice_id, payment_info.payment_id, payment_info.method);
+    let ret = (invoice_id, payment_info.payment_id, payment_info.method);
     Ok(ret)
 }
 
@@ -436,7 +510,7 @@ pub struct InvoiceItems {
     name: String,
 }
 pub async fn get_invoice_items(
-    tx: &mut Transaction<'_, Postgres>,
+    conn: &mut PgConnection,
     invoice_id: String,
 ) -> anyhow::Result<Vec<InvoiceItems>> {
     let items = sqlx::query_as!(
@@ -444,20 +518,38 @@ pub async fn get_invoice_items(
         "SELECT id, name FROM invoice_cart_items WHERE invoice_id = $1",
         invoice_id
     )
-    .fetch_all(&mut **tx)
+    .fetch_all(conn)
     .await?;
     Ok(items)
 }
 
-pub async fn get_invoice_item_data(
-    tx: &mut Transaction<'_, Postgres>,
+pub async fn get_invoice_item_datum_value(
+    conn: &mut PgConnection,
     item_name: String,
     invoice_item_id: String,
 ) -> anyhow::Result<String> {
-    Ok(sqlx::query!(r###"SELECT value FROM invoice_cart_item_data WHERE name = $1 AND invoice_cart_item_id = $2"###, item_name, invoice_item_id).fetch_one(&mut **tx).await?.value)
+    Ok(sqlx::query!(r###"SELECT value FROM invoice_cart_item_data WHERE name = $1 AND invoice_cart_item_id = $2"###, item_name, invoice_item_id).fetch_one(conn).await?.value)
+}
+
+pub struct InvoiceItemDatum {
+    pub name: String,
+    pub value: String,
+}
+pub async fn get_invoice_item_data(
+    conn: &mut PgConnection,
+    invoice_item_id: String,
+) -> anyhow::Result<Vec<InvoiceItemDatum>> {
+    let r = sqlx::query_as!(
+        InvoiceItemDatum,
+        r###"SELECT name, value FROM invoice_cart_item_data WHERE invoice_cart_item_id = $1"###,
+        invoice_item_id
+    )
+    .fetch_all(conn)
+    .await?;
+    Ok(r)
 }
 pub async fn get_invoice_data(
-    tx: &mut Transaction<'_, Postgres>,
+    conn: &mut PgConnection,
     invoice_id: InvoiceId,
     data_name: &str,
 ) -> anyhow::Result<String> {
@@ -471,8 +563,11 @@ pub async fn get_invoice_data(
         invoice_id.0,
         data_name
     )
-    .fetch_one(&mut **tx)
-    .await?;
+    .fetch_one(conn)
+    .await
+    .context(format!(
+        "Could not get invoice data {data_name} of invoice {invoice_id}"
+    ))?;
 
     Ok(row.value)
 }

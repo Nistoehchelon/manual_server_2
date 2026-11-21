@@ -32,6 +32,11 @@ pub enum CustomSiteVariableName {
     WebsiteRootUrl,
     #[strum(serialize = "allowed_username_colors")]
     AllowedUsernameColor,
+    #[strum(serialize = "shop_seller_pub_key_url")]
+    ShopSellerPubKeyUrl,
+    #[strum(serialize = "shop_seller_name")]
+    ShopSellerName,
+
 }
 
 pub async fn set_custom_site_variable(

@@ -35,7 +35,7 @@ pub async fn try_get_username_color_code(
         .unwrap_or(&color_code.to_string())
         .to_string();
     let color_expiry = color_expiry.parse::<u64>()?;
-    if color_expiry > time_funcs::utc_now()? {
+    if color_expiry > time_funcs::utc_now_secs()? {
         Ok(Some(color_code))
     } else {
         Ok(None)

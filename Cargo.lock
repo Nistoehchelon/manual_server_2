@@ -2373,6 +2373,7 @@ dependencies = [
  "cryptocurrencies_stuff",
  "csscolorparser",
  "custom_site_variables",
+ "derive_more",
  "error_structs",
  "financial_stuff",
  "id_generator_unique_in_db",
@@ -3119,7 +3120,7 @@ dependencies = [
 [[package]]
 name = "payment_system_structs"
 version = "0.1.0"
-source = "git+https://github.com/Nistoehchelon/payment_system.git#ba6b6dc24940fecaaab208fc5e9f44cf29f894b9"
+source = "git+https://github.com/Nistoehchelon/payment_system.git#2f27080304e873f5fb6fea63d0cc4c5923df056f"
 dependencies = [
  "chrono",
  "cryptocurrencies_stuff",

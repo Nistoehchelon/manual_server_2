@@ -136,6 +136,8 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
 
     set_invoice_data(&mut tx, invoice_id, "status", "complete").await?;
     tx.commit().await?;
+
+    // Now let's generate a receipt
     let receipt_id = "32mem2em2mdmq";
     let seller_name = "Mberg";
     let seller_user_id = "dmsodqp";
@@ -310,8 +312,8 @@ pub async fn create_invoice(
             }
         }
         .to_string();
-        sqlx::query!("INSERT INTO shopping_cart_item_data (id, name, value, shopping_cart_item_id) VALUES (uuidv7()::text, $1, $2, $3)", "payment_method_atomic_unit_price", payment_method_currency_price_atomic_unit, &item_id).execute(&mut **tx).await?;
-        sqlx::query!("INSERT INTO shopping_cart_item_data (id, name, value, shopping_cart_item_id) VALUES (uuidv7()::text, $1, $2, $3)", "usd_price", price_usd.to_string(), &item_id).execute(&mut **tx).await?;
+        sqlx::query!("INSERT INTO shopping_cart_item_data (id, name, value, shopping_cart_item_id) VALUES (gen_random_uuid()::text, $1, $2, $3)", "payment_method_atomic_unit_price", payment_method_currency_price_atomic_unit, &item_id).execute(&mut **tx).await?;
+        sqlx::query!("INSERT INTO shopping_cart_item_data (id, name, value, shopping_cart_item_id) VALUES (gen_random_uuid()::text, $1, $2, $3)", "usd_price", price_usd.to_string(), &item_id).execute(&mut **tx).await?;
     }
     let total_payment_amount_atomic_units = match payment_method {
         payment_system_structs::PaymentMethod::Monero => {
@@ -396,7 +398,7 @@ pub async fn move_shopping_cart_items_into_invoice(
         WITH source_items AS (
             SELECT 
                 id AS old_item_id,
-                uuidv7()::text AS new_item_id,
+                gen_random_uuid()::text AS new_item_id,
                 name
             FROM shopping_cart_items
             WHERE shopping_cart_id = $2
@@ -410,7 +412,7 @@ pub async fn move_shopping_cart_items_into_invoice(
         inserted_item_data AS (
             INSERT INTO invoice_cart_item_data (id, invoice_cart_item_id, name, value)
             SELECT 
-                uuidv7()::text,
+                gen_random_uuid()::text,
                 si.new_item_id,
                 scid.name,
                 scid.value

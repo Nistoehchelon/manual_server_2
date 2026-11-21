@@ -226,7 +226,11 @@ pub struct LoginTemplate {
     pub password_length_max: usize,
     pub csrf_token: String,
     pub main_info: BaseTemplateData,
+
+
 }
+
+
 
 #[derive(Template)]
 #[template(path = "dashboard.html")]

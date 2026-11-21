@@ -9,6 +9,7 @@ use custom_site_variables::{
     get_custom_site_variable,
 };
 use financial_stuff::get_by_usd;
+use html_templating::{ReceiptItemDataForTemplate, ReceiptItemForTemplate};
 use id_generator_unique_in_db::Table;
 use payment_system_structs::{PaymentId, PaymentMethod};
 use serde::Serialize;
@@ -143,27 +144,25 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
     set_invoice_data(&mut tx, invoice_id.clone(), "status", "complete").await?;
     tx.commit().await?;
 
-    // Now let's generate a receipt
-    generate_receipt(db_pool, invoice_id).await?;
     Ok(())
 }
 
-async fn generate_receipt(
+pub async fn get_receipt_html(
     db_pool: sqlx::Pool<Postgres>,
     invoice_id: InvoiceId,
-) -> Result<(), anyhow::Error> {
+) -> Result<String> {
+    let mut receipt_tx = db_pool.begin().await?;
     let receipt_id = sqlx::query_scalar!(
         r#"
-        INSERT INTO receipts (invoice_id, html_content)
-        VALUES ($1, $2)
+        INSERT INTO receipts (invoice_id)
+        VALUES ($1)
         RETURNING id
         "#,
         invoice_id.0,
-        "temp_empty",
     )
-    .fetch_one(&db_pool)
+    .fetch_one(&mut *receipt_tx)
     .await?;
-    let mut receipt_tx = db_pool.begin().await?;
+
     let seller_name = get_custom_site_variable(&mut receipt_tx, ShopSellerName).await?;
     let user_id = get_invoice_data(&mut receipt_tx, invoice_id.clone(), "user_id").await?;
     let currency_name_str =
@@ -178,15 +177,16 @@ async fn generate_receipt(
     let buyer_user_id = user_id;
     let seller_pubkey_url = get_custom_site_variable(&mut receipt_tx, ShopSellerPubKeyUrl).await?;
     let datetime = time_funcs::format_utc_custom(time_funcs::utc_now());
+    let invoice_items = get_invoice_items(&mut receipt_tx, invoice_id.0.clone()).await?;
+    let mut items_tpl: Vec<ReceiptItemForTemplate> = Vec::with_capacity(invoice_items.len());
     let mut items_str = String::new();
     let mut num = 1;
     let mut usd_price_total: f64 = 0.0;
-    let invoice_items = get_invoice_items(&mut receipt_tx, invoice_id.0.clone()).await?;
+
     for i in invoice_items {
-        items_str.push_str(format!(r##"{num}. "##).as_str());
-        num += 1;
-        items_str.push_str(format!("{}, Data: ", i.name).as_str());
         let data = get_invoice_item_data(&mut receipt_tx, i.id.clone()).await?;
+        let mut item_tpl_data: Vec<ReceiptItemDataForTemplate> = Vec::with_capacity(data.len());
+
         for d in data {
             if d.name == "payment_amount_atomic_unit_price" {
                 items_str.push_str(
@@ -218,7 +218,7 @@ async fn generate_receipt(
         custom_site_variables::CustomSiteVariableName::WebsiteRootUrl,
     )
     .await?;
-    let invoice_html = format!(
+    let receipt_html = format!(
         r###"
     <div>
         Receipt id: {receipt_id}<br>
@@ -240,15 +240,8 @@ async fn generate_receipt(
     </div>
     "###,
     );
-    sqlx::query!(
-        "UPDATE receipts SET html_content = $1 WHERE id = $2",
-        invoice_html,
-        receipt_id
-    )
-    .execute(&db_pool)
-    .await?;
     receipt_tx.commit().await?;
-    Ok(())
+    Ok(receipt_html)
 }
 
 pub fn to_str_price(curr_name: &str, val: &str) -> anyhow::Result<String> {
@@ -541,16 +534,16 @@ pub async fn move_shopping_cart_items_into_invoice(
     Ok(())
 }
 
-pub struct InvoiceItems {
+pub struct InvoiceItem {
     id: String,
     name: String,
 }
 pub async fn get_invoice_items(
     conn: &mut PgConnection,
     invoice_id: String,
-) -> anyhow::Result<Vec<InvoiceItems>> {
+) -> anyhow::Result<Vec<InvoiceItem>> {
     let items = sqlx::query_as!(
-        InvoiceItems,
+        InvoiceItem,
         "SELECT id, name FROM invoice_cart_items WHERE invoice_id = $1",
         invoice_id
     )

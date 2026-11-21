@@ -110,3 +110,5 @@ askama = { version = "0.16.1", features = ["std", "derive"] }
 
 rand = "0.10.3"
 uuid = { version = "1.29.0", features = ["v4"] }
+
+ironpress = { version= "1.7.0" }

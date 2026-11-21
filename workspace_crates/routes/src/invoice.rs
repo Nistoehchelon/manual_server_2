@@ -1,14 +1,14 @@
 use ::invoice::create_invoice;
+use anyhow::Context;
 use custom_site_variables::get_custom_site_variable;
 use html_templating::{html_template_structs::ViewInvoiceTemplate, render};
 use http_stuff::{
     http_request_parsing::parse_body_into_string_form_input_params,
     http_response::{Charset, HttpResponseData, ok_html, redirect_to},
 };
-use invoice::InvoiceId;
-use session::{add_session_notification_error, add_session_notification_success};
-
+use invoice::{InvoiceId, get_receipt_html};
 use routing_structs::RouterData;
+use session::{add_session_notification_error, add_session_notification_success};
 
 use crate::shop::possibly_create_and_get_user_cart_id;
 
@@ -199,4 +199,29 @@ pub async fn invoice_creation_request(router_data: RouterData) -> anyhow::Result
         "/invoice/view?id={}",
         invoice_data.0.0
     )))
+}
+
+pub async fn view_receipt(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
+    let receipt_id = extract_receipt_id(&router_data.http_request_data.path)?.to_string();
+    let receipt_html = get_receipt_html(&router_data.db_pool.clone(), receipt_id).await?;
+    let receipt_pdf = ironpress::html_to_pdf(&receipt_html)?;
+
+    todo!()
+}
+
+fn extract_receipt_id(path: &str) -> anyhow::Result<&str> {
+    let cleaned = path.strip_suffix('/').unwrap_or(path);
+
+    let id = cleaned
+        .strip_prefix("/receipt/view/")
+        .with_context(|| format!("path does not start with /receipt/view/: {path:?}"))?;
+
+    if id.is_empty() {
+        anyhow::bail!("empty receipt id in path: {path:?}");
+    }
+    if id.contains('/') {
+        anyhow::bail!("receipt id contains '/': {id:?} (full path: {path:?})");
+    }
+
+    Ok(id)
 }

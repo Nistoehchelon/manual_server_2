@@ -173,6 +173,9 @@ pub async fn route(
                 }
                 res
             },
+            (HttpMethod::Get, p) if p.starts_with("/receipt/view/") => {
+                routes::invoice::view_receipt(router_data.clone()).await
+            },
             (HttpMethod::Get, "/shop/username_color/available_color_codes") => routes::shop::get_available_username_color_codes(router_data.clone()).await,
             (HttpMethod::Get, p) if p.starts_with("/shop/") && !p.starts_with("/shop/cart") => {
                 routes::shop::get_items(router_data.clone()).await

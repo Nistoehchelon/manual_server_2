@@ -1,0 +1,24 @@
+<div>
+        Receipt id: {{ receipt_id }}<br>
+        Link to this receipt (accessible only if you're logged in): {{root_website_url}}/receipt/{{ receipt_id }}<br>
+        Date and time: {{ datetime }}<br>
+        Buyer: name {{buyer_current_username}}, buyer user id: {{buyer_user_id}}<br>
+        Seller: name: {{seller_name}}<br>
+        Seller pubkey location url: {{seller_pubkey_url}}<br>
+        Seller receipt cryptographic signature: [the signature, as well as a guide on how to verify the signature, are available inside the receipt zip file in files receipt.signature and SIGNATURE_VERIFICATION_GUIDE.md, respectively]<br>
+       
+        Currency name: {{currency_name}} (Ticker: {{currency_ticker}})<br>
+        Currency total: {{currency_total_amount}} {{currency_ticker}}<br>
+        Reference currency name: {reference_currency}<br>
+        Reference currency total amount: {{reference_currency_total_amount}} {{reference_currency}}<br>
+        Reference currency per currency rate ({{reference_currency}} / {{currency_ticker}}) rate (approximate, according to the typical exchange rates available at datetime of this receipt) : {{reference_currency_per_currency}}
+        Items purchased:<br>
+        {% for item in items %}
+            {{ loop.index }}. {{ item.name }}, Data: 
+            {% for datum in item.data %}
+                {{ datum.name }}: {{ datum.value }};
+            {% endfor %}
+        {% endfor %}
+        <br>
+
+    </div>

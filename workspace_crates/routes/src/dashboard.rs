@@ -48,6 +48,6 @@ pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData
         user_can_manage_custom_site_variables,
         user_can_view_app_executable_version,
         app_executable_version,
-    });
+    })?;
     Ok(http_stuff::http_response::ok_html(html))
 }

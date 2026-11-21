@@ -9,7 +9,7 @@ use custom_site_variables::{
     get_custom_site_variable,
 };
 use financial_stuff::get_by_usd;
-use html_templating::{ReceiptItemDataForTemplate, ReceiptItemForTemplate};
+use html_templating::{ReceiptItemDatumForTemplate, ReceiptItemForTemplate, ReceiptShapeTemplate, html_template_structs::BaseTemplateData, render};
 use id_generator_unique_in_db::Table;
 use payment_system_structs::{PaymentId, PaymentMethod};
 use serde::Serialize;
@@ -185,25 +185,29 @@ pub async fn get_receipt_html(
 
     for i in invoice_items {
         let data = get_invoice_item_data(&mut receipt_tx, i.id.clone()).await?;
-        let mut item_tpl_data: Vec<ReceiptItemDataForTemplate> = Vec::with_capacity(data.len());
+        let mut item_tpl_data: Vec<ReceiptItemDatumForTemplate> = Vec::with_capacity(data.len());
 
         for d in data {
             if d.name == "payment_amount_atomic_unit_price" {
-                items_str.push_str(
-                    format!(
-                        r###"-> Price in {currency_ticker}: {}<br>"###,
-                        to_str_price(&currency_name_str, &d.value)?
-                    )
-                    .as_str(),
-                );
+                item_tpl_data.push(ReceiptItemDatumForTemplate {
+                    name: d.name,
+                    value: to_str_price(&currency_name_str, &d.value)?,
+                });
                 continue;
             }
             if d.name == "usd_price" {
-                let item_usd_price_f64 = d.value.parse::<f64>()?;
-                usd_price_total += item_usd_price_f64;
+                usd_price_total += d.value.parse::<f64>()?;
             }
-            items_str.push_str(format!(r###"-> {}: {}<br>"###, d.name, d.value).as_str());
+            item_tpl_data.push(ReceiptItemDatumForTemplate {
+                name: d.name,
+                value: d.value,
+            });
         }
+
+        items_tpl.push(ReceiptItemForTemplate {
+            name: i.name,
+            data: item_tpl_data,
+        });
     }
     let currency_total_amount =
         get_invoice_data(&mut receipt_tx, invoice_id, "payment_amount_atomic_units").await?;
@@ -218,28 +222,22 @@ pub async fn get_receipt_html(
         custom_site_variables::CustomSiteVariableName::WebsiteRootUrl,
     )
     .await?;
-    let receipt_html = format!(
-        r###"
-    <div>
-        Receipt id: {receipt_id}<br>
-        Link to this receipt (accessible only if you're logged in): {root_website_url}/receipt/{receipt_id}<br>
-        Date and time: {datetime}<br>
-        Buyer: name {buyer_current_username}, buyer_user_id: {buyer_user_id}<br>
-        Seller: name: {seller_name}<br>
-        Seller pubkey location url: {seller_pubkey_url}<br>
-        Seller receipt cryptographic signature: [the signature, as well as a guide on how to verify the signature, are available inside the receipt zip file in files receipt.signature and SIGNATURE_VERIFICATION_GUIDE.md, respectively]<br>
-       
-        Currency name: {currency_name} (Ticker: {currency_ticker})<br>
-        Currency total: {currency_total_amount} {currency_ticker}<br>
-        Reference currency name: {reference_currency}<br>
-        Reference currency total amount: {reference_currency_total_amount} {reference_currency}<br>
-        Reference currency per currency rate ({reference_currency} / {currency_ticker}) rate (approximate, according to the typical exchange rates available at datetime of this receipt) : {reference_currency_per_currency}
-        Items purchased:<br>
-        {items_str}<br>
-
-    </div>
-    "###,
-    );
+    let receipt_html =render(ReceiptShapeTemplate {
+        receipt_id: receipt_id.clone(),
+        root_website_url,
+        datetime,
+        buyer_current_username,
+        buyer_user_id,
+        seller_name,
+        seller_pubkey_url,
+        currency_name: currency_name.to_string(), 
+        currency_ticker: currency_ticker.to_owned(),
+        currency_total_amount,
+        reference_currency: reference_currency.to_owned(),
+        reference_currency_total_amount: reference_currency_total_amount.to_string(),
+        reference_currency_per_currency: reference_currency_per_currency.to_string(),
+        items: items_tpl,
+    })?;
     receipt_tx.commit().await?;
     Ok(receipt_html)
 }

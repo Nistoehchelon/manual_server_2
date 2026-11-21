@@ -2222,6 +2222,7 @@ dependencies = [
 name = "html_templating"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "askama",
  "csscolorparser",
  "custom_site_variables",

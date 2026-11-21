@@ -35,5 +35,5 @@ pub async fn get(
                 content: custom_site_page.content,
             },
         },
-    )))
+    )?))
 }

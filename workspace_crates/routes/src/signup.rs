@@ -46,7 +46,7 @@ pub async fn get(
         csrf_token,
         router_data.site_config.min_length_user_password,
         router_data.site_config.max_length_user_password,
-    )))
+    )?))
 }
 
 fn get_signup_html(
@@ -54,7 +54,7 @@ fn get_signup_html(
     csrf_token: String,
     min_length_user_password: usize,
     max_length_user_password: usize,
-) -> String {
+) -> anyhow::Result<String> {
     base_template_data.title = "Signup".to_string();
     html_templating::render(html_template_structs::SignupTemplate {
         main_info: base_template_data,

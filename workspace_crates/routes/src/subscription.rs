@@ -52,7 +52,7 @@ pub async fn get(
         xmr_cost.to_string_trimmed(),
         ltc_cost.to_string_trimmed(),
         xno_cost.to_string_trimmed(),
-    )))
+    )?))
 }
 
 fn get_html(
@@ -62,7 +62,7 @@ fn get_html(
     xmr_cost: String,
     ltc_cost: String,
     xno_cost: String,
-) -> String {
+) -> anyhow::Result<String> {
     let sub_template = SubscriptionTemplate {
         csrf_token,
         main_info: base_template,

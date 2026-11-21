@@ -171,7 +171,7 @@ pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData
             elements: thread_pagination_elements,
         },
         user_can_add_message: abac::can_create_forum_thread_message(session.clone()).await?,
-    });
+    })?;
 
     Ok(ok_html(html))
 }

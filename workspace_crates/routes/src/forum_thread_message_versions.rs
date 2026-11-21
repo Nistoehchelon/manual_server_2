@@ -144,5 +144,5 @@ pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData
                 elements: versions_pagination_elements,
             },
         },
-    )))
+    )?))
 }

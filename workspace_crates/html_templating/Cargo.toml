@@ -12,4 +12,5 @@ pagination = { workspace = true }
 custom_site_variables = { workspace = true }
 shop = { workspace = true }
 payment_system_structs = { workspace = true }
+anyhow = { workspace = true }
 

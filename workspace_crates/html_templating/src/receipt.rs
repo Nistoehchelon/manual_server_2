@@ -2,19 +2,18 @@ use askama::Template;
 
 use crate::html_template_structs::BaseTemplateData;
 
-pub struct ReceiptItemDataForTemplate {
+pub struct ReceiptItemDatumForTemplate {
     pub name: String,
     pub value: String,
 }
 pub struct ReceiptItemForTemplate {
     pub name: String,
-    pub data: Vec<ReceiptItemDataForTemplate>,
+    pub data: Vec<ReceiptItemDatumForTemplate>,
 }
 
 #[derive(Template)]
 #[template(path = "shop/receipt_shape.html")]
-pub struct ReceiptShellTemplate {
-    pub main_info: BaseTemplateData,
+pub struct ReceiptShapeTemplate {
     pub items: Vec<ReceiptItemForTemplate>,
     pub receipt_id: String,
     pub root_website_url: String,

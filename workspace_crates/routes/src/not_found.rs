@@ -14,7 +14,7 @@ pub fn not_found(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
         path: router_data.http_request_data.path,
         method: router_data.http_request_data.method.to_string(),
     };
-    let mut resp = ok_html(render(tpl));
+    let mut resp = ok_html(render(tpl)?);
     resp.status_code = http_stuff::http_response::StatusCode::Code404NotFound;
     Ok(resp)
 }

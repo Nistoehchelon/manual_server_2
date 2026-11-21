@@ -42,6 +42,6 @@ pub async fn get(
         main_info: router_data.base_template_data,
         site_pages,
         custom_site_pages_forum_id: custom_site_pages::FORUM_ID.to_string(),
-    });
+    })?;
     Ok(http_stuff::http_response::ok_html(html))
 }

@@ -30,7 +30,7 @@ pub async fn get(
         csrf_token,
         router_data.site_config.min_length_user_password,
         router_data.site_config.max_length_user_password,
-    )))
+    )?))
 }
 
 pub async fn post(
@@ -186,7 +186,7 @@ fn get_html(
     csrf_token: String,
     min_length_user_password: usize,
     max_length_user_password: usize,
-) -> String {
+) -> anyhow::Result<String> {
     base_template.title = "Login".to_string();
     html_templating::render(html_template_structs::LoginTemplate {
         csrf_token,

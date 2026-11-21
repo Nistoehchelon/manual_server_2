@@ -39,7 +39,7 @@ pub async fn main_page(
         services,
     };
 
-    let html = render(tpl);
+    let html = render(tpl)?;
     Ok(ok_html(html))
 }
 
@@ -153,7 +153,7 @@ pub async fn view_cart(
         )
         .await?,
     };
-    let html = render(tpl);
+    let html = render(tpl)?;
     Ok(ok_html(html))
 }
 
@@ -204,7 +204,7 @@ pub async fn get_color(
         xmr_cost.to_string_trimmed(),
         ltc_cost.to_string_trimmed(),
         xno_cost.to_string_trimmed(),
-    )))
+    )?))
 }
 
 pub async fn add_to_cart(
@@ -396,7 +396,7 @@ fn get_html(
     xmr_cost: String,
     ltc_cost: String,
     xno_cost: String,
-) -> String {
+) -> anyhow::Result<String> {
     let sub_template = UsernameColorTemplate {
         csrf_token,
         main_info: base_template,
@@ -449,6 +449,6 @@ pub async fn get_available_username_color_codes(
         main_info: router_data.base_template_data,
         colors,
     };
-    let html = render(template);
+    let html = render(template)?;
     Ok(ok_html(html))
 }

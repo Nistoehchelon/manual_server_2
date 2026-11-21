@@ -145,5 +145,5 @@ pub async fn get(rt: RouterData) -> anyhow::Result<HttpResponseData> {
         parent_forum_id,
         csrf_token,
     };
-    Ok(ok_html(render(tpl)))
+    Ok(ok_html(render(tpl)?))
 }

@@ -81,7 +81,7 @@ pub async fn get(
         csrf_token,
         thread_message_length_max: router_data.site_config.max_length_forum_message,
     };
-    Ok(http_response::ok_html(html_templating::render(template)))
+    Ok(http_response::ok_html(html_templating::render(template)?))
 }
 
 pub async fn post(

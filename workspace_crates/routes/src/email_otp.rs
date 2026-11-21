@@ -45,10 +45,10 @@ pub async fn get(
     Ok(ok_html(get_email_otp_html(
         router_data.base_template_data,
         csrf_token,
-    )))
+    )?))
 }
 
-fn get_email_otp_html(mut base_template_data: BaseTemplateData, csrf_token: String) -> String {
+fn get_email_otp_html(mut base_template_data: BaseTemplateData, csrf_token: String) -> anyhow::Result<String> {
     base_template_data.title = "OTP".to_string();
     html_templating::render(html_template_structs::EmailOTPTemplate {
         main_info: base_template_data,

@@ -120,7 +120,7 @@ pub async fn get(
         subforums: into_vec(subforums),
         forum_threads: into_vec(forum_threads),
         forum_threads_pagination: vec![],
-    });
+    })?;
     Ok(http_response::ok_html(html))
 }
 async fn decoy_forum_not_found(

@@ -95,7 +95,7 @@ pub async fn get_view(router_data: RouterData) -> anyhow::Result<HttpResponseDat
         method,
         address,
         invoice_id,
-    })))
+    })?))
 }
 #[tracing::instrument(skip_all)]
 pub async fn invoice_creation_request(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
@@ -203,7 +203,15 @@ pub async fn invoice_creation_request(router_data: RouterData) -> anyhow::Result
 
 pub async fn view_receipt(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let receipt_id = extract_receipt_id(&router_data.http_request_data.path)?.to_string();
-    let receipt_html = get_receipt_html(&router_data.db_pool.clone(), receipt_id).await?;
+    let invoice_id = sqlx::query!("SELECT invoice_id FROM receipts WHERE id = $1", receipt_id)
+        .fetch_one(&router_data.db_pool)
+        .await?
+        .invoice_id;
+    let receipt_html = get_receipt_html(
+        router_data.db_pool.clone(),
+        InvoiceId(invoice_id),
+    )
+    .await?;
     let receipt_pdf = ironpress::html_to_pdf(&receipt_html)?;
 
     todo!()

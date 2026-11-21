@@ -40,7 +40,7 @@ pub async fn get(
         .await
        ?,
     };
-    let html = html_templating::render(tpl);
+    let html = html_templating::render(tpl)?;
 
     Ok(http_response::ok_html(html))
 }

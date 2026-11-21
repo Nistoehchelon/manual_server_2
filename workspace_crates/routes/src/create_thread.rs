@@ -122,7 +122,7 @@ pub async fn get(
         thread_name_length_max: router_data.site_config.max_length_forum_thread_name,
         thread_message_length_max: router_data.site_config.max_length_forum_message,
     });
-    Ok(ok_html(html))
+    Ok(ok_html(html?))
 }
 
 pub async fn post(

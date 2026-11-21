@@ -27,7 +27,7 @@ pub async fn get(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
             username_color_class,
             user,
             user_has_a_subscription,
-        )));
+        )?));
     }
     Ok(http_stuff::http_response::ok_html(get_html(
         router_data.base_template_data,
@@ -35,7 +35,7 @@ pub async fn get(router_data: RouterData) -> anyhow::Result<HttpResponseData> {
         None,
         User::default(),
         false,
-    )))
+    )?))
 }
 
 fn get_html(
@@ -44,7 +44,7 @@ fn get_html(
     username_color_class: Option<String>,
     user: User,
     user_has_a_subscription: bool,
-) -> String {
+) -> anyhow::Result<String> {
     if session.logged_in {
         base_template.title = "Welcome back!".to_string();
 

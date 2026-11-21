@@ -27,7 +27,7 @@ Transfer the exact amount of {{ amount }} {{ method }} to this address: {{ addre
                 if (data.status === "complete") {
                     statusEl.innerText = "Payment complete. Redirecting to receipt...";
                     setTimeout(() => {
-                        window.location.href = `/receipt/${encodeURIComponent(data.receipt_id)}`;
+                        window.location.href = `/receipt/view/${encodeURIComponent(data.receipt_id)}`;
                     }, 3000);
                     clearInterval(timer);
                 }

@@ -144,6 +144,14 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
     tx.commit().await?;
 
     // Now let's generate a receipt
+    generate_receipt(db_pool, invoice_id).await?;
+    Ok(())
+}
+
+async fn generate_receipt(
+    db_pool: sqlx::Pool<Postgres>,
+    invoice_id: InvoiceId,
+) -> Result<(), anyhow::Error> {
     let receipt_id = sqlx::query_scalar!(
         r#"
         INSERT INTO receipts (invoice_id, html_content)
@@ -155,31 +163,30 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
     )
     .fetch_one(&db_pool)
     .await?;
-    let mut conn = db_pool.acquire().await?;
-    let seller_name = get_custom_site_variable(&mut conn, ShopSellerName).await?;
-    let user_id = get_invoice_data(&mut conn, invoice_id.clone(), "user_id").await?;
+    let mut receipt_tx = db_pool.begin().await?;
+    let seller_name = get_custom_site_variable(&mut receipt_tx, ShopSellerName).await?;
+    let user_id = get_invoice_data(&mut receipt_tx, invoice_id.clone(), "user_id").await?;
     let currency_name_str =
-        get_invoice_data(&mut conn, invoice_id.clone(), "payment_method").await?;
+        get_invoice_data(&mut receipt_tx, invoice_id.clone(), "payment_method").await?;
     let currency_name =
         payment_system_structs::PaymentMethod::try_from(currency_name_str.as_str())?;
     let currency_ticker = currency_name.ticker();
-
     let username = get_user_by_user_id(db_pool.clone(), user_id.clone())
         .await?
         .username;
     let buyer_current_username = username;
     let buyer_user_id = user_id;
-    let seller_pubkey_url = get_custom_site_variable(&mut conn, ShopSellerPubKeyUrl).await?;
+    let seller_pubkey_url = get_custom_site_variable(&mut receipt_tx, ShopSellerPubKeyUrl).await?;
     let datetime = time_funcs::format_utc_custom(time_funcs::utc_now());
     let mut items_str = String::new();
     let mut num = 1;
     let mut usd_price_total: f64 = 0.0;
-    let invoice_items = get_invoice_items(&mut conn, invoice_id.0.clone()).await?;
+    let invoice_items = get_invoice_items(&mut receipt_tx, invoice_id.0.clone()).await?;
     for i in invoice_items {
         items_str.push_str(format!(r##"{num}. "##).as_str());
         num += 1;
         items_str.push_str(format!("{}, Data: ", i.name).as_str());
-        let data = get_invoice_item_data(&mut conn, i.id.clone()).await?;
+        let data = get_invoice_item_data(&mut receipt_tx, i.id.clone()).await?;
         for d in data {
             if d.name == "payment_amount_atomic_unit_price" {
                 items_str.push_str(
@@ -198,9 +205,8 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
             items_str.push_str(format!(r###"-> {}: {}<br>"###, d.name, d.value).as_str());
         }
     }
-
     let currency_total_amount =
-        get_invoice_data(&mut conn, invoice_id, "payment_amount_atomic_units").await?;
+        get_invoice_data(&mut receipt_tx, invoice_id, "payment_amount_atomic_units").await?;
     let currency_total_amount = to_str_price(&currency_name_str, &currency_total_amount)?;
     let reference_currency = "USD";
     let reference_currency_total_amount = usd_price_total;
@@ -208,7 +214,7 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
     let reference_currency_per_currency =
         reference_currency_total_amount / currency_total_amount_f64;
     let root_website_url = get_custom_site_variable(
-        &mut conn,
+        &mut receipt_tx,
         custom_site_variables::CustomSiteVariableName::WebsiteRootUrl,
     )
     .await?;
@@ -241,6 +247,7 @@ pub async fn success(db_pool: sqlx::PgPool, payment_id: PaymentId) -> anyhow::Re
     )
     .execute(&db_pool)
     .await?;
+    receipt_tx.commit().await?;
     Ok(())
 }
 
@@ -324,11 +331,23 @@ pub async fn invoice_status(
             InvoicePaymentStatus::Confirmations { current, required }
         }
         InnnerInvoicePaymentStatus::Complete => {
-            let receipt_id = receipt::find_receipt_id_by_invoice_id(conn, invoice_id.0).await?;
+            let receipt_id = find_receipt_id_by_invoice_id(conn, invoice_id.0).await?;
             InvoicePaymentStatus::Complete { receipt_id }
         }
     };
     Ok(status)
+}
+
+pub async fn find_receipt_id_by_invoice_id(
+    conn: &mut PgConnection,
+    invoice_id: String,
+) -> anyhow::Result<String> {
+    Ok(
+        sqlx::query!("SELECT id FROM receipts WHERE invoice_id = $1", invoice_id)
+            .fetch_one(conn)
+            .await?
+            .id,
+    )
 }
 
 #[allow(clippy::too_many_arguments)]

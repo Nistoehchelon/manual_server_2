@@ -2,7 +2,27 @@ use session::get_session_by_session_id;
 use session_structs_and_so_on::Session;
 use user::get_user_by_user_id;
 
-use crate::permissions::Permission;
+use crate::permissions::Permission::{self, CanEditSiteVariables, CanViewSiteVariables};
+
+pub async fn user_can_manage_custom_site_variables(
+    db_pool: sqlx::PgPool,
+    user_id: String,
+) -> anyhow::Result<bool> {
+    Ok(get_bool_subject_subject_id_permission_name(
+        db_pool.clone(),
+        "user",
+        &user_id,
+        CanEditSiteVariables,
+    )
+    .await?
+        && get_bool_subject_subject_id_permission_name(
+            db_pool.clone(),
+            "user",
+            &user_id,
+            CanViewSiteVariables,
+        )
+        .await?)
+}
 
 pub async fn user_can_view_invoice(
     db_pool: sqlx::PgPool,
@@ -58,8 +78,7 @@ pub async fn user_can_view_app_executable_version(
         input.user_id.as_str(),
         Permission::ViewAppExecutableVersion,
     )
-    .await
-   ?;
+    .await?;
     Ok(b)
 }
 
@@ -75,9 +94,7 @@ pub async fn can_access_this_forum_thread(
         thread_id,
     }: CanAccessThisForumThreadInput,
 ) -> anyhow::Result<bool> {
-    let thread = forum::get_thread(db_pool.clone(), thread_id.clone())
-        .await
-        ?;
+    let thread = forum::get_thread(db_pool.clone(), thread_id.clone()).await?;
     can_access_this_forum(CanAccessThisForumInput {
         db_pool,
         user_id,
@@ -97,9 +114,7 @@ pub async fn can_access_this_forum(
         forum_id,
     }: CanAccessThisForumInput,
 ) -> anyhow::Result<bool> {
-    let forum = forum::get_forum_by_id(db_pool.clone(), forum_id.clone())
-        .await
-       ?;
+    let forum = forum::get_forum_by_id(db_pool.clone(), forum_id.clone()).await?;
     match forum.id.as_str() {
         id if id == custom_site_pages::FORUM_ID
             || id == forum::NONE_ID
@@ -110,7 +125,6 @@ pub async fn can_access_this_forum(
                 user_id: user_id.clone(),
             })
             .await
-           
         }
         _ => Ok(true),
     }

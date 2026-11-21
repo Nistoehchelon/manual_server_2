@@ -19,9 +19,13 @@
 
 
 {% if user_can_manage_site_pages %}
-<a href="/manage_site_pages">Manage site pages</a>
+<a href="/manage_site_pages">Manage site pages</a><br>
 {% endif %}
 
+
+{% if user_can_manage_custom_site_variables %}
+<a href="/manage_custom_site_variables">Manage custom site variables</a><br>
+{% endif %}
 
 <p><a href='/logout'>Logout</a></p>
 

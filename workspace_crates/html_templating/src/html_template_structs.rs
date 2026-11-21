@@ -227,6 +227,7 @@ pub struct LoginTemplate {
     pub csrf_token: String,
     pub main_info: BaseTemplateData,
 }
+
 #[derive(Template)]
 #[template(path = "dashboard.html")]
 pub struct DashboardTemplate {
@@ -234,6 +235,7 @@ pub struct DashboardTemplate {
     pub username: String,
     pub user_id: String,
     pub user_can_manage_site_pages: bool,
+    pub user_can_manage_custom_site_variables: bool,
     pub user_can_view_app_executable_version: bool,
     pub app_executable_version: Option<String>,
 }

@@ -5,9 +5,7 @@ use user;
 
 use routing_structs::RouterData;
 
-pub async fn get(
-    mut router_data: RouterData,
-) -> anyhow::Result<HttpResponseData> {
+pub async fn get(mut router_data: RouterData) -> anyhow::Result<HttpResponseData> {
     let db_pool = router_data.db_pool.clone();
     let session = router_data.session.clone();
     if !session.logged_in {
@@ -15,7 +13,7 @@ pub async fn get(
     }
     let user = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone())
         .await
-        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
+        .map_err(|e| anyhow::anyhow!("{e:#?}"))?;
 
     router_data.base_template_data.title = "Your Dashboard".to_string();
     let user_can_manage_site_pages = abac::can_manage_site_pages(abac::CanManageSitePagesInput {
@@ -23,7 +21,11 @@ pub async fn get(
         user_id: user.id.clone(),
     })
     .await
-    .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
+    .map_err(|e| anyhow::anyhow!("{e:#?}"))?;
+    let user_can_manage_custom_site_variables =
+        abac::user_can_manage_custom_site_variables(db_pool.clone(), user.id.clone())
+            .await
+            .map_err(|e| anyhow::anyhow!("{e:#?}"))?;
 
     let user_can_view_app_executable_version =
         abac::user_can_view_app_executable_version(UserCanViewAppExecutableVersionInput {
@@ -31,7 +33,7 @@ pub async fn get(
             user_id: user.id.clone(),
         })
         .await
-        .map_err(|e|anyhow::anyhow!("{e:#?}"))?;
+        .map_err(|e| anyhow::anyhow!("{e:#?}"))?;
     let app_executable_version = if user_can_view_app_executable_version {
         Some(app_executable_version::VERSION.to_string())
     } else {
@@ -43,6 +45,7 @@ pub async fn get(
         username: user.username.clone(),
         user_id: user.id.clone(),
         user_can_manage_site_pages,
+        user_can_manage_custom_site_variables,
         user_can_view_app_executable_version,
         app_executable_version,
     });

@@ -62,7 +62,7 @@ pub async fn get_custom_site_variable(
         var_name.to_string()
     )
     .fetch_one(&mut *conn)
-    .await.context("Could not get custom site variable")?
+    .await.context(format!("Could not get custom site variable {var_name}"))?
     .value;
     Ok(result)
 }

@@ -44,7 +44,7 @@ impl ValidForumThreadMessageContent {
             max_length_forum_message,
         ) {
             return Err(PublicError::new(format!(
-                "Couldn't validate message length. Allowed forum message length is between {} to {} characters but {} given.",
+                "Could not validate message length. Allowed forum message length is between {} to {} characters but {} given.",
                 min_length_forum_message,
                 max_length_forum_message,
                 count_string_length(trimmed)
@@ -79,7 +79,7 @@ impl ValidForumThreadName {
             max_length_forum_thread_name,
         ) {
             return Err(PublicError::new(format!(
-                "Couldn't validate thread name length. Allowed length is between {} to {} but {} given.",
+                "Could not validate thread name length. Allowed length is between {} to {} but {} given.",
                 min_length_forum_thread_name,
                 max_length_forum_thread_name,
                 count_string_length(s.clone())

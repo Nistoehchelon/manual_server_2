@@ -187,9 +187,7 @@ pub async fn invoice_creation_request(router_data: RouterData) -> anyhow::Result
     )
     .await?;
     tx.commit().await?;
-    if site_config.mark_invoices_as_paid_immediately_for_testing_purposes {
-        invoice::success(db_pool.clone(), invoice_data.1).await?;
-    }
+
     add_session_notification_success(
         db_pool.clone(),
         session.id,

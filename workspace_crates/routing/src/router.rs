@@ -344,7 +344,7 @@ pub async fn generate_response_data(
     // this is to avoid treating other post or errored requests as "previous pages"
 
     if request_data.method == HttpMethod::Get
-        && response_data.status_code.clone() == StatusCode::Code200Ok
+        && response_data.status_code.clone() == StatusCode::Code200Ok && !["/allowed_username_colors.css"].contains(&request_data.path.as_str())
     {
         let _ = session::set_previous_get_page(
             db_pool.clone(),

@@ -108,7 +108,7 @@ pub async fn invoice_creation_request(router_data: RouterData) -> anyhow::Result
     } = router_data.clone();
     let mut tx = db_pool.clone().begin().await?;
     let Ok(user) = user::get_user_by_user_id(db_pool.clone(), session.user_id.clone()).await else {
-        tracing::error!("Could not get user"); 
+        tracing::error!("Could not get user");
         return Ok(redirect_to("/".to_string()));
     };
     if !abac::user_can_create_invoice(db_pool.clone(), user.id.clone()).await? {
@@ -187,6 +187,9 @@ pub async fn invoice_creation_request(router_data: RouterData) -> anyhow::Result
     )
     .await?;
     tx.commit().await?;
+    if site_config.mark_invoices_as_paid_immediately_for_testing_purposes {
+        invoice::success(db_pool.clone(), invoice_data.1).await?;
+    }
     add_session_notification_success(
         db_pool.clone(),
         session.id,

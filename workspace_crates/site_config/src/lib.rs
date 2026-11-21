@@ -44,6 +44,7 @@ pub struct SiteConfig {
     pub cloudflare_turnstile_post_parameter_name: String,
     pub payment_server_cloudflare_bypass_under_attack_check_header_name: String,
     pub payment_server_cloudflare_bypass_under_attack_check_header_token_value: String,
+    pub mark_invoices_as_paid_immediately_for_testing_purposes: bool,
 
     pub webhook_and_api_secret_path_prefix: String,
 }

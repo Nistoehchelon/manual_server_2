@@ -250,7 +250,7 @@ pub async fn create_invoice(
     payment_status_update_webhook_url: String,
     cloudflare_bypass_under_attack_check_header_name: String,
     cloudflare_bypass_under_attack_check_header_value: String,
-) -> anyhow::Result<(InvoiceId, PaymentMethod)> {
+) -> anyhow::Result<(InvoiceId, PaymentId, PaymentMethod)> {
     let invoice_id_string =
         id_generator_unique_in_db::generate_unique_id_for(tx, Table::Invoices).await?;
     let invoice_id = InvoiceId(invoice_id_string.clone());
@@ -382,7 +382,8 @@ pub async fn create_invoice(
         &payment_info.method.to_string(),
     )
     .await?;
-    Ok((invoice_id, payment_info.method))
+let ret = (invoice_id, payment_info.payment_id, payment_info.method);
+    Ok(ret)
 }
 
 pub async fn move_shopping_cart_items_into_invoice(

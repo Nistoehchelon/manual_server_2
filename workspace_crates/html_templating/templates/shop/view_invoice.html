@@ -24,20 +24,13 @@ Transfer the exact amount of {{ amount }} {{ method }} to this address: {{ addre
                         `Confirmations ${data.current}/${data.required}`;
                 }
 
-                try {
-                    const res = await fetch(`/receipt/get_id_by_invoice_id/${encodeURIComponent(invoiceId)}`);
-                    if (!res.ok) throw new Error(`Failed to fetch receipt id: ${res.status}`);
-
-                    const { id: receiptId } = await res.json();
-
+                if (data.status === "complete") {
+                    statusEl.innerText = "Payment complete. Redirecting to receipt...";
                     setTimeout(() => {
-                        window.location.href = `/receipt/view/${encodeURIComponent(receiptId)}`;
+                        window.location.href = `/receipt/${encodeURIComponent(data.receipt_id)}`;
                     }, 3000);
-                } catch (err) {
-                    console.error(err);
-                    statusEl.innerText = "Payment complete — could not get receipt id";
+                    clearInterval(timer);
                 }
-
 
             } catch (err) {
                 console.error("Payment status error:", err);

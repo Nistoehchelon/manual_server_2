@@ -2379,6 +2379,7 @@ dependencies = [
  "id_generator_unique_in_db",
  "payment_system_client",
  "payment_system_structs",
+ "receipt",
  "serde",
  "shop",
  "sqlx",
@@ -3610,6 +3611,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "498cd0dc59d73224351ee52a95fee0f1a617a2eae0e7d9d720cc622c73a54186"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "receipt"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "cryptocurrencies_stuff",
+ "csscolorparser",
+ "custom_site_variables",
+ "derive_more",
+ "error_structs",
+ "financial_stuff",
+ "id_generator_unique_in_db",
+ "payment_system_client",
+ "payment_system_structs",
+ "serde",
+ "shop",
+ "sqlx",
+ "time_funcs",
+ "user",
 ]
 
 [[package]]

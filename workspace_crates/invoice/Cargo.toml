@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 derive_more = { workspace = true }
+receipt = { workspace = true }
 csscolorparser = { workspace = true }
 time_funcs = { workspace = true }
 anyhow = { workspace = true }

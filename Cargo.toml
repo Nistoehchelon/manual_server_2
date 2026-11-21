@@ -35,6 +35,7 @@ email_otp = { path = "workspace_crates/email_otp" }
 dynamic_stylesheets = { path = "workspace_crates/dynamic_stylesheets" }
 count_string_length = { path = "workspace_crates/count_string_length" }
 webhooks = { path = "workspace_crates/webhooks" }
+receipt = { path = "workspace_crates/receipt" }
 cloudflare_turnstile = { path = "workspace_crates/cloudflare_turnstile" }
 custom_site_pages = { path = "workspace_crates/custom_site_pages" }
 db_manager = { path = "workspace_crates/db_manager" }

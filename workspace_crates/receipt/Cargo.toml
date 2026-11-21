@@ -1,0 +1,22 @@
+[package]
+name = "receipt"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+derive_more = { workspace = true }
+csscolorparser = { workspace = true }
+time_funcs = { workspace = true }
+anyhow = { workspace = true }
+financial_stuff = { workspace = true }
+shop = { workspace = true }
+error_structs = { workspace = true }
+sqlx = { workspace = true }
+id_generator_unique_in_db = { workspace = true }
+cryptocurrencies_stuff = { workspace = true }
+custom_site_variables = { workspace = true }
+chrono = { workspace = true }
+user = { workspace = true }
+payment_system_client = { workspace = true }
+serde = { workspace = true }
+payment_system_structs = { workspace = true }

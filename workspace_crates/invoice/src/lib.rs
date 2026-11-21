@@ -261,7 +261,7 @@ pub fn to_str_price(curr_name: &str, val: &str) -> anyhow::Result<String> {
 }
 #[derive(Serialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
-pub enum InvoicePaymentStatus {
+pub enum InnnerInvoicePaymentStatus {
     Pending,
     Confirmations { current: u8, required: u8 },
     Complete,
@@ -280,7 +280,7 @@ impl std::fmt::Display for ParseInvoicePaymentStatusError {
 
 impl std::error::Error for ParseInvoicePaymentStatusError {}
 
-impl FromStr for InvoicePaymentStatus {
+impl FromStr for InnnerInvoicePaymentStatus {
     type Err = ParseInvoicePaymentStatusError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -305,12 +305,29 @@ impl FromStr for InvoicePaymentStatus {
     }
 }
 
+#[derive(Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum InvoicePaymentStatus {
+    Pending,
+    Confirmations { current: u8, required: u8 },
+    Complete { receipt_id: String },
+}
 pub async fn invoice_status(
-    tx: &mut Transaction<'_, Postgres>,
+    conn: &mut PgConnection,
     invoice_id: InvoiceId,
 ) -> anyhow::Result<InvoicePaymentStatus> {
-    let raw = get_invoice_data(tx, invoice_id, "status").await?;
-    let status = raw.parse::<InvoicePaymentStatus>()?;
+    let raw = get_invoice_data(conn, invoice_id.clone(), "status").await?;
+    let status = raw.parse::<InnnerInvoicePaymentStatus>()?;
+    let status = match status {
+        InnnerInvoicePaymentStatus::Pending => InvoicePaymentStatus::Pending,
+        InnnerInvoicePaymentStatus::Confirmations { current, required } => {
+            InvoicePaymentStatus::Confirmations { current, required }
+        }
+        InnnerInvoicePaymentStatus::Complete => {
+            let receipt_id = receipt::find_receipt_id_by_invoice_id(conn, invoice_id.0).await?;
+            InvoicePaymentStatus::Complete { receipt_id }
+        }
+    };
     Ok(status)
 }
 
